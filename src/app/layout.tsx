@@ -1,10 +1,41 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Instrument_Sans } from 'next/font/google';
-import { CentralProvider } from '@/componentes/layout/central-provider';
-import { Estrutura } from '@/componentes/layout/estrutura';
+import { CHAVE_META } from '@/dados/meta';
+import { FUSO_PADRAO } from '@/lib/datas';
 import './globals.css';
-const bricolage = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', display: 'swap' });
+
+const bricolage = Bricolage_Grotesque({ subsets: ['latin'], axes: ['opsz'], variable: '--font-bricolage', display: 'swap' });
 const instrument = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument', display: 'swap' });
-export const metadata: Metadata = { title: 'Central Numa · Numa boa, tudo em ordem.', description: 'O espaço da Numa para organizar a empresa, os produtos e o dia a dia.', icons: { icon: '/icon.svg' } };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#F8F6F2' };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="pt-BR"><body className={`${bricolage.variable} ${instrument.variable}`}><CentralProvider><Estrutura>{children}</Estrutura></CentralProvider></body></html>; }
+
+export const metadata: Metadata = {
+  title: { default: 'Central Numa', template: '%s · Central Numa' },
+  description: 'Sistema interno de gestão da Numa.',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#F8F6F2',
+  viewportFit: 'cover',
+};
+
+/**
+ * Roda antes da primeira pintura, para nada aparecer e sumir: esconde a Central por trás da
+ * abertura e aplica o menu recolhido. Mesmas regras de dominio/abertura e dados/meta.
+ */
+const SCRIPT_INICIAL = `(function(){try{
+var raiz=document.documentElement;
+var meta=JSON.parse(localStorage.getItem(${JSON.stringify(CHAVE_META)})||'{}');
+var hoje=new Intl.DateTimeFormat('en-CA',{timeZone:${JSON.stringify(FUSO_PADRAO)}}).format(new Date());
+if(meta.ultima_abertura!==hoje||new URLSearchParams(location.search).has('abertura'))raiz.setAttribute('data-abertura','');
+if(meta.menu_recolhido)raiz.setAttribute('data-menu-recolhido','');
+}catch(e){document.documentElement.setAttribute('data-abertura','');}})();`;
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" className={`${bricolage.variable} ${instrument.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_INICIAL }} />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}

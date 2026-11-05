@@ -1,0 +1,75 @@
+/**
+ * Menu da Central (01 §4 e 18 §10.2). Decisão de 05/11/2026: a estrutura final fica sempre visível,
+ * e o que ainda não está disponível aparece esmaecido como "Em breve", sem link.
+ */
+export const FASES = ['f0a', 'f0b', 'f1', 'f2', 'f3'] as const;
+export type Fase = (typeof FASES)[number];
+
+export type IconeModulo =
+  | 'meu-dia'
+  | 'visao-geral'
+  | 'empresa'
+  | 'produtos'
+  | 'comercial'
+  | 'contratos'
+  | 'financeiro'
+  | 'operacao'
+  | 'ferramentas'
+  | 'legal'
+  | 'marca'
+  | 'configuracoes';
+
+export type Modulo = {
+  id: IconeModulo;
+  nome: string;
+  /** Nome curto para a barra do celular. */
+  curto?: string;
+  /** Fase em que o módulo começa (01 §4). */
+  fase: Fase;
+  /** Só existe depois que a tela é construída. */
+  href?: string;
+};
+
+export const MODULOS_TOPO: readonly Modulo[] = [
+  { id: 'meu-dia', nome: 'Meu dia', fase: 'f0a' },
+  { id: 'visao-geral', nome: 'Visão geral', fase: 'f1' },
+];
+
+export const MODULOS_EMPRESA: readonly Modulo[] = [
+  { id: 'empresa', nome: 'Empresa', fase: 'f0b' },
+  { id: 'produtos', nome: 'Produtos', fase: 'f0b' },
+  { id: 'comercial', nome: 'Comercial', fase: 'f1' },
+  { id: 'contratos', nome: 'Contratos', fase: 'f1' },
+  { id: 'financeiro', nome: 'Financeiro', fase: 'f0a' },
+  { id: 'operacao', nome: 'Operação', fase: 'f2' },
+  { id: 'ferramentas', nome: 'Ferramentas e ativos', curto: 'Ferramentas', fase: 'f0a' },
+  { id: 'legal', nome: 'Legal e privacidade', fase: 'f0b' },
+  { id: 'marca', nome: 'Marca e marketing', fase: 'f0b' },
+];
+
+export const MODULO_CONFIGURACOES: Modulo = {
+  id: 'configuracoes',
+  nome: 'Configurações',
+  fase: 'f0a',
+  href: '/configuracoes',
+};
+
+/** Barra inferior do celular (18 §10.5): os demais módulos ficam no "Mais". */
+export const IDS_BARRA_CELULAR: readonly IconeModulo[] = ['meu-dia', 'financeiro', 'ferramentas'];
+
+/** Decisão de 05/11/2026: abre em Configurações até o Meu dia existir (etapa 6). */
+export const TELA_INICIAL = '/configuracoes';
+
+export function faseLiberada(fase: Fase, faseAtiva: Fase): boolean {
+  return FASES.indexOf(fase) <= FASES.indexOf(faseAtiva);
+}
+
+/** Uma tela pronta de fase ainda não ativa continua "Em breve" (decisão de 05/11/2026). */
+export function moduloDisponivel(modulo: Modulo, faseAtiva: Fase): boolean {
+  return Boolean(modulo.href) && faseLiberada(modulo.fase, faseAtiva);
+}
+
+export function moduloAtivo(modulo: Modulo, caminho: string): boolean {
+  if (!modulo.href) return false;
+  return caminho === modulo.href || caminho.startsWith(`${modulo.href}/`);
+}

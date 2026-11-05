@@ -1,14 +1,87 @@
+/* Tokens da identidade Numa: Especificacao-Sistema/18-identidade-visual-e-responsividade.md §11 */
 :root {
   color-scheme: light;
-  --espresso:#2B2421;--ink:#2B2421;--ink-soft:#6B615A;--ink-faint:#958B84;--slate:#1E293B;
-  --linen:#F8F6F2;--paper:#FFFDFA;--mist:#EFEAE3;--oat:#E5DFD7;
-  --indigo:#6366F1;--indigo-dk:#4F52D9;--indigo-press:#4346C4;--indigo-wash:rgba(99,102,241,.10);
-  --line:rgba(43,36,33,.12);--hover:rgba(43,36,33,.06);--active:rgba(43,36,33,.07);--white:#fff;
-  --c-urb:#D9962B;--t-urb:#FBEFD8;--c-kipi:#A8693A;--t-kipi:#F5E7D8;--c-zupi:#4E9A72;--t-zupi:#E2F1E7;--c-zarpa:#3478B8;--t-zarpa:#E1ECF7;--c-mimo:#C2668A;--t-mimo:#F7E6ED;--c-numa:#6366F1;--t-numa:#ECECFD;
-  --ok:#2F7D55;--ok-wash:#E4F1E9;--warn:#9A6516;--warn-wash:#FBF0DC;--err:#B42318;--err-wash:#FBE7E4;
-  --f-d:var(--font-bricolage),'Segoe UI',system-ui,sans-serif;--f-b:var(--font-instrument),'Segoe UI',system-ui,sans-serif;
-  --r-pill:999px;--r-sm:12px;--r-campo:14px;--r-md:18px;--r-lg:22px;--r-xl:28px;
-  --sh-1:0 24px 48px -36px rgba(43,36,33,.45);--sh-2:0 50px 100px -40px rgba(43,36,33,.6);--sh-btn:0 14px 30px -16px rgba(79,82,217,.8);--scrim:rgba(43,36,33,.35);--glass:rgba(248,246,242,.86);
-  --ease:cubic-bezier(.2,.75,.2,1);--spring:cubic-bezier(.34,1.56,.64,1);--t-fast:150ms;--t-mid:250ms;--t-slow:400ms;
-  --topbar:64px;--sidebar:260px;--sidebar-mini:76px;--bottombar:64px;--gutter:clamp(16px,3vw,40px);--maxw:1440px;
+
+  /* marca (iguais ao site) */
+  --espresso: #2b2421;
+  --ink: #2b2421;
+  --ink-soft: #6b615a;
+  --ink-faint: #958b84;
+  --slate: #1e293b;
+  --linen: #f8f6f2;
+  --paper: #fffdfa;
+  --mist: #efeae3;
+  --oat: #e5dfd7;
+  --indigo: #6366f1;
+  --indigo-dk: #4f52d9;
+  --indigo-press: #4346c4;
+  --indigo-wash: rgba(99, 102, 241, 0.1);
+  --line: rgba(43, 36, 33, 0.12);
+  --hover: rgba(43, 36, 33, 0.06);
+  --active: rgba(43, 36, 33, 0.07);
+  --white: #fff;
+  --marca-dagua: rgba(43, 36, 33, 0.06);
+  --marca-dagua-ponto: rgba(99, 102, 241, 0.25);
+  --sobre-espresso: rgba(248, 246, 242, 0.18);
+  --sombra-rolagem: rgba(43, 36, 33, 0.16);
+
+  /* produtos */
+  --c-urb: #d9962b;
+  --t-urb: #fbefd8;
+  --c-kipi: #a8693a;
+  --t-kipi: #f5e7d8;
+  --c-zupi: #4e9a72;
+  --t-zupi: #e2f1e7;
+  --c-zarpa: #3478b8;
+  --t-zarpa: #e1ecf7;
+  --c-mimo: #c2668a;
+  --t-mimo: #f7e6ed;
+  --c-numa: #6366f1;
+  --t-numa: #ececfd;
+
+  /* situações */
+  --ok: #2f7d55;
+  --ok-wash: #e4f1e9;
+  --warn: #9a6516;
+  --warn-wash: #fbf0dc;
+  --err: #b42318;
+  --err-wash: #fbe7e4;
+  --info: #4f52d9;
+  --info-wash: rgba(99, 102, 241, 0.1);
+
+  /* tipografia: as variáveis --font-* vêm do next/font, em app/layout.tsx */
+  --f-d: var(--font-bricolage), 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --f-b: var(--font-instrument), 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* forma */
+  --r-pill: 999px;
+  --r-sm: 12px;
+  --r-campo: 14px;
+  --r-md: 18px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+
+  /* profundidade */
+  --sh-1: 0 24px 48px -36px rgba(43, 36, 33, 0.45);
+  --sh-2: 0 50px 100px -40px rgba(43, 36, 33, 0.6);
+  --sh-btn: 0 14px 30px -16px rgba(79, 82, 217, 0.8);
+  --scrim: rgba(43, 36, 33, 0.35);
+  --glass: rgba(248, 246, 242, 0.86);
+
+  /* movimento */
+  --ease: cubic-bezier(0.2, 0.75, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 150ms;
+  --t-mid: 250ms;
+  --t-slow: 400ms;
+
+  /* layout */
+  --topbar: 64px;
+  --sidebar: 260px;
+  --sidebar-mini: 76px;
+  --bottombar: 64px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --maxw: 1440px;
+  --area-segura-baixo: env(safe-area-inset-bottom, 0px);
+  --area-segura-topo: env(safe-area-inset-top, 0px);
 }

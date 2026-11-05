@@ -1,3 +1,16 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
+import { extendTailwindMerge } from 'tailwind-merge';
+
+// Ensina ao tailwind-merge os nomes de raio e sombra da identidade Numa.
+const mesclar = extendTailwindMerge({
+  extend: {
+    theme: {
+      radius: ['pill', 'campo'],
+      shadow: ['e1', 'e2', 'btn'],
+    },
+  },
+});
+
+export function cn(...entradas: ClassValue[]) {
+  return mesclar(clsx(entradas));
+}

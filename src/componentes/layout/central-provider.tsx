@@ -1,24 +1,66 @@
 'use client';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { AlertCircle, CheckCircle2, X } from 'lucide-react';
-import { abrirBancoLocal, recuperarExemplos, type BancoLocal } from '@/dados/repositorio-local';
-import type { Estado } from '@/dados/tipos';
-import { hojeNoFuso, lerConfiguracoes, rodarRotinas } from '@/dominio/configuracoes';
-import { Logo, LinhasCalmas } from '@/componentes/marca/logo';
-import { Button } from '@/componentes/ui/button';
-import { Dialogo } from '@/componentes/padroes/dialogo';
-type Central = { banco: BancoLocal; estado: Estado; atualizar: () => void; avisar: (texto: string) => void; executar: (acao: () => void, mensagem?: string) => boolean; pendente: boolean; setPendente: (valor: boolean) => void };
-const Contexto = createContext<Central | null>(null);
-export function useCentral() { const ctx = useContext(Contexto); if (!ctx) throw new Error('Central ainda não disponível.'); return ctx; }
+
+import { createContext, use, useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { acharContexto, acharPessoaInterna, type Contexto, type PessoaInterna } from '@/dados/exemplos/base';
+import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
+import type { Fase } from '@/dominio/navegacao';
+
+type ValorCentral = {
+  /** "Você é" (02 §0.4): não é controle de segurança, só define a pessoa atual. */
+  pessoa: PessoaInterna;
+  escolherPessoa: (id: string) => void;
+  contexto: Contexto;
+  escolherContexto: (id: string) => void;
+  /** Vem de T02.01 quando a tela existir; até lá, a fase inicial da especificação. */
+  faseAtiva: Fase;
+  /** A etiqueta passa a depender dos dados reais na entrega 2 (02 §0.3). */
+  temDadosDeExemplo: boolean;
+  alternarMenu: () => void;
+};
+
+const ContextoCentral = createContext<ValorCentral | null>(null);
+
 export function CentralProvider({ children }: { children: ReactNode }) {
-  const [banco, setBanco] = useState<BancoLocal | null>(null); const [estado, setEstado] = useState<Estado | null>(null); const [erro, setErro] = useState(''); const [toast, setToast] = useState(''); const [splash, setSplash] = useState(false); const [pendente, setPendente] = useState(false); const [recuperar, setRecuperar] = useState(false);
-  function iniciar() { try { const db = abrirBancoLocal(); const inicial = db.ler(); const hoje = hojeNoFuso(lerConfiguracoes(inicial).fuso); if (inicial.meta.ultima_abertura !== hoje) { setSplash(true); db.meta({ ultima_abertura: hoje }); } rodarRotinas(db); setBanco(db); setEstado(db.ler()); setErro(''); } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir os dados locais. Tente novamente.'); } }
-  useEffect(() => { iniciar(); }, []); // A leitura acontece apenas no navegador, após hidratação.
-  useEffect(() => { if (!splash) return; const reduzir = window.matchMedia('(prefers-reduced-motion: reduce)').matches; const timeout = setTimeout(() => setSplash(false), reduzir ? 600 : 1500); const pular = () => setSplash(false); window.addEventListener('keydown', pular); return () => { clearTimeout(timeout); window.removeEventListener('keydown', pular); }; }, [splash]);
-  useEffect(() => { if (!toast) return; const timeout = setTimeout(() => setToast(''), 5000); return () => clearTimeout(timeout); }, [toast]);
-  useEffect(() => { const impedir = (e: BeforeUnloadEvent) => { if (pendente) e.preventDefault(); }; window.addEventListener('beforeunload', impedir); return () => window.removeEventListener('beforeunload', impedir); }, [pendente]);
-  function executar(acao: () => void, mensagem?: string) { try { acao(); if (banco) setEstado(banco.ler()); if (mensagem) setToast(mensagem); return true; } catch (e) { setToast(e instanceof Error ? e.message : 'Não deu para salvar agora. Seus dados continuam aqui; tente de novo.'); return false; } }
-  if (erro) return <><main className="error-page"><div className="section-icon"><AlertCircle/></div><h1 style={{marginTop:20}}>Vamos cuidar dos seus dados.</h1><p>{erro}</p><div className="heading-actions"><Button onClick={iniciar}>Tentar novamente</Button><Button variant="secondary" onClick={() => setRecuperar(true)}>Restaurar exemplos</Button></div></main><Dialogo aberto={recuperar} titulo="Restaurar os dados de exemplo?" fechar={() => setRecuperar(false)}><p>Isso apaga os dados atuais da Central neste navegador. Use esta opção apenas se tiver um backup ou quiser recomeçar.</p><div className="modal-actions"><Button variant="secondary" onClick={() => setRecuperar(false)}>Voltar</Button><Button variant="destructive" onClick={() => { try { const db = recuperarExemplos(); setBanco(db); setEstado(db.ler()); setErro(''); setRecuperar(false); } catch { setErro('O navegador não permitiu a gravação. Verifique o armazenamento e tente novamente.'); setRecuperar(false); } }}>Restaurar exemplos</Button></div></Dialogo></>;
-  if (!banco || !estado) return <main className="loading-shell" aria-busy="true" aria-label="Abrindo a Central Numa"><Logo/><div className="skeleton skeleton-title"/><div className="skeleton"/><div className="skeleton"/><p className="sr-only">Carregando configurações…</p></main>;
-  return <Contexto.Provider value={{ banco, estado, atualizar: () => setEstado(banco.ler()), avisar: setToast, executar, pendente, setPendente }}>{children}{splash && <div className="splash" onClick={() => setSplash(false)} role="button" tabIndex={0} aria-label="Pular abertura da Central"><LinhasCalmas/><Logo/><p>Tecnologia que simplifica a vida.</p><small>Clique ou pressione uma tecla para entrar</small></div>}{toast && <div className="toast" role="status" onMouseEnter={() => { /* O conteúdo também fica no histórico quando persistente. */ }}><CheckCircle2/><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={16}/></button></div>}</Contexto.Provider>;
+  const meta = useSyncExternalStore(assinarMeta, lerMeta, metaDoServidor);
+  const [menuAbertoNoTablet, setMenuAbertoNoTablet] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-menu-recolhido', meta.menu_recolhido);
+  }, [meta.menu_recolhido]);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-menu-aberto', menuAbertoNoTablet);
+    if (!menuAbertoNoTablet) return;
+    const aoClicarFora = (evento: MouseEvent) => {
+      if (!(evento.target as Element).closest('[data-menu-lateral]')) setMenuAbertoNoTablet(false);
+    };
+    document.addEventListener('click', aoClicarFora);
+    return () => document.removeEventListener('click', aoClicarFora);
+  }, [menuAbertoNoTablet]);
+
+  const alternarMenu = useCallback(() => {
+    if (window.matchMedia('(max-width: 1023.98px)').matches) setMenuAbertoNoTablet((aberto) => !aberto);
+    else gravarMeta({ menu_recolhido: !lerMeta().menu_recolhido });
+  }, []);
+
+  const valor = useMemo<ValorCentral>(
+    () => ({
+      pessoa: acharPessoaInterna(meta.pessoa_atual_id),
+      escolherPessoa: (id) => gravarMeta({ pessoa_atual_id: id }),
+      contexto: acharContexto(meta.contexto_id),
+      escolherContexto: (id) => gravarMeta({ contexto_id: id }),
+      faseAtiva: 'f0a',
+      temDadosDeExemplo: true,
+      alternarMenu,
+    }),
+    [meta.pessoa_atual_id, meta.contexto_id, alternarMenu],
+  );
+
+  return <ContextoCentral value={valor}>{children}</ContextoCentral>;
+}
+
+export function useCentral(): ValorCentral {
+  const valor = use(ContextoCentral);
+  if (!valor) throw new Error('useCentral precisa estar dentro de CentralProvider.');
+  return valor;
 }

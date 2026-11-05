@@ -32,6 +32,26 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 - **Regras de negócio:** ficam em `src/dominio`, com testes Vitest, nunca em componentes de tela.
 - **Dados:** não inventar. Registros fictícios levam `exemplo: true`; o que não foi definido fica vazio, nunca zero.
 
+## Comandos
+
+- `npm run dev`: o sistema em `http://localhost:3000`
+- `npm run dev:rede`: para abrir no celular pelo IP do computador (`18 §10.7`)
+- `npm test`: regras (Vitest)
+- `npm run typecheck` e `npm run build`
+
+Para rever a abertura, que só aparece uma vez por dia: `/configuracoes?abertura=1`, ou `?abertura=manter` para segurá-la na tela. A vitrine dos padrões fica em `/padroes`, fora do menu.
+
+## Git
+
+- Repositório local. A identidade (NumaBoa) está configurada só neste repositório; nunca use `--global`.
+- Commit somente depois que Kimberly validar a tela, um por tela validada. `main` guarda o estado anterior à fundação (`bef6b0e`).
+
+## Dependências
+
+- Versões fixas (`--save-exact`). TypeScript fica na 6.x: a 7 é a versão nativa, e o Next ainda usa a interface de compilação antiga.
+- Esta versão do Next mudou APIs (ex.: `retry` em `error.tsx`). Antes de usar uma API, confira a documentação instalada em `node_modules/next/dist/docs/`. O `AGENTS.md` é gerado pelo próprio `next dev`.
+- `npx shadcn add` instala o pacote `cn` e importa dele. Remova o pacote, importe `cn` de `@/lib/utils` e restilize o componente com os tokens de `18 §11`.
+
 ## Visual
 
 - `../Prototipos` é **referência visual**, não código a evoluir. A T02.01 foi aprovada nessa forma: `configuracoes.html`, `visual.css` e `visual.js`.

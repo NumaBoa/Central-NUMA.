@@ -2,7 +2,38 @@
   "name": "central-numa",
   "version": "0.1.0",
   "private": true,
-  "scripts": {"dev": "next dev --hostname 0.0.0.0", "build": "next build", "start": "next start --hostname 0.0.0.0", "test": "vitest run", "typecheck": "tsc --noEmit"},
-  "dependencies": {"next": "latest", "react": "latest", "react-dom": "latest", "zod": "latest", "react-hook-form": "latest", "@hookform/resolvers": "latest", "lucide-react": "latest", "@radix-ui/react-slot": "latest", "class-variance-authority": "latest", "clsx": "latest", "tailwind-merge": "latest", "date-fns": "latest", "date-fns-tz": "latest"},
-  "devDependencies": {"typescript": "latest", "@types/node": "latest", "@types/react": "latest", "@types/react-dom": "latest", "vitest": "latest", "tailwindcss": "latest", "@tailwindcss/postcss": "latest", "postcss": "latest"}
+  "scripts": {
+    "dev": "next dev",
+    "dev:rede": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "7.0.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "date-fns": "4.4.0",
+    "date-fns-tz": "3.2.0",
+    "lucide-react": "1.69.0",
+    "next": "16.4.5",
+    "radix-ui": "1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-hook-form": "7.91.0",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.4",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "postcss": "8.5.32",
+    "tailwindcss": "4.3.4",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
 }

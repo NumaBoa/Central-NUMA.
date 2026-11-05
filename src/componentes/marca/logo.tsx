@@ -1,2 +1,25 @@
-export function Logo({ className = '' }: { className?: string }) { return <span aria-label="Numa" className={`logo ${className}`}><span>numa</span><i aria-hidden="true" /></span>; }
-export function LinhasCalmas({ className = '' }: { className?: string }) { return <svg className={`calm-lines ${className}`} viewBox="0 0 1200 700" preserveAspectRatio="none" aria-hidden="true"><path d="M-80 590 C200 10 280 680 590 280 S1020 650 1280 50"/><path d="M-80 610 C220 70 300 640 600 300 S1040 590 1280 80"/><path d="M-80 640 C240 110 310 600 620 320 S1060 540 1280 110"/><path d="M-80 660 C260 140 330 570 640 340 S1080 510 1280 140"/><path d="M-80 620 C220 80 390 620 650 290 S1060 390 1280 100"/></svg>; }
+import { cn } from '@/lib/utils';
+
+type LogoProps = {
+  className?: string;
+  pontoClassName?: string;
+  /** No menu de 76px, a palavra vira só "n" + ponto. */
+  compactavel?: boolean;
+};
+
+/** Logotipo "numa" + ponto índigo (18 §2.1): o ponto sobe com mola ao passar o mouse. */
+export function Logo({ className, pontoClassName, compactavel = false }: LogoProps) {
+  return (
+    <span className={cn('group/logo inline-flex items-baseline gap-px font-display leading-none font-bold tracking-[-.045em] text-ink', className)}>
+      {compactavel ? (
+        <>
+          <span className="trilho:hidden">numa</span>
+          <span className="hidden trilho:inline">n</span>
+        </>
+      ) : (
+        <span>numa</span>
+      )}
+      <i className={cn('inline-block size-[.32em] rounded-full bg-indigo transition-transform duration-500 ease-mola group-hover/logo:-translate-y-[.25em]', pontoClassName)} />
+    </span>
+  );
+}

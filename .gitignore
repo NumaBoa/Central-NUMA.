@@ -6,3 +6,4 @@ qa/
 *.log
 .env*
 .npm-cache/
+next-env.d.ts
