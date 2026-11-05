@@ -1,0 +1,8 @@
+{
+  "name": "central-numa",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {"dev": "next dev --hostname 0.0.0.0", "build": "next build", "start": "next start --hostname 0.0.0.0", "test": "vitest run", "typecheck": "tsc --noEmit"},
+  "dependencies": {"next": "latest", "react": "latest", "react-dom": "latest", "zod": "latest", "react-hook-form": "latest", "@hookform/resolvers": "latest", "lucide-react": "latest", "@radix-ui/react-slot": "latest", "class-variance-authority": "latest", "clsx": "latest", "tailwind-merge": "latest", "date-fns": "latest", "date-fns-tz": "latest"},
+  "devDependencies": {"typescript": "latest", "@types/node": "latest", "@types/react": "latest", "@types/react-dom": "latest", "vitest": "latest", "tailwindcss": "latest", "@tailwindcss/postcss": "latest", "postcss": "latest"}
+}

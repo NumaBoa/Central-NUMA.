@@ -1,0 +1,14 @@
+:root {
+  color-scheme: light;
+  --espresso:#2B2421;--ink:#2B2421;--ink-soft:#6B615A;--ink-faint:#958B84;--slate:#1E293B;
+  --linen:#F8F6F2;--paper:#FFFDFA;--mist:#EFEAE3;--oat:#E5DFD7;
+  --indigo:#6366F1;--indigo-dk:#4F52D9;--indigo-press:#4346C4;--indigo-wash:rgba(99,102,241,.10);
+  --line:rgba(43,36,33,.12);--hover:rgba(43,36,33,.06);--active:rgba(43,36,33,.07);--white:#fff;
+  --c-urb:#D9962B;--t-urb:#FBEFD8;--c-kipi:#A8693A;--t-kipi:#F5E7D8;--c-zupi:#4E9A72;--t-zupi:#E2F1E7;--c-zarpa:#3478B8;--t-zarpa:#E1ECF7;--c-mimo:#C2668A;--t-mimo:#F7E6ED;--c-numa:#6366F1;--t-numa:#ECECFD;
+  --ok:#2F7D55;--ok-wash:#E4F1E9;--warn:#9A6516;--warn-wash:#FBF0DC;--err:#B42318;--err-wash:#FBE7E4;
+  --f-d:var(--font-bricolage),'Segoe UI',system-ui,sans-serif;--f-b:var(--font-instrument),'Segoe UI',system-ui,sans-serif;
+  --r-pill:999px;--r-sm:12px;--r-campo:14px;--r-md:18px;--r-lg:22px;--r-xl:28px;
+  --sh-1:0 24px 48px -36px rgba(43,36,33,.45);--sh-2:0 50px 100px -40px rgba(43,36,33,.6);--sh-btn:0 14px 30px -16px rgba(79,82,217,.8);--scrim:rgba(43,36,33,.35);--glass:rgba(248,246,242,.86);
+  --ease:cubic-bezier(.2,.75,.2,1);--spring:cubic-bezier(.34,1.56,.64,1);--t-fast:150ms;--t-mid:250ms;--t-slow:400ms;
+  --topbar:64px;--sidebar:260px;--sidebar-mini:76px;--bottombar:64px;--gutter:clamp(16px,3vw,40px);--maxw:1440px;
+}
