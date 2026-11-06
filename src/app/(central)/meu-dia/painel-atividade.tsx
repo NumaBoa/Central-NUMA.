@@ -1,5 +1,7 @@
 'use client';
 
+import { CampoEtiquetas } from '@/componentes/campos/etiquetas';
+import { definirEtiquetasDoRegistro } from '@/dominio/etiquetas';
 import { useCallback, useEffect, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowLeft, Check, Ellipsis, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { CampoRepeticao, type ErrosDaRepeticao } from '@/componentes/atividades/campo-repeticao';
@@ -124,7 +126,7 @@ function TextoSalvo({ id, rotulo, valor, aoSalvar, tipo = 'text', multilinha = f
 function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir, editar }: { atividade: Atividade; painel: DadosDoPainel; dados: DadosMeuDia; acoes: AcoesDaAtividade; aoFechar: () => void; aoAbrir: (id: string) => void; editar: EditarAtividade }) {
   const { pessoa } = useCentral();
   const aberta = estaAberta(atividade);
-  const doDia: AtividadeDoDia = { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0 };
+  const doDia: AtividadeDoDia = { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0, etiquetas: painel.etiquetas };
   const alerta = atividade.tipo === 'alerta';
   const internas = pessoasDoSeletor(dados.pessoas);
   const responsaveis = internas.some((item) => item.id === atividade.responsavel_id) ? internas : [...internas, ...dados.pessoas.filter((item) => item.id === atividade.responsavel_id)];
@@ -301,6 +303,7 @@ function Detalhes({ atividade, painel, dados, editar, escopo, aoEsquecerEscopo }
         </Campo>
         <PilulasMultiplas rotulo="Contexto" desativado={!aberta} valores={painel.produtos} aoMudar={(valores) => salvarComAviso(() => editar({ produtos: valores }))} opcoes={produtos.map((produto) => ({ valor: produto.id, rotulo: produto.nome }))} />
         <p className="-mt-3 text-xs text-ink-soft">Sem produto marcado, é da Numa.</p>
+        <CampoEtiquetas etiquetas={dados.etiquetas} modulo="atividades" desativado={!aberta} valores={painel.etiquetas} aoMudar={(valores) => salvarComAviso(() => definirEtiquetasDoRegistro('atividade', atividade.id, valores))} />
         <PilulasMultiplas rotulo="Participantes" desativado={!aberta} valores={painel.participantes} aoMudar={(valores) => salvarComAviso(() => editar({ participantes: valores }))} opcoes={pessoas.map((pessoa) => ({ valor: pessoa.id, rotulo: pessoa.nome_completo }))} />
         {!lembrete && <TextoSalvo id="painel-inicio" rotulo="Início" tipo="date" valor={atividade.inicio ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarInicio(atividade.id, novo)} />}
         {!lembrete && !alerta && (
@@ -870,7 +873,7 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
   const consulta = useConsulta(() => (atual ? carregarPainel(atual) : Promise.resolve(null)), [atual]);
   const painel = consulta.dados;
   const atividade = painel?.atividade;
-  const doDia: AtividadeDoDia | null = atividade && painel ? { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0 } : null;
+  const doDia: AtividadeDoDia | null = atividade && painel ? { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0, etiquetas: painel.etiquetas } : null;
   const [temRascunho, setTemRascunho] = useState(false);
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
   // RN-03.17: pergunta uma vez por abertura, e a resposta fica à vista até o painel fechar.

@@ -1,5 +1,6 @@
 'use client';
 
+import { etiquetasDoModulo } from '@/dominio/etiquetas';
 import type { ReactNode } from 'react';
 import { Campo } from '@/componentes/campos/campo';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
@@ -46,6 +47,7 @@ export function ativosComuns(filtros: FiltrosComuns, dados: DadosMeuDia, nomeDoC
     ...filtros.prioridades.map((prioridade) => ({ id: `prioridade:${prioridade}`, rotulo: `Prioridade: ${ROTULOS_PRIORIDADE_ATIVIDADE[prioridade as Atividade['prioridade']]}` })),
     ...(filtros.periodo ? [{ id: 'periodo', rotulo: `Prazo: ${ROTULOS_PERIODO[filtros.periodo]}` }] : []),
     ...(filtros.origem ? [{ id: 'origem', rotulo: `Origem: ${ROTULOS_ORIGEM_ALERTA[filtros.origem] ?? filtros.origem}` }] : []),
+    ...(filtros.etiqueta ? [{ id: 'etiqueta', rotulo: `Etiqueta: ${dados.etiquetas.find((etiqueta) => etiqueta.id === filtros.etiqueta)?.nome ?? ''}` }] : []),
   ];
 }
 
@@ -138,6 +140,18 @@ export function CamposComuns({ filtros, aoMudar, dados, situacao }: { filtros: F
           </Campo>
         </div>
       )}
+      <Campo rotulo="Etiqueta" id="filtro-etiqueta">
+        {(controle) => (
+          <Selecao {...controle} value={filtros.etiqueta} onChange={(evento) => aoMudar({ etiqueta: evento.target.value })}>
+            <option value="">Todas</option>
+            {etiquetasDoModulo(dados.etiquetas, 'atividades').map((etiqueta) => (
+              <option key={etiqueta.id} value={etiqueta.id}>
+                {etiqueta.nome}
+              </option>
+            ))}
+          </Selecao>
+        )}
+      </Campo>
       <Campo rotulo="Origem do alerta" id="filtro-origem">
         {(controle) => (
           <Selecao {...controle} value={filtros.origem} onChange={(evento) => aoMudar({ origem: evento.target.value })}>

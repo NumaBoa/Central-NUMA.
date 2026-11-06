@@ -113,6 +113,7 @@ function atividade(alteracoes: Partial<AtividadeDoDia> = {}): AtividadeDoDia {
     itensFeitos: 0,
     itensTotal: 0,
     comentarios: 0,
+    etiquetas: [],
     ...alteracoes,
   };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { EtiquetasDoRegistro } from '@/componentes/campos/etiquetas';
 import { useRef, useState, type ReactNode, type TouchEvent } from 'react';
 import { AlarmClock, BellRing, CalendarDays, Check, CheckSquare, Ellipsis, Inbox, ListChecks, MessageSquare, OctagonX, Repeat, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
@@ -192,6 +193,7 @@ export function ConteudoDoCartao({ atividade, dados, hoje, acoes }: { atividade:
           ))}
           {area && <span className="text-xs text-ink-soft">{area}</span>}
         </div>
+        <EtiquetasDoRegistro ids={atividade.etiquetas} etiquetas={dados.etiquetas} />
         <p className={cn('flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] leading-[18px] [&_svg]:size-[14px] [&_svg]:shrink-0', prazo.atrasada ? 'font-semibold text-err' : 'text-ink-soft')}>
           <CalendarDays aria-hidden />
           {prazo.texto}

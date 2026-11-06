@@ -190,7 +190,7 @@ await passo('T04.01: colunas configuráveis (P1)', async () => {
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(120);
   const rotulos = await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].map(l=>l.textContent.trim())`);
-  ok('todas as colunas da especificação', js(rotulos) === js(['Ferramenta', 'Categoria', 'Produtos', 'Situação', 'Crítica', 'Modalidade', 'Valor', 'Mensal em reais (estimado)', 'Próxima cobrança', 'Renovação', 'Titular atual', 'Responsável técnica']), js(rotulos));
+  ok('todas as colunas da especificação, e as etiquetas (decisão de 06/11)', js(rotulos) === js(['Ferramenta', 'Categoria', 'Produtos', 'Situação', 'Crítica', 'Modalidade', 'Valor', 'Mensal em reais (estimado)', 'Próxima cobrança', 'Renovação', 'Titular atual', 'Responsável técnica', 'Etiquetas']), js(rotulos));
   ok('a coluna que abre o registro não sai', await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.trim()==='Ferramenta').querySelector('input').disabled`));
   const alternar = (rotulo) => c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.trim()===${js(rotulo)}).querySelector('input').click()`);
   await alternar('Categoria');

@@ -1,5 +1,7 @@
 'use client';
 
+import { EtiquetasDoRegistro } from '@/componentes/campos/etiquetas';
+import { etiquetasDoModulo } from '@/dominio/etiquetas';
 import { useMemo, useState, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, ChartLine, CreditCard, Database, GitBranch, Globe, HardDrive, Mail, MessageCircle, Palette, Plus, Scale, Server, Share2, Sparkles, Store, Wrench } from 'lucide-react';
@@ -246,6 +248,12 @@ export function TelaFerramentas() {
       { id: 'renovacao', titulo: 'Renovação', texto: (ferramenta) => (ferramenta.assinatura?.renovacao ? ROTULOS_RENOVACAO[ferramenta.assinatura.renovacao] : ''), celula: (ferramenta) => (ferramenta.assinatura?.renovacao ? ROTULOS_RENOVACAO[ferramenta.assinatura.renovacao] : '—') },
       { id: 'titular', titulo: 'Titular atual', texto: (ferramenta) => textoDoTitular(ferramenta, dados.pessoas), celula: (ferramenta) => <span className="block max-w-52 break-words">{textoDoTitular(ferramenta, dados.pessoas)}</span> },
       { id: 'responsavel', titulo: 'Responsável técnica', ordenar: (a, b) => nomeDaPessoa(a.responsavel_tecnico_id).localeCompare(nomeDaPessoa(b.responsavel_tecnico_id), 'pt-BR'), texto: (ferramenta) => nomeDaPessoa(ferramenta.responsavel_tecnico_id), celula: (ferramenta) => <NomeDaPessoa nome={nomeDaPessoa(ferramenta.responsavel_tecnico_id)} className="min-w-max [&>span:last-child]:overflow-visible" /> },
+      {
+        id: 'etiquetas',
+        titulo: 'Etiquetas',
+        texto: (ferramenta) => dados.etiquetas.filter((etiqueta) => ferramenta.etiquetas.includes(etiqueta.id)).map((etiqueta) => etiqueta.nome).join(', '),
+        celula: (ferramenta) => (ferramenta.etiquetas.length ? <EtiquetasDoRegistro ids={ferramenta.etiquetas} etiquetas={dados.etiquetas} /> : '—'),
+      },
     ];
   }, [dados]); // eslint-disable-line react-hooks/exhaustive-deps -- os nomes só dependem de dados
 
@@ -276,6 +284,7 @@ export function TelaFerramentas() {
     ...(filtros.titular ? [{ id: 'titular', rotulo: `Titular: ${ROTULOS_TITULAR[filtros.titular as keyof typeof ROTULOS_TITULAR]}` }] : []),
     ...(filtros.dados ? [{ id: 'dados', rotulo: filtros.dados === 'sim' ? 'Trata dados pessoais' : 'Não trata dados pessoais' }] : []),
     ...(filtros.venceEm ? [{ id: 'venceEm', rotulo: `Vence em ${filtros.venceEm} dias` }] : []),
+    ...(filtros.etiqueta ? [{ id: 'etiqueta', rotulo: `Etiqueta: ${dados.etiquetas.find((etiqueta) => etiqueta.id === filtros.etiqueta)?.nome ?? ''}` }] : []),
   ];
   const { arquivadas: _semArquivadas, ...filtrosDaVisao } = filtros;
   const selecionadas = linhas.filter((linha) => selecionados.has(linha.id));
@@ -383,6 +392,18 @@ export function TelaFerramentas() {
                   <option value="">Todas</option>
                   <option value="sim">Sim</option>
                   <option value="nao">Não</option>
+                </Selecao>
+              )}
+            </Campo>
+            <Campo rotulo="Etiqueta" id="filtro-etiqueta">
+              {(controle) => (
+                <Selecao {...controle} value={filtros.etiqueta} onChange={(evento) => mudar({ etiqueta: evento.target.value })}>
+                  <option value="">Todas</option>
+                  {etiquetasDoModulo(dados.etiquetas, 'ferramentas').map((etiqueta) => (
+                    <option key={etiqueta.id} value={etiqueta.id}>
+                      {etiqueta.nome}
+                    </option>
+                  ))}
                 </Selecao>
               )}
             </Campo>

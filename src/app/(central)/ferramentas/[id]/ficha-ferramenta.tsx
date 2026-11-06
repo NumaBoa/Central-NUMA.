@@ -1,5 +1,7 @@
 'use client';
 
+import { CampoEtiquetas } from '@/componentes/campos/etiquetas';
+import { definirEtiquetasDoRegistro } from '@/dominio/etiquetas';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -86,7 +88,20 @@ function BotaoAbrir({ url, rotulo }: { url: string | null; rotulo: string }) {
 
 function Resumo({ ferramenta, dados }: { ferramenta: LinhaDaFerramenta; dados: DadosDasFerramentas }) {
   const fornecedor = dados.contrapartes.find((contraparte) => contraparte.id === ferramenta.fornecedor_id);
+  const editavel = !ferramenta.arquivado_em && ferramenta.situacao !== 'cancelada';
   return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-line bg-paper p-4 md:p-5">
+        <CampoEtiquetas
+          etiquetas={dados.etiquetas}
+          modulo="ferramentas"
+          desativado={!editavel}
+          valores={ferramenta.etiquetas}
+          aoMudar={(valores) => {
+            definirEtiquetasDoRegistro('ferramenta', ferramenta.id, valores).catch((erro: unknown) => aviso(mensagemDoErro(erro)));
+          }}
+        />
+      </div>
     <ListaDeDados>
       <Dado rotulo="Finalidade">{ferramenta.finalidade}</Dado>
       <Dado rotulo="Categoria">{dados.categorias.find((categoria) => categoria.id === ferramenta.categoria_id)?.nome}</Dado>
@@ -120,6 +135,7 @@ function Resumo({ ferramenta, dados }: { ferramenta: LinhaDaFerramenta; dados: D
         </Dado>
       )}
     </ListaDeDados>
+    </div>
   );
 }
 

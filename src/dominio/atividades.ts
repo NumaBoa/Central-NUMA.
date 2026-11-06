@@ -4,6 +4,7 @@ import { repositorios } from '@/dados/repositorios';
 import { emTransacao } from '@/dados/transacao';
 import type { Area } from '@/dados/tipos/area';
 import type { Atividade } from '@/dados/tipos/atividade';
+import type { Etiqueta } from '@/dados/tipos/etiqueta';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { fusoConfigurado, hojeISO } from '@/lib/datas';
@@ -162,7 +163,9 @@ export function dataPorExtenso(agora: Date = new Date(), fuso: string = fusoConf
 
 // ---------- Filtros (T03.01) ----------
 
-export type AtividadeDoDia = Atividade & { produtos: string[]; participantes: string[]; itensFeitos: number; itensTotal: number; comentarios: number };
+export type AtividadeDoDia = Atividade & { produtos: string[]; participantes: string[]; itensFeitos: number; itensTotal: number; comentarios: number   /** Os ids das etiquetas. */
+  etiquetas: string[];
+};
 
 export type PeriodoDoPrazo = '' | 'atrasadas' | 'hoje' | 'semana' | '30dias' | 'sem_prazo' | 'intervalo';
 export type DestaqueDoResumo = '' | 'atrasadas' | 'hoje' | 'em_andamento' | 'aguardando' | 'bloqueadas' | 'concluidas';
@@ -182,6 +185,8 @@ export type FiltrosMeuDia = {
   prazoDe: string;
   prazoAte: string;
   origem: string;
+  /** O id de uma etiqueta (decisão de Kimberly em 06/11/2026). */
+  etiqueta: string;
   /** O cartão clicado na faixa de resumo. */
   destaque: DestaqueDoResumo;
 };
@@ -189,7 +194,7 @@ export type FiltrosMeuDia = {
 /** O que o Meu dia e o Histórico filtram do mesmo jeito (T03.04). */
 export type FiltrosComuns = Omit<FiltrosMeuDia, 'situacao' | 'destaque'>;
 
-export const FILTROS_MEU_DIA_INICIAIS: FiltrosMeuDia = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', situacao: 'abertas', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', origem: '', destaque: '' };
+export const FILTROS_MEU_DIA_INICIAIS: FiltrosMeuDia = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', situacao: 'abertas', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', origem: '', etiqueta: '', destaque: '' };
 
 export const ROTULOS_PERIODO = { atrasadas: 'Atrasadas', hoje: 'Hoje', semana: 'Esta semana', '30dias': 'Próximos 30 dias', sem_prazo: 'Sem prazo', intervalo: 'Intervalo' } as const;
 
@@ -266,7 +271,8 @@ export function passaNosFiltrosComuns(atividade: AtividadeDoDia, filtros: Filtro
     (!filtros.tipo || atividade.tipo === filtros.tipo) &&
     (!filtros.prioridades.length || filtros.prioridades.includes(atividade.prioridade)) &&
     passaNoPeriodo(atividade, filtros, hoje) &&
-    (!filtros.origem || atividade.origem_tipo === filtros.origem)
+    (!filtros.origem || atividade.origem_tipo === filtros.origem) &&
+    (!filtros.etiqueta || atividade.etiquetas.includes(filtros.etiqueta))
   );
 }
 
@@ -350,6 +356,8 @@ export type DadosMeuDia = {
   areas: Area[];
   produtos: Produto[];
   marcas: Marca[];
+  /** Todas, inclusive as arquivadas, para mostrar o nome das que já estavam aplicadas. */
+  etiquetas: Etiqueta[];
 };
 
 export type ContextoDaAtividade = { id: string; nome: string; cor: string; tinta: string };
@@ -579,6 +587,8 @@ export async function carregarMeuDia(): Promise<DadosMeuDia> {
     repositorios.produto.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
   ]);
+  const [vinculosDeEtiqueta, etiquetas] = await Promise.all([repositorios.etiqueta_vinculo.listar({ onde: { registro_tipo: 'atividade' } }), repositorios.etiqueta.listar({ incluirArquivados: true })]);
+  const etiquetasDa = (id: string) => vinculosDeEtiqueta.filter((vinculo) => vinculo.registro_id === id).map((vinculo) => vinculo.etiqueta_id);
   return {
     atividades: atividades.map((atividade) => ({
       ...atividade,
@@ -587,10 +597,12 @@ export async function carregarMeuDia(): Promise<DadosMeuDia> {
       itensTotal: itens.filter((item) => item.registro_id === atividade.id).length,
       itensFeitos: itens.filter((item) => item.registro_id === atividade.id && item.feito).length,
       comentarios: comentarios.filter((comentario) => comentario.registro_id === atividade.id && !comentario.removido_em).length,
+      etiquetas: etiquetasDa(atividade.id),
     })),
     pessoas,
     areas,
     produtos,
     marcas,
+    etiquetas,
   };
 }

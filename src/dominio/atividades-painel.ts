@@ -262,6 +262,8 @@ export type DadosDoPainel = {
   quemBloqueou: string | null;
   /** A rotina de que esta atividade é ocorrência (T03.05). */
   rotina: Recorrencia | null;
+  /** Os ids das etiquetas. Valem só para esta atividade, e não passam para as próximas ocorrências. */
+  etiquetas: string[];
 };
 
 async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
@@ -304,7 +306,9 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
     atividade.recorrencia_id ? repositorios.recorrencia.obter(atividade.recorrencia_id) : Promise.resolve(null),
   ]);
   const bloqueio = eventos.find((evento) => evento.depois?.bloqueada === true);
+  const etiquetas = (await repositorios.etiqueta_vinculo.listar({ onde: { registro_tipo: 'atividade', registro_id: id } })).map((vinculo) => vinculo.etiqueta_id);
   return {
+    etiquetas,
     atividade,
     produtos: produtos.map((ligacao) => ligacao.produto_id),
     participantes: participantes.map((ligacao) => ligacao.pessoa_id),

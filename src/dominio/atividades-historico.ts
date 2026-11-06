@@ -19,7 +19,7 @@ export type FiltrosHistorico = FiltrosComuns & {
   concluidaPor: string;
 };
 
-export const FILTROS_HISTORICO_INICIAIS: FiltrosHistorico = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', origem: '', situacao: '', conclusao: '', conclusaoDe: '', conclusaoAte: '', concluidaPor: '' };
+export const FILTROS_HISTORICO_INICIAIS: FiltrosHistorico = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', etiqueta: '', origem: '', situacao: '', conclusao: '', conclusaoDe: '', conclusaoAte: '', concluidaPor: '' };
 
 /** Cancelar não tem data própria (16 §4.3), e encerrada não muda mais: a última alteração é o cancelamento. */
 export function encerradaEm(atividade: Pick<Atividade, 'concluida_em' | 'atualizado_em'>): string {

@@ -7,6 +7,7 @@ import { emTransacao } from '@/dados/transacao';
 import type { Area } from '@/dados/tipos/area';
 import type { CambioReferencia } from '@/dados/tipos/cambio-referencia';
 import type { Contraparte } from '@/dados/tipos/contraparte';
+import type { Etiqueta } from '@/dados/tipos/etiqueta';
 import { TIPOS_DE_DADOS, type AssinaturaFerramenta, type AssinaturaValorHistorico, type CategoriaFerramenta, type Ferramenta, type FerramentaContexto } from '@/dados/tipos/ferramenta';
 import type { CategoriaFinanceira, ContaFinanceira } from '@/dados/tipos/financeiro';
 import type { Marca, Produto } from '@/dados/tipos/marca';
@@ -605,6 +606,8 @@ export type LinhaDaFerramenta = Ferramenta & {
   contextos: FerramentaContexto[];
   assinatura: AssinaturaFerramenta | null;
   equivalenteMensal: number | null;
+  /** Os ids das etiquetas (decisão de Kimberly em 06/11/2026). */
+  etiquetas: string[];
 };
 
 export type DadosDasFerramentas = {
@@ -618,6 +621,8 @@ export type DadosDasFerramentas = {
   contas: ContaFinanceira[];
   categoriasFinanceiras: CategoriaFinanceira[];
   cambios: CambioReferencia[];
+  /** Todas, inclusive as arquivadas, para mostrar o nome das que já estavam aplicadas. */
+  etiquetas: Etiqueta[];
 };
 
 export async function carregarFerramentas(): Promise<DadosDasFerramentas> {
@@ -635,10 +640,17 @@ export async function carregarFerramentas(): Promise<DadosDasFerramentas> {
     repositorios.categoria_financeira.listar(),
     repositorios.cambio_referencia.listar(),
   ]);
+  const [vinculosDeEtiqueta, etiquetas] = await Promise.all([repositorios.etiqueta_vinculo.listar({ onde: { registro_tipo: 'ferramenta' } }), repositorios.etiqueta.listar({ incluirArquivados: true })]);
   return {
     ferramentas: ferramentas.map((ferramenta) => {
       const assinatura = assinaturaAtiva(assinaturas.filter((item) => item.ferramenta_id === ferramenta.id));
-      return { ...ferramenta, contextos: contextos.filter((ligacao) => ligacao.ferramenta_id === ferramenta.id), assinatura, equivalenteMensal: assinatura ? equivalenteMensalBrl(assinatura, cambios) : null };
+      return {
+        ...ferramenta,
+        contextos: contextos.filter((ligacao) => ligacao.ferramenta_id === ferramenta.id),
+        assinatura,
+        equivalenteMensal: assinatura ? equivalenteMensalBrl(assinatura, cambios) : null,
+        etiquetas: vinculosDeEtiqueta.filter((vinculo) => vinculo.registro_id === ferramenta.id).map((vinculo) => vinculo.etiqueta_id),
+      };
     }),
     categorias: categorias.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
     pessoas,
@@ -649,6 +661,7 @@ export async function carregarFerramentas(): Promise<DadosDasFerramentas> {
     contas,
     categoriasFinanceiras,
     cambios,
+    etiquetas,
   };
 }
 
@@ -672,10 +685,12 @@ export type FiltrosFerramentas = {
   titular: string;
   dados: '' | 'sim' | 'nao';
   venceEm: '' | '7' | '30' | '60' | '90';
+  /** O id de uma etiqueta. */
+  etiqueta: string;
   arquivadas: boolean;
 };
 
-export const FILTROS_FERRAMENTAS_INICIAIS: FiltrosFerramentas = { busca: '', categoria: '', contexto: '', situacao: '', modalidade: '', critica: '', titular: '', dados: '', venceEm: '', arquivadas: false };
+export const FILTROS_FERRAMENTAS_INICIAIS: FiltrosFerramentas = { busca: '', categoria: '', contexto: '', situacao: '', modalidade: '', critica: '', titular: '', dados: '', venceEm: '', etiqueta: '', arquivadas: false };
 
 function somarDias(dia: string, dias: number): string {
   const data = new Date(`${dia}T00:00:00Z`);
@@ -697,6 +712,7 @@ export function filtrarFerramentas(ferramentas: readonly LinhaDaFerramenta[], fi
     .filter((ferramenta) => !filtros.critica || ferramenta.critica === (filtros.critica === 'sim'))
     .filter((ferramenta) => !filtros.titular || ferramenta.titular_atual_tipo === filtros.titular)
     .filter((ferramenta) => !filtros.dados || ferramenta.trata_dados_pessoais === (filtros.dados === 'sim'))
+    .filter((ferramenta) => !filtros.etiqueta || ferramenta.etiquetas.includes(filtros.etiqueta))
     .filter((ferramenta) => {
       if (!filtros.venceEm) return true;
       const proxima = ferramenta.assinatura?.proxima_cobranca;

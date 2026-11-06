@@ -98,6 +98,36 @@ export async function mesclarEtiquetas(origemId: string, destinoId: string): Pro
   });
 }
 
+/**
+ * Decisão de Kimberly em 06/11/2026: as etiquetas entram nas atividades e nas ferramentas, como campo e filtro.
+ * O tipo do registro e o módulo de onde vêm as etiquetas que ele aceita.
+ */
+export const MODULO_DO_REGISTRO = { atividade: 'atividades', ferramenta: 'ferramentas' } as const satisfies Record<string, ModuloEtiqueta>;
+
+export type RegistroComEtiqueta = keyof typeof MODULO_DO_REGISTRO;
+
+/** Os ids das etiquetas de cada registro, para as listas e os filtros. */
+export function etiquetasPorRegistro(vinculos: readonly Pick<EtiquetaVinculo, 'registro_tipo' | 'registro_id' | 'etiqueta_id' | 'arquivado_em'>[], tipo: RegistroComEtiqueta): Map<string, string[]> {
+  const mapa = new Map<string, string[]>();
+  for (const vinculo of vinculos) {
+    if (vinculo.registro_tipo !== tipo || vinculo.arquivado_em) continue;
+    mapa.set(vinculo.registro_id, [...(mapa.get(vinculo.registro_id) ?? []), vinculo.etiqueta_id]);
+  }
+  return mapa;
+}
+
+/** Deixa o registro com estas etiquetas: tira as que saíram e põe as novas. Só as do módulo, ativas. */
+export async function definirEtiquetasDoRegistro(tipo: RegistroComEtiqueta, id: string, ids: readonly string[]): Promise<void> {
+  const desejadas = [...new Set(ids)];
+  const [etiquetas, atuais] = await Promise.all([repositorios.etiqueta.listar(), repositorios.etiqueta_vinculo.listar({ onde: { registro_tipo: tipo, registro_id: id } })]);
+  const disponiveis = new Set(etiquetasDoModulo(etiquetas, MODULO_DO_REGISTRO[tipo]).map((etiqueta) => etiqueta.id));
+  if (desejadas.some((etiquetaId) => !disponiveis.has(etiquetaId) && !atuais.some((vinculo) => vinculo.etiqueta_id === etiquetaId))) throw new ErroDeRegra('Esta etiqueta não está disponível aqui. Escolha outra.');
+  await emTransacao(async () => {
+    for (const vinculo of atuais) if (!desejadas.includes(vinculo.etiqueta_id)) await repositorios.etiqueta_vinculo.arquivar(vinculo.id);
+    for (const etiquetaId of desejadas) if (!atuais.some((vinculo) => vinculo.etiqueta_id === etiquetaId)) await repositorios.etiqueta_vinculo.criar({ etiqueta_id: etiquetaId, registro_tipo: tipo, registro_id: id });
+  });
+}
+
 /** Para os seletores dos módulos: vazio vale para todos. */
 export function etiquetasDoModulo(etiquetas: readonly Etiqueta[], modulo: ModuloEtiqueta): Etiqueta[] {
   return etiquetas.filter((etiqueta) => !etiqueta.arquivado_em && (!etiqueta.modulos.length || etiqueta.modulos.includes(modulo)));
