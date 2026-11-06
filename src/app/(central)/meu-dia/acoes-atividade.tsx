@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useMemo, useState } from 'react';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
@@ -209,7 +210,7 @@ function DialogoDeAguardando({ atividade, dados, hoje, aoFechar }: { atividade: 
             </Campo>
           )}
           <Campo id="aguardando-acompanhamento" rotulo="Acompanhar em" ajuda="Nesse dia, a atividade aparece em Para hoje.">
-            {(controle) => <Input type="date" min={hoje} {...controle} value={acompanhamento} onChange={(evento) => setAcompanhamento(evento.target.value)} />}
+            {(controle) => <EntradaData min={hoje} {...controle} value={acompanhamento} onChange={(evento) => setAcompanhamento(evento.target.value)} />}
           </Campo>
           {erro && <MensagemErro id="aguardando-erro">{erro}</MensagemErro>}
         </div>
@@ -243,7 +244,7 @@ function DialogoDeAdiar({ atividade, hoje, aoFechar }: { atividade: AtividadeDoD
         <div className="grid gap-3">
           <p>{atual ? `A data atual é ${formatarDiaISO(atual)} e fica no histórico.` : 'Ela ainda está sem prazo.'}</p>
           <Campo id="adiar-data" rotulo="Nova data" obrigatorio erro={erro}>
-            {(controle) => <Input type="date" min={hoje} {...controle} value={novaData} onChange={(evento) => setNovaData(evento.target.value)} />}
+            {(controle) => <EntradaData min={hoje} {...controle} value={novaData} onChange={(evento) => setNovaData(evento.target.value)} />}
           </Campo>
         </div>
       }

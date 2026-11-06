@@ -126,6 +126,65 @@ await passo('ferramenta: filtro e coluna na lista', async () => {
   await fecharMenu();
 });
 
+const hoje = new Date();
+const diaISO = (dias = 0) => new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + dias)).toISOString().slice(0, 10);
+const fimDoMes = () => new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth() + 1, 0)).toISOString().slice(0, 10);
+const atalhosDe = (id) => c.avaliar(`[...(document.getElementById(${js(id)})?.parentElement.querySelectorAll('[aria-label="Atalhos de data"] button') ?? [])].map(b=>b.textContent)`);
+const clicarAtalho = (id, rotulo) => c.avaliar(`[...document.getElementById(${js(id)}).parentElement.querySelectorAll('[aria-label="Atalhos de data"] button')].find(b=>b.textContent===${js(rotulo)}).click()`);
+
+await passo('atalhos de data: Nova despesa', async () => {
+  await ir('/financeiro');
+  await c.ate(`document.querySelector('main table tbody tr')`);
+  await c.espera(200);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Nova despesa').click()`);
+  await painelAberto();
+  await c.espera(350);
+  ok('o vencimento tem os três atalhos', js(await atalhosDe('despesa-vencimento')) === js(['Hoje', '+7 dias', 'Fim do mês']), js(await atalhosDe('despesa-vencimento')));
+  ok('a data do pagamento, que não pode ser futura, só tem "Hoje"', js(await atalhosDe('despesa-data-pagamento')) === js(['Hoje']), js(await atalhosDe('despesa-data-pagamento')));
+  await clicarAtalho('despesa-vencimento', '+7 dias');
+  await c.espera(150);
+  ok('"+7 dias" conta a partir de hoje', (await valor('despesa-vencimento')) === diaISO(7), await valor('despesa-vencimento'));
+  ok('a competência acompanha, como ao digitar', (await valor('despesa-competencia')) === diaISO(7).slice(0, 7), await valor('despesa-competencia'));
+  await clicarAtalho('despesa-vencimento', 'Fim do mês');
+  await c.espera(150);
+  ok('"Fim do mês" é o último dia deste mês', (await valor('despesa-vencimento')) === fimDoMes(), await valor('despesa-vencimento'));
+  await clicarAtalho('despesa-vencimento', 'Hoje');
+  await c.espera(150);
+  ok('"Hoje" volta para hoje', (await valor('despesa-vencimento')) === diaISO(0));
+  await c.foto('e-despesa-atalhos');
+  await c.tamanho(360, 780);
+  await c.espera(400);
+  await conferirTela('Nova despesa com atalhos', 360);
+  await c.foto('f-despesa-360');
+  await c.tamanho(1440, 900);
+  await c.tecla('Escape');
+  await c.espera(300);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar')?.click()`);
+  await c.espera(300);
+});
+
+await passo('atalhos de data: adiar uma atividade', async () => {
+  const titulo = 'Publicar a nota de versão do Kipi';
+  await ir('/meu-dia');
+  await c.ate(`document.querySelector('main article')`);
+  await c.espera(300);
+  await c.avaliar(`document.querySelector(${js(`[aria-label="Ações de ${titulo}"]`)}).scrollIntoView({block:'center'})`);
+  await c.espera(80);
+  await c.clicar(`[aria-label="Ações de ${titulo}"]`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(150);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.trim()==='Escolher data').click()`);
+  await c.ate(`document.getElementById('adiar-data')`);
+  await c.espera(300);
+  ok('adiar tem os três atalhos', js(await atalhosDe('adiar-data')) === js(['Hoje', '+7 dias', 'Fim do mês']), js(await atalhosDe('adiar-data')));
+  await clicarAtalho('adiar-data', '+7 dias');
+  await c.espera(100);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse().find(b=>b.textContent.trim()==='Adiar').click()`);
+  await c.ate(`!document.querySelector('.dialogo')`);
+  await c.espera(300);
+  ok('o atalho vale ao salvar: o prazo vai para daqui a 7 dias', (await tabela('atividade')).find((a) => a.titulo === titulo)?.prazo === diaISO(7));
+});
+
 await passo('responsivo', async () => {
   await c.tamanho(360, 780);
   const atividade = (await tabela('atividade')).find((a) => a.titulo === 'Definir o preço da oferta anual');

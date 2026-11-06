@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -190,7 +191,7 @@ export function FormularioConta({ aberto, aoFechar, conta, dados }: FormularioCo
                 {(controle) => <Input inputMode="decimal" autoComplete="off" placeholder="0,00" {...controle} {...register('saldo_inicial')} />}
               </Campo>
               <Campo id="conta-data-saldo" rotulo="Data do saldo" obrigatorio erro={errors.data_saldo_inicial?.message}>
-                {(controle) => <Input type="date" {...controle} {...register('data_saldo_inicial')} />}
+                {(controle) => <EntradaData {...controle} {...register('data_saldo_inicial')} />}
               </Campo>
             </div>
           )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -275,10 +276,10 @@ export function FormularioDeAtivo({ aberto, aoFechar, dados, ativo, tipoInicial,
           )}
           <div className="grid grid-cols-2 gap-3">
             <Campo id="ativo-registrado" rotulo="Data de registro">
-              {(controle) => <Input type="date" {...controle} {...register('registrado_em')} />}
+              {(controle) => <EntradaData {...controle} {...register('registrado_em')} />}
             </Campo>
             <Campo id={ID_DO_CAMPO.vencimento} rotulo="Vencimento" obrigatorio={tipo === 'dominio'} erro={errors.vencimento?.message}>
-              {(controle) => <Input type="date" {...controle} {...register('vencimento')} />}
+              {(controle) => <EntradaData {...controle} {...register('vencimento')} />}
             </Campo>
           </div>
           <Controller

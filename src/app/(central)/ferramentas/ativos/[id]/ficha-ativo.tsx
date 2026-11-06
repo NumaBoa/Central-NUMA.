@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ArchiveRestore, ArrowLeft, ArrowRightLeft, Ellipsis, ExternalLink, Globe, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -179,7 +180,7 @@ function DialogoDeTransferencia({ ativo, dados, aoFechar }: { ativo: AtivoDigita
         <DialogDescription className="mt-3 leading-[1.6]">O titular atual muda, a situação fica “Concluída” e o histórico guarda o que havia.</DialogDescription>
         <div className="mt-4 grid gap-4">
           <Campo id="transferencia-data" rotulo="Data" obrigatorio erro={erros.data}>
-            {(controle) => <Input type="date" {...controle} value={valores.data} onChange={(evento) => mudar({ data: evento.target.value })} />}
+            {(controle) => <EntradaData {...controle} value={valores.data} onChange={(evento) => mudar({ data: evento.target.value })} />}
           </Campo>
           <Pilulas rotulo="Novo titular" obrigatorio valor={valores.titular_tipo} aoMudar={(valor) => mudar({ titular_tipo: valor as FormularioTransferencia['titular_tipo'] })} opcoes={Object.entries(ROTULOS_TITULAR).map(([valor, rotulo]) => ({ valor, rotulo }))} />
           {valores.titular_tipo === 'pessoa_fisica' && (

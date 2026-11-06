@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -96,7 +97,7 @@ function FormularioDoFeriado({ aberto, aoFechar, feriado, dados, aoSalvar }: { a
     <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={feriado ? 'Editar feriado' : 'Novo feriado'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={feriado ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         <Campo id="feriado-data" rotulo="Data" obrigatorio erro={errors.data?.message}>
-          {(controle) => <Input type="date" {...controle} {...register('data')} />}
+          {(controle) => <EntradaData {...controle} {...register('data')} />}
         </Campo>
         <Campo id="feriado-nome" rotulo="Nome" obrigatorio erro={errors.nome?.message}>
           {(controle) => <Input autoComplete="off" {...controle} {...register('nome')} />}

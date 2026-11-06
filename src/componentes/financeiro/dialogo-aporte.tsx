@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -83,7 +84,7 @@ export function DialogoDeAporte({ socias, contas, aoFechar }: { socias: readonly
             />
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <Campo id="aporte-data" rotulo="Data" obrigatorio erro={errors.data?.message}>
-                {(controle) => <Input type="date" max={hoje} {...controle} {...register('data')} />}
+                {(controle) => <EntradaData max={hoje} {...controle} {...register('data')} />}
               </Campo>
               <Campo id="aporte-valor" rotulo="Valor em BRL" obrigatorio erro={errors.valor?.message}>
                 {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('valor')} />}

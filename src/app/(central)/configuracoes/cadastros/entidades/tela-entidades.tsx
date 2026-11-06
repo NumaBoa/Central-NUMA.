@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -147,7 +148,7 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
           )}
         </div>
         <Campo id="entidade-abertura" rotulo="Data de abertura" obrigatorio={situacao === 'ativa'} erro={errors.data_abertura?.message}>
-          {(controle) => <Input type="date" {...controle} {...register('data_abertura')} />}
+          {(controle) => <EntradaData {...controle} {...register('data_abertura')} />}
         </Campo>
         <div id="entidade-padrao" tabIndex={-1}>
           <Controller

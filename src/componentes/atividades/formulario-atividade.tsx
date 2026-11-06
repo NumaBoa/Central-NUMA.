@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown } from 'lucide-react';
@@ -238,7 +239,7 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
           {repetir ? null : lembrete ? (
             <div className="grid grid-cols-2 gap-3">
               <Campo id={ID_DO_CAMPO.aviso_dia} rotulo="Data do aviso" obrigatorio erro={errors.aviso_dia?.message}>
-                {(controle) => <Input type="date" {...controle} {...register('aviso_dia')} />}
+                {(controle) => <EntradaData {...controle} {...register('aviso_dia')} />}
               </Campo>
               <Campo id={ID_DO_CAMPO.aviso_hora} rotulo="Hora do aviso" obrigatorio erro={errors.aviso_hora?.message}>
                 {(controle) => <Input type="time" {...controle} {...register('aviso_hora')} />}
@@ -356,11 +357,11 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
                   {!repetir && (
                     <>
                       <Campo id={ID_DO_CAMPO.inicio} rotulo="Início" erro={errors.inicio?.message}>
-                        {(controle) => <Input type="date" {...controle} {...register('inicio')} />}
+                        {(controle) => <EntradaData {...controle} {...register('inicio')} />}
                       </Campo>
                       <div className="grid grid-cols-2 gap-3">
                         <Campo id={ID_DO_CAMPO.aviso_dia} rotulo="Avisar no dia" erro={errors.aviso_dia?.message}>
-                          {(controle) => <Input type="date" {...controle} {...register('aviso_dia')} />}
+                          {(controle) => <EntradaData {...controle} {...register('aviso_dia')} />}
                         </Campo>
                         <Campo id={ID_DO_CAMPO.aviso_hora} rotulo="Às" erro={errors.aviso_hora?.message}>
                           {(controle) => <Input type="time" {...controle} {...register('aviso_hora')} />}

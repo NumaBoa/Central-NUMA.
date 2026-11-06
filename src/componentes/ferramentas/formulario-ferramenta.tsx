@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -457,10 +458,10 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <Campo id={ID_DO_CAMPO.proxima_cobranca} rotulo="Próxima cobrança" obrigatorio={!porUso} erro={errors.proxima_cobranca?.message}>
-                    {(controle) => <Input type="date" {...controle} {...register('proxima_cobranca')} />}
+                    {(controle) => <EntradaData {...controle} {...register('proxima_cobranca')} />}
                   </Campo>
                   <Campo id="ferramenta-contratacao" rotulo="Data da contratação">
-                    {(controle) => <Input type="date" {...controle} {...register('data_contratacao')} />}
+                    {(controle) => <EntradaData {...controle} {...register('data_contratacao')} />}
                   </Campo>
                 </div>
                 <div id={ID_DO_CAMPO.renovacao} tabIndex={-1}>
@@ -514,7 +515,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
             {teste && (
               <>
                 <Campo id={ID_DO_CAMPO.fim_teste} rotulo="Fim do teste" obrigatorio erro={errors.fim_teste?.message}>
-                  {(controle) => <Input type="date" {...controle} {...register('fim_teste')} />}
+                  {(controle) => <EntradaData {...controle} {...register('fim_teste')} />}
                 </Campo>
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
                   <Campo id={ID_DO_CAMPO.valor_apos_teste} rotulo="Valor após o teste" erro={errors.valor_apos_teste?.message}>

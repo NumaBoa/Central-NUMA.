@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -263,7 +264,7 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresI
           />
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <Campo id={ID_DO_CAMPO.vencimento} rotulo="Vencimento" obrigatorio={!pago} erro={errors.vencimento?.message} ajuda={pago ? 'Vazio: a data do pagamento.' : undefined}>
-              {(controle) => <Input type="date" {...controle} {...register('vencimento', { onChange: (evento) => acompanharCompetencia(evento.target.value) })} />}
+              {(controle) => <EntradaData {...controle} {...register('vencimento', { onChange: (evento) => acompanharCompetencia(evento.target.value) })} />}
             </Campo>
             <Campo id={ID_DO_CAMPO.competencia} rotulo="Competência" obrigatorio erro={errors.competencia?.message}>
               {(controle) => <Input type="month" {...controle} {...register('competencia')} />}
@@ -346,7 +347,7 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresI
               <h3 className="text-[15px]">Pagamento</h3>
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
                 <Campo id={ID_DO_CAMPO.data_pagamento} rotulo="Data do pagamento" obrigatorio erro={errors.data_pagamento?.message}>
-                  {(controle) => <Input type="date" max={hoje} {...controle} {...register('data_pagamento', { onChange: (evento) => !getValues('vencimento') && acompanharCompetencia(evento.target.value) })} />}
+                  {(controle) => <EntradaData max={hoje} {...controle} {...register('data_pagamento', { onChange: (evento) => !getValues('vencimento') && acompanharCompetencia(evento.target.value) })} />}
                 </Campo>
                 <Controller
                   control={control}
@@ -391,7 +392,7 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresI
                   </div>
                   {valores.tratamento === 'reembolso' && (
                     <Campo id={ID_DO_CAMPO.vencimento_reembolso} rotulo="Vencimento do reembolso" obrigatorio erro={errors.vencimento_reembolso?.message}>
-                      {(controle) => <Input type="date" {...controle} {...register('vencimento_reembolso')} />}
+                      {(controle) => <EntradaData {...controle} {...register('vencimento_reembolso')} />}
                     </Campo>
                   )}
                 </div>

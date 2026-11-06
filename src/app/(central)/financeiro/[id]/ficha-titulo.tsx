@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -158,7 +159,7 @@ function DialogoDeTratamento({ baixa, aoFechar }: { baixa: Baixa; aoFechar: () =
         <div className="mt-4 grid gap-4">
           {novo === 'reembolso' && (
             <Campo id="tratamento-vencimento" rotulo="Vencimento do reembolso" obrigatorio>
-              {(controle) => <Input type="date" {...controle} value={vencimento} onChange={(evento) => setVencimento(evento.target.value)} />}
+              {(controle) => <EntradaData {...controle} value={vencimento} onChange={(evento) => setVencimento(evento.target.value)} />}
             </Campo>
           )}
           <Campo id="tratamento-motivo" rotulo="Motivo" obrigatorio erro={erro ?? undefined}>
@@ -329,7 +330,7 @@ function FormularioDoTitulo({ ficha, aberto, aoFechar }: { ficha: FichaDoTitulo;
             {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('valor')} />}
           </Campo>
           <Campo id="titulo-vencimento" rotulo="Vencimento" obrigatorio erro={errors.vencimento?.message}>
-            {(controle) => <Input type="date" {...controle} {...register('vencimento')} />}
+            {(controle) => <EntradaData {...controle} {...register('vencimento')} />}
           </Campo>
         </div>
         <Campo id="titulo-competencia" rotulo="Competência" obrigatorio erro={errors.competencia?.message}>

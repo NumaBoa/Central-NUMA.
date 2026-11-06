@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useState } from 'react';
 import { useAvisoDeCredencial } from '@/componentes/campos/aviso-credencial';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
@@ -67,7 +68,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
         <div className="mt-4 grid gap-4">
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <Campo id="lote-data" rotulo="Data" obrigatorio>
-              {(controle) => <Input type="date" max={hoje} {...controle} value={data} onChange={(evento) => setData(evento.target.value)} />}
+              {(controle) => <EntradaData max={hoje} {...controle} value={data} onChange={(evento) => setData(evento.target.value)} />}
             </Campo>
             <Campo id="lote-conta" rotulo="Conta" obrigatorio>
               {(controle) => (
@@ -85,7 +86,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
           {deSocia && <Pilulas rotulo="Conta de sócia: como tratar?" obrigatorio valor={tratamento} aoMudar={(valor) => setTratamento(valor as typeof tratamento)} opcoes={Object.entries(ROTULOS_TRATAMENTO).map(([valor, rotulo]) => ({ valor, rotulo }))} />}
           {deSocia && tratamento === 'reembolso' && (
             <Campo id="lote-vencimento" rotulo="Vencimento do reembolso" obrigatorio>
-              {(controle) => <Input type="date" {...controle} value={vencimento} onChange={(evento) => setVencimento(evento.target.value)} />}
+              {(controle) => <EntradaData {...controle} value={vencimento} onChange={(evento) => setVencimento(evento.target.value)} />}
             </Campo>
           )}
           {!semComprovante && (

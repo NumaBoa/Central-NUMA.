@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -237,7 +238,7 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
             name="tem_usuarios_reais"
             render={({ field }) => <Pilulas rotulo="Tem usuários reais" obrigatorio valor={field.value ? 'sim' : 'nao'} aoMudar={(valor) => field.onChange(valor === 'sim')} opcoes={SIM_NAO} />}
           />
-          <Campo rotulo="Data de início">{(controle) => <Input type="date" {...controle} {...register('data_inicio')} />}</Campo>
+          <Campo rotulo="Data de início">{(controle) => <EntradaData {...controle} {...register('data_inicio')} />}</Campo>
           <Controller
             control={control}
             name="situacao"

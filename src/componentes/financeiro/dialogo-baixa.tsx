@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -107,7 +108,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
               <>
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
                   <Campo id="baixa-data" rotulo="Data" obrigatorio erro={errors.data?.message}>
-                    {(controle) => <Input type="date" max={hoje} {...controle} {...register('data')} />}
+                    {(controle) => <EntradaData max={hoje} {...controle} {...register('data')} />}
                   </Campo>
                   <Campo id="baixa-valor" rotulo={`Valor em ${titulo.moeda}`} obrigatorio erro={errors.valor?.message}>
                     {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('valor')} />}
@@ -160,7 +161,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
                     </div>
                     {valores.tratamento === 'reembolso' && (
                       <Campo id="baixa-vencimento-reembolso" rotulo="Vencimento do reembolso" obrigatorio erro={errors.vencimento_reembolso?.message}>
-                        {(controle) => <Input type="date" {...controle} {...register('vencimento_reembolso')} />}
+                        {(controle) => <EntradaData {...controle} {...register('vencimento_reembolso')} />}
                       </Campo>
                     )}
                   </div>

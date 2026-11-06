@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useRef, useState, type FormEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -185,7 +186,7 @@ export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] 
               <Campo rotulo="Data de referência" obrigatorio erro={errors.data_referencia?.message}>
                 {(controle) => (
                   <div>
-                    <Input type="date" {...controle} {...register('data_referencia')} />
+                    <EntradaData {...controle} {...register('data_referencia')} />
                     <Button variante="terciario" tamanho="pequeno" className="mt-1.5" onClick={() => setValue('data_referencia', hojeISO(), { shouldValidate: true, shouldDirty: true })}>
                       Hoje
                     </Button>

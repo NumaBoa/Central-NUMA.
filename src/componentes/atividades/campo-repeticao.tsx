@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
@@ -94,7 +95,7 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
 
       <div className="grid grid-cols-2 gap-3">
         <Campo id={idDe('inicio')} rotulo="Começa em" obrigatorio erro={erros.inicio}>
-          {(controle) => <Input type="date" {...controle} value={valor.inicio} onChange={(evento) => mudar({ inicio: evento.target.value })} />}
+          {(controle) => <EntradaData {...controle} value={valor.inicio} onChange={(evento) => mudar({ inicio: evento.target.value })} />}
         </Campo>
         <Campo id={idDe('hora')} rotulo={lembrete ? 'Hora do aviso' : 'Hora (opcional)'} obrigatorio={lembrete} erro={erros.hora}>
           {(controle) => <Input type="time" {...controle} value={valor.hora} onChange={(evento) => mudar({ hora: evento.target.value })} />}
@@ -104,7 +105,7 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
       <Pilulas rotulo="Termina" valor={valor.fim} aoMudar={(fimEscolhido) => mudar({ fim: fimEscolhido as FormularioRepeticao['fim'] })} opcoes={FINS} />
       {valor.fim === 'data' && (
         <Campo id={idDe('fim_data')} rotulo="Última data" obrigatorio erro={erros.fim_data}>
-          {(controle) => <Input type="date" {...controle} value={valor.fim_data} onChange={(evento) => mudar({ fim_data: evento.target.value })} />}
+          {(controle) => <EntradaData {...controle} value={valor.fim_data} onChange={(evento) => mudar({ fim_data: evento.target.value })} />}
         </Campo>
       )}
       {valor.fim === 'vezes' && (

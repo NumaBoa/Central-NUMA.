@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { CampoEtiquetas } from '@/componentes/campos/etiquetas';
 import { definirEtiquetasDoRegistro } from '@/dominio/etiquetas';
 import { useEffect, useState } from 'react';
@@ -283,7 +284,7 @@ function AbaRateio({ ferramenta, dados, somenteLeitura }: { ferramenta: LinhaDaF
       {!somenteLeitura && (
         <div className="grid gap-3 md:grid-cols-[minmax(0,240px)_auto] md:items-end">
           <Campo id="rateio-desde" rotulo="Vale a partir de">
-            {(controle) => <Input type="date" {...controle} value={desde} onChange={(evento) => setDesde(evento.target.value)} />}
+            {(controle) => <EntradaData {...controle} value={desde} onChange={(evento) => setDesde(evento.target.value)} />}
           </Campo>
           <Button variante="secundario" className="justify-self-start" onClick={() => void salvar()}>
             Salvar rateio
@@ -362,7 +363,7 @@ function FormularioDadosDaFerramenta({ ferramenta, aberto, aoFechar }: { ferrame
               {(controle) => <Input type="url" inputMode="url" autoComplete="off" {...controle} {...register('acordo_dados_url')} />}
             </Campo>
             <Campo id="dados-revisao" rotulo="Última revisão">
-              {(controle) => <Input type="date" {...controle} {...register('dados_revisado_em')} />}
+              {(controle) => <EntradaData {...controle} {...register('dados_revisado_em')} />}
             </Campo>
           </>
         )}
@@ -526,7 +527,7 @@ function DialogoDeCancelar({ ferramenta, aoFechar }: { ferramenta: LinhaDaFerram
         <DialogDescription className="mt-3 leading-[1.6]">A assinatura encerra na data escolhida. Faturas, pagamentos e histórico anteriores ficam guardados.</DialogDescription>
         <div className="mt-4 grid gap-4">
           <Campo id="cancelar-data" rotulo="Data efetiva" obrigatorio>
-            {(controle) => <Input type="date" {...controle} value={data} onChange={(evento) => setData(evento.target.value)} />}
+            {(controle) => <EntradaData {...controle} value={data} onChange={(evento) => setData(evento.target.value)} />}
           </Campo>
           <Campo id="cancelar-motivo" rotulo="Motivo" obrigatorio erro={erro ?? undefined}>
             {(controle) => <Textarea {...controle} value={motivo} onChange={(evento) => setMotivo(evento.target.value)} />}

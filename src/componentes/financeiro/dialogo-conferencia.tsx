@@ -1,5 +1,6 @@
 'use client';
 
+import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -64,7 +65,7 @@ export function DialogoDeConferencia({ conta, dados, aoFechar }: { conta: ContaF
           <div className="mt-4 grid gap-4">
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <Campo id="conferencia-data" rotulo="Data" obrigatorio erro={errors.data?.message}>
-                {(controle) => <Input type="date" max={hoje} {...(conta.data_saldo_inicial ? { min: conta.data_saldo_inicial } : {})} {...controle} {...register('data')} />}
+                {(controle) => <EntradaData max={hoje} {...(conta.data_saldo_inicial ? { min: conta.data_saldo_inicial } : {})} {...controle} {...register('data')} />}
               </Campo>
               <Campo id="conferencia-saldo" rotulo={`Saldo do banco em ${conta.moeda}`} obrigatorio erro={errors.saldo_informado?.message}>
                 {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('saldo_informado')} />}
