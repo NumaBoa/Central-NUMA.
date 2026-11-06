@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { AlarmClock, BellRing, CalendarDays, Check, CheckSquare, Ellipsis, Inbox, OctagonX, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { AlarmClock, BellRing, CalendarDays, Check, CheckSquare, Ellipsis, Inbox, ListChecks, MessageSquare, OctagonX, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EtiquetaContexto, EtiquetaPrioridade, EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
@@ -58,9 +58,17 @@ export function MenuDaAtividade({ atividade, acoes }: { atividade: AtividadeDoDi
           fechar();
           acao();
         };
-        if (!aberta) return <LinhaDoMenu rotulo="Reabrir" aoClicar={fazer(() => acoes.pedir('reabrir', atividade))} />;
+        if (!aberta) {
+          return (
+            <div className="grid gap-0.5">
+              <LinhaDoMenu rotulo="Abrir" aoClicar={fazer(() => acoes.abrir(atividade))} />
+              <LinhaDoMenu rotulo="Reabrir" aoClicar={fazer(() => acoes.pedir('reabrir', atividade))} />
+            </div>
+          );
+        }
         return (
           <div className="grid gap-0.5">
+            <LinhaDoMenu rotulo="Abrir" aoClicar={fazer(() => acoes.abrir(atividade))} />
             <TituloDoMenu>Mover para</TituloDoMenu>
             {atividade.situacao !== 'a_fazer' && <LinhaDoMenu rotulo="A fazer" aoClicar={fazer(() => acoes.mover(atividade, 'a_fazer'))} />}
             {atividade.situacao !== 'em_andamento' && <LinhaDoMenu rotulo="Em andamento" aoClicar={fazer(() => acoes.mover(atividade, 'em_andamento'))} />}
@@ -161,7 +169,11 @@ export function ConteudoDoCartao({ atividade, dados, hoje, acoes }: { atividade:
           <span className="tabular-nums">{atividade.codigo}</span>
           {(atividade.prioridade === 'urgente' || atividade.prioridade === 'alta') && <EtiquetaPrioridade prioridade={atividade.prioridade} />}
         </p>
-        <h3 className={cn('font-body text-[15px] leading-[21px] font-semibold tracking-normal break-words [text-wrap:pretty]', concluida && 'text-ink-soft line-through')}>{atividade.titulo}</h3>
+        <h3 className={cn('font-body text-[15px] leading-[21px] font-semibold tracking-normal break-words [text-wrap:pretty]', concluida && 'text-ink-soft line-through')}>
+          <button type="button" onClick={() => acoes.abrir(atividade)} className="flex min-h-11 w-full items-center text-left underline-offset-2 hover:underline md:inline md:min-h-0 md:w-auto">
+            {atividade.titulo}
+          </button>
+        </h3>
         <ResponsavelDaAtividade atividade={atividade} dados={dados} acoes={acoes} />
         <div className="flex flex-wrap items-center gap-1.5">
           {contextos.map((contexto) => (
@@ -173,6 +185,18 @@ export function ConteudoDoCartao({ atividade, dados, hoje, acoes }: { atividade:
           <CalendarDays aria-hidden />
           {prazo.texto}
           {adiamentos && <span className="font-normal text-ink-soft">· {adiamentos}</span>}
+          {atividade.itensTotal > 0 && (
+            <span className="ml-1 inline-flex items-center gap-1 font-normal text-ink-soft" aria-label={`Checklist: ${atividade.itensFeitos} de ${atividade.itensTotal}`}>
+              <ListChecks aria-hidden />
+              {atividade.itensFeitos}/{atividade.itensTotal}
+            </span>
+          )}
+          {atividade.comentarios > 0 && (
+            <span className="ml-1 inline-flex items-center gap-1 font-normal text-ink-soft" aria-label={`${atividade.comentarios} ${atividade.comentarios === 1 ? 'comentário' : 'comentários'}`}>
+              <MessageSquare aria-hidden />
+              {atividade.comentarios}
+            </span>
+          )}
         </p>
         {estaBloqueada(atividade) && (
           <p className="flex items-start gap-1.5 text-[13px] leading-[18px] font-medium text-err [&_svg]:mt-0.5 [&_svg]:size-[14px] [&_svg]:shrink-0">
@@ -260,12 +284,14 @@ type CartaoDoQuadroProps = {
   hoje: string;
   acoes: AcoesDaAtividade;
   arrastando: boolean;
+  /** Acabou de ser criada (T03.03). */
+  recente: boolean;
   aoComecarArrasto: (id: string) => void;
   aoTerminarArrasto: () => void;
 };
 
 /** Faixa esquerda de 3px só para atraso ou bloqueio, além do texto (18 §9.5). */
-export function CartaoDoQuadro({ atividade, dados, hoje, acoes, arrastando, aoComecarArrasto, aoTerminarArrasto }: CartaoDoQuadroProps) {
+export function CartaoDoQuadro({ atividade, dados, hoje, acoes, arrastando, recente, aoComecarArrasto, aoTerminarArrasto }: CartaoDoQuadroProps) {
   const celular = useEhCelular();
   const aberta = estaAberta(atividade);
   const { deslocamento, eventos } = useDeslizarCartao(celular && aberta, () => acoes.concluir(atividade), () => acoes.adiarEm(atividade, 1));
@@ -282,7 +308,7 @@ export function CartaoDoQuadro({ atividade, dados, hoje, acoes, arrastando, aoCo
       }}
       onDragEnd={aoTerminarArrasto}
       style={deslocamento ? { transform: `translateX(${deslocamento}px)` } : undefined}
-      className={cn('touch-pan-y rounded-lg border border-line bg-paper p-4 md:px-[18px] md:py-4', destaque && 'border-l-[3px] border-l-err', !celular && 'cursor-grab active:cursor-grabbing', arrastando && '-rotate-1 opacity-70 shadow-e1')}
+      className={cn('touch-pan-y rounded-lg border border-line bg-paper p-4 md:px-[18px] md:py-4', destaque && 'border-l-[3px] border-l-err', !celular && 'cursor-grab active:cursor-grabbing', arrastando && '-rotate-1 opacity-70 shadow-e1', recente && 'destaque-recente')}
       {...eventos}
     >
       <ConteudoDoCartao atividade={atividade} dados={dados} hoje={hoje} acoes={acoes} />

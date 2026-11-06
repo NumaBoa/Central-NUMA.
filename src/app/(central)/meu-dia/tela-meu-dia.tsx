@@ -1,13 +1,17 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { EstadoCarregando, EstadoErro, EstadoVazio, EstadoVazioFiltro } from '@/componentes/padroes/estados';
+import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
+import { Button } from '@/componentes/ui/button';
 import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
 import { useConsulta } from '@/dados/use-consulta';
-import { Sun } from 'lucide-react';
+import { AlarmClock, CheckSquare, ChevronDown, Inbox, Plus, Sun } from 'lucide-react';
 import {
   atividadesDaBase,
   atividadesVisiveis,
@@ -32,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { useAcoesDaAtividade } from './acoes-atividade';
 import { FiltrosMeuDia, PessoaRapida, ROTULOS_DESTAQUE } from './filtros-meu-dia';
 import { ListaAtividades } from './lista-atividades';
+import { PainelAtividade } from './painel-atividade';
 import { QuadroAtividades } from './quadro-atividades';
 
 const CARTOES_DO_RESUMO = ['atrasadas', 'hoje', 'em_andamento', 'aguardando', 'bloqueadas', 'concluidas'] as const;
@@ -48,12 +53,59 @@ function LinhasDoCabecalho() {
   );
 }
 
+const TIPOS_DO_MENU = [
+  { tipo: 'tarefa', rotulo: 'Tarefa', icone: <CheckSquare aria-hidden /> },
+  { tipo: 'demanda', rotulo: 'Demanda', icone: <Inbox aria-hidden /> },
+  { tipo: 'lembrete', rotulo: 'Lembrete', icone: <AlarmClock aria-hidden /> },
+] as const;
+
+/** "Adicionar ▾": Tarefa, Demanda ou Lembrete (T03.01). O atalho N abre a tarefa. */
+function BotaoAdicionar() {
+  const { abrirAdicionar } = useAdicionarAtividade();
+  return (
+    <MenuSobreposto
+      titulo="Adicionar"
+      largura={220}
+      alinhar="end"
+      gatilho={
+        <Button>
+          <Plus aria-hidden />
+          Adicionar
+          <ChevronDown aria-hidden />
+        </Button>
+      }
+    >
+      {(fechar) => (
+        <div className="grid gap-0.5">
+          {TIPOS_DO_MENU.map(({ tipo, rotulo, icone }) => (
+            <button
+              key={tipo}
+              type="button"
+              className={cn(CLASSE_LINHA_MENU, 'hover:bg-hover')}
+              onClick={() => {
+                fechar();
+                abrirAdicionar(tipo);
+              }}
+            >
+              {icone}
+              {rotulo}
+            </button>
+          ))}
+        </div>
+      )}
+    </MenuSobreposto>
+  );
+}
+
 /** Saudação, data por extenso e a frase-resumo, com o marca-texto em um só trecho (18 §2.2). */
 function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia }) {
   const frase = fraseDoResumo(resumo);
   return (
     <header className="relative">
       <LinhasDoCabecalho />
+      <div className="relative float-right ml-3 hidden md:block">
+        <BotaoAdicionar />
+      </div>
       <p className="relative text-[13px] leading-[18px] font-medium text-ink-soft first-letter:uppercase">{dataPorExtenso()}</p>
       <h1 className="relative mt-1.5 texto-display">
         {saudacao()}, {primeiroNome(nome)}.
@@ -69,6 +121,9 @@ function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia })
           'Nada para hoje por enquanto.'
         )}
       </p>
+      <div className="relative mt-3 md:hidden">
+        <BotaoAdicionar />
+      </div>
     </header>
   );
 }
@@ -122,6 +177,9 @@ function AlternanciaDeVisao({ visao }: { visao: 'quadro' | 'lista' }) {
 /** T03.01: a tela inicial. Mostra tudo o que está aberto, das duas sócias, em todos os produtos (RN-03.01). */
 export function TelaMeuDia() {
   const { pessoa, contexto } = useCentral();
+  const { abrirAdicionar, recenteId } = useAdicionarAtividade();
+  const parametros = useSearchParams();
+  const painelId = parametros.get('atividade');
   const consulta = useConsulta(carregarMeuDia);
   const { visao_meu_dia: visao } = useSyncExternalStore(assinarMeta, lerMeta, metaDoServidor);
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_MEU_DIA_INICIAIS);
@@ -129,7 +187,24 @@ export function TelaMeuDia() {
 
   const dados = consulta.dados;
   const hoje = hojeISO();
-  const { acoes, dialogos } = useAcoesDaAtividade(dados, hoje);
+  // O painel fica no endereço, para copiar o link; o histórico do navegador fecha e abre (T03.02).
+  const abrirPainel = useCallback((id: string) => window.history.pushState(null, '', `/meu-dia?atividade=${id}`), []);
+  const fecharPainel = useCallback(() => window.history.pushState(null, '', '/meu-dia'), []);
+  const { acoes, dialogos } = useAcoesDaAtividade(dados, hoje, abrirPainel);
+
+  // Atalho N (T03.01): só quando ninguém está digitando e não há nada aberto por cima.
+  useEffect(() => {
+    const aoTeclar = (evento: KeyboardEvent) => {
+      if (evento.key.toLowerCase() !== 'n' || evento.ctrlKey || evento.metaKey || evento.altKey || evento.repeat) return;
+      const alvo = evento.target as HTMLElement | null;
+      if (alvo?.closest('input, textarea, select, [contenteditable=true], [role=dialog], .menu-suspenso')) return;
+      if (document.querySelector('[role=dialog]')) return;
+      evento.preventDefault();
+      abrirAdicionar('tarefa');
+    };
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [abrirAdicionar]);
 
   const nomeDaPessoa = (id: string) => dados?.pessoas.find((item) => item.id === id)?.nome_completo ?? 'Pessoa removida';
   const nomeDaArea = (id: string) => dados?.areas.find((area) => area.id === id)?.nome ?? 'Área removida';
@@ -181,14 +256,15 @@ export function TelaMeuDia() {
       </div>
 
       {nadaNoDia ? (
-        <EstadoVazio icone={Sun} titulo="Tudo em dia por aqui." texto="Que tal registrar o que vem pela frente?" />
+        <EstadoVazio icone={Sun} titulo="Tudo em dia por aqui." texto="Que tal registrar o que vem pela frente?" acao={<BotaoAdicionar />} />
       ) : visiveis.length === 0 ? (
         <EstadoVazioFiltro aoLimpar={limpar} />
       ) : visao === 'quadro' ? (
-        <QuadroAtividades colunas={colunas} dados={dados} hoje={hoje} acoes={acoes} />
+        <QuadroAtividades colunas={colunas} dados={dados} hoje={hoje} acoes={acoes} recenteId={recenteId} />
       ) : (
         <ListaAtividades linhas={visiveis} dados={dados} hoje={hoje} acoes={acoes} agruparPor={agruparPor} />
       )}
+      <PainelAtividade id={painelId} dados={dados} acoes={acoes} aoFechar={fecharPainel} aoAbrir={abrirPainel} />
       {dialogos}
     </div>
   );

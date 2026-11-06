@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Box, Pencil } from 'lucide-react';
+import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
@@ -14,6 +15,7 @@ import { ListaHistorico } from '@/componentes/padroes/historico';
 import { Button } from '@/componentes/ui/button';
 import { mensagemDoErro } from '@/dados/erros';
 import { useConsulta } from '@/dados/use-consulta';
+import { atividadesDoRegistro } from '@/dominio/atividades-painel';
 import { historicoDoRegistro } from '@/dominio/historico';
 import { carregarMarcas } from '@/dominio/marcas';
 import { arquivarProduto, responsavelDisponivel, restaurarProduto, ROTULOS_ESTAGIO, ROTULOS_TIPO_PRODUTO } from '@/dominio/produtos';
@@ -158,6 +160,7 @@ export function FichaProduto() {
               </ListaDeDados>
             ),
           },
+          { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('produto', produto.id)} dependencia={produto.id} vazio="As atividades deste produto aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={produto.id} /> },
         ]}
       />

@@ -256,7 +256,7 @@ describe('T02.05 e T02.06', () => {
     });
 
     it('com contatos, não arquiva: só inativa', async () => {
-      await expect(vinculosDaContraparte(ID_CONTRAPARTE_CONTABILIDADE)).resolves.toEqual(['Contato: Rafael Souza']);
+      await expect(vinculosDaContraparte(ID_CONTRAPARTE_CONTABILIDADE)).resolves.toEqual(['Contato: Rafael Souza', '1 atividade aberta']);
       await expect(arquivarContraparte(ID_CONTRAPARTE_CONTABILIDADE)).rejects.toThrow('tem vínculos');
       await inativarContraparte(ID_CONTRAPARTE_CONTABILIDADE);
       expect((await repositorios.contraparte.obter(ID_CONTRAPARTE_CONTABILIDADE))?.situacao).toBe('inativa');

@@ -32,6 +32,7 @@ import { formatarDiaISO } from '@/lib/formatacao';
 export type PedidoDeAcao = 'aguardando' | 'adiar' | 'bloquear' | 'cancelar' | 'dispensar' | 'reabrir';
 
 export type AcoesDaAtividade = {
+  abrir: (atividade: AtividadeDoDia) => void;
   concluir: (atividade: AtividadeDoDia) => void;
   /** A mesma ação do arrastar e do menu: pede o que a regra exigir. */
   mover: (atividade: AtividadeDoDia, coluna: ColunaDoQuadro) => void;
@@ -52,7 +53,7 @@ async function tentar(acao: () => Promise<unknown>): Promise<boolean> {
 }
 
 /** As ações do cartão e os diálogos que elas pedem, no mesmo lugar para o quadro e a lista. */
-export function useAcoesDaAtividade(dados: DadosMeuDia | undefined, hoje: string) {
+export function useAcoesDaAtividade(dados: DadosMeuDia | undefined, hoje: string, abrirPainel: (id: string) => void) {
   const { pessoa } = useCentral();
   const [pedido, setPedido] = useState<{ tipo: PedidoDeAcao; atividade: AtividadeDoDia } | null>(null);
 
@@ -68,6 +69,7 @@ export function useAcoesDaAtividade(dados: DadosMeuDia | undefined, hoje: string
     };
     const pedir: AcoesDaAtividade['pedir'] = (tipo, atividade) => setPedido({ tipo, atividade });
     return {
+      abrir: (atividade) => abrirPainel(atividade.id),
       concluir,
       pedir,
       mover: (atividade, coluna) => {
@@ -101,7 +103,7 @@ export function useAcoesDaAtividade(dados: DadosMeuDia | undefined, hoje: string
         });
       },
     };
-  }, [pessoa.id, hoje]);
+  }, [pessoa.id, hoje, abrirPainel]);
 
   const fechar = () => setPedido(null);
 

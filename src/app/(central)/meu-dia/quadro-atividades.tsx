@@ -21,9 +21,10 @@ type QuadroProps = {
   dados: DadosMeuDia;
   hoje: string;
   acoes: AcoesDaAtividade;
+  recenteId: string | null;
 };
 
-function CartoesDaColuna({ coluna, linhas, dados, hoje, acoes, arrastandoId, setArrastandoId }: { coluna: ColunaDoQuadro; linhas: readonly AtividadeDoDia[]; arrastandoId: string | null; setArrastandoId: (id: string | null) => void } & Omit<QuadroProps, 'colunas'>) {
+function CartoesDaColuna({ coluna, linhas, dados, hoje, acoes, recenteId, arrastandoId, setArrastandoId }: { coluna: ColunaDoQuadro; linhas: readonly AtividadeDoDia[]; arrastandoId: string | null; setArrastandoId: (id: string | null) => void } & Omit<QuadroProps, 'colunas'>) {
   const [limite, setLimite] = useState(CARTOES_POR_VEZ);
   if (!linhas.length) return <p className="px-2 py-3 text-center text-[13px] text-ink-soft">{coluna === 'concluida' ? 'Nada concluído hoje ainda.' : 'Nada aqui.'}</p>;
   return (
@@ -31,7 +32,7 @@ function CartoesDaColuna({ coluna, linhas, dados, hoje, acoes, arrastandoId, set
       <ul className="grid gap-2">
         {linhas.slice(0, limite).map((atividade) => (
           <li key={atividade.id}>
-            <CartaoDoQuadro atividade={atividade} dados={dados} hoje={hoje} acoes={acoes} arrastando={arrastandoId === atividade.id} aoComecarArrasto={setArrastandoId} aoTerminarArrasto={() => setArrastandoId(null)} />
+            <CartaoDoQuadro atividade={atividade} dados={dados} hoje={hoje} acoes={acoes} arrastando={arrastandoId === atividade.id} recente={recenteId === atividade.id} aoComecarArrasto={setArrastandoId} aoTerminarArrasto={() => setArrastandoId(null)} />
           </li>
         ))}
       </ul>
@@ -47,7 +48,7 @@ function CartoesDaColuna({ coluna, linhas, dados, hoje, acoes, arrastandoId, set
 }
 
 /** Abas por situação no celular, com uma coluna por vez; deslizar troca de aba (18 §10.4). */
-function QuadroNoCelular({ colunas, dados, hoje, acoes }: QuadroProps) {
+function QuadroNoCelular({ colunas, dados, hoje, acoes, recenteId }: QuadroProps) {
   const [aba, setAba] = useState<ColunaDoQuadro>('a_fazer');
   const inicio = useRef<{ x: number; y: number } | null>(null);
 
@@ -83,14 +84,14 @@ function QuadroNoCelular({ colunas, dados, hoje, acoes }: QuadroProps) {
           }}
           onTouchEnd={aoSoltar}
         >
-          <CartoesDaColuna coluna={coluna} linhas={colunas[coluna]} dados={dados} hoje={hoje} acoes={acoes} arrastandoId={null} setArrastandoId={() => {}} />
+          <CartoesDaColuna coluna={coluna} linhas={colunas[coluna]} dados={dados} hoje={hoje} acoes={acoes} recenteId={recenteId} arrastandoId={null} setArrastandoId={() => {}} />
         </TabsContent>
       ))}
     </Tabs>
   );
 }
 
-function QuadroNoComputador({ colunas, dados, hoje, acoes }: QuadroProps) {
+function QuadroNoComputador({ colunas, dados, hoje, acoes, recenteId }: QuadroProps) {
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [sobre, setSobre] = useState<ColunaDoQuadro | null>(null);
   const [recolhidas, setRecolhidas] = useState<ReadonlySet<ColunaDoQuadro>>(new Set());
@@ -145,7 +146,7 @@ function QuadroNoComputador({ colunas, dados, hoje, acoes }: QuadroProps) {
             </div>
             {!recolhida && (
               <div className="mt-1">
-                <CartoesDaColuna coluna={coluna} linhas={colunas[coluna]} dados={dados} hoje={hoje} acoes={acoes} arrastandoId={arrastandoId} setArrastandoId={setArrastandoId} />
+                <CartoesDaColuna coluna={coluna} linhas={colunas[coluna]} dados={dados} hoje={hoje} acoes={acoes} recenteId={recenteId} arrastandoId={arrastandoId} setArrastandoId={setArrastandoId} />
               </div>
             )}
           </section>

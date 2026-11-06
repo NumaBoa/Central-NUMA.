@@ -1,8 +1,9 @@
 import { hojeISO, instanteNoFuso } from '@/lib/datas';
 import { montarCodigo } from '@/lib/ids';
+import { parDoVinculo, type AnexoLink, type ChecklistItem, type Comentario, type Vinculo } from '../tipos/apoio';
 import type { Atividade, AtividadeParticipante, AtividadeProduto } from '../tipos/atividade';
 import { controle } from './controle';
-import { AREAS_INICIAIS, ID_BRUNA, ID_CAMILA, ID_KIMBERLY, ID_PRODUTO_KIPI, ID_PRODUTO_MIMO, ID_PRODUTO_URBANA, ID_PRODUTO_ZARPA, ID_PRODUTO_ZUPI } from './base';
+import { AREAS_INICIAIS, ID_BRUNA, ID_CAMILA, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY, ID_PRODUTO_KIPI, ID_PRODUTO_MIMO, ID_PRODUTO_URBANA, ID_PRODUTO_ZARPA, ID_PRODUTO_ZUPI } from './base';
 
 const idDaArea = (nome: (typeof AREAS_INICIAIS)[number]['nome']) => AREAS_INICIAIS.find((area) => area.nome === nome)?.id ?? null;
 const idDaAtividade = (numero: number) => `b9d7f8eb-e2a6-4b87-9d78-7a8b9c0d1e${String(numero).padStart(2, '0')}`;
@@ -90,5 +91,19 @@ export function atividadesDeExemplo(agora: string) {
   const atividade_produto: AtividadeProduto[] = exemplos.flatMap((exemplo, indice) => (exemplo.produtos ?? []).map((produto_id) => ({ ...controle(idDaLigacao(++ligacao), true, agora), atividade_id: idDaAtividade(indice + 1), produto_id })));
   const atividade_participante: AtividadeParticipante[] = exemplos.flatMap((exemplo, indice) => (exemplo.participantes ?? []).map((pessoa_id) => ({ ...controle(idDaLigacao(++ligacao), true, agora), atividade_id: idDaAtividade(indice + 1), pessoa_id })));
 
-  return { atividade, atividade_produto, atividade_participante };
+  const idDoTitulo = (titulo: string) => idDaAtividade(exemplos.findIndex((exemplo) => exemplo.titulo === titulo) + 1);
+  const oferta = idDoTitulo('Definir o preço da oferta anual');
+  const politica = idDoTitulo('Escrever a política de privacidade do Sobrevivência Urbana');
+  const documentos = idDoTitulo('Confirmar os documentos para abrir a empresa');
+
+  const item = (registro_id: string, ordem: number, texto: string, feito_por: string | null): ChecklistItem => ({ ...controle(idDaLigacao(++ligacao), true, agora), registro_tipo: 'atividade', registro_id, ordem, texto, responsavel_id: null, feito: Boolean(feito_por), feito_por, feito_em: feito_por ? agora : null });
+  const checklist_item = [item(oferta, 0, 'Levantar o que os concorrentes cobram', ID_KIMBERLY), item(oferta, 1, 'Simular o desconto do plano anual', ID_CAMILA), item(oferta, 2, 'Conferir as taxas das lojas de aplicativos', null), item(oferta, 3, 'Fechar o preço com a Camila', null)];
+
+  const nota = (registro_id: string, autor_id: string, texto: string, mencoes: string[], horasAtras: number): Comentario => ({ ...controle(idDaLigacao(++ligacao), true, agora), criado_em: new Date(new Date(agora).getTime() - horasAtras * 3_600_000).toISOString(), registro_tipo: 'atividade', registro_id, autor_id, texto, mencoes, editado_em: null, removido_em: null });
+  const comentario = [nota(oferta, ID_CAMILA, 'Separei os preços dos concorrentes na planilha.', [], 26), nota(oferta, ID_KIMBERLY, '@camila, vamos fechar isso na reunião de sexta?', [ID_CAMILA], 3), nota(politica, ID_KIMBERLY, 'Só dá para terminar depois de definir quem assina.', [], 20)];
+
+  const vinculo: Vinculo[] = [{ ...controle(idDaLigacao(++ligacao), true, agora), ...parDoVinculo({ tipo: 'atividade', id: documentos }, { tipo: 'contraparte', id: ID_CONTRAPARTE_CONTABILIDADE }) }];
+  const anexo_link: AnexoLink[] = [{ ...controle(idDaLigacao(++ligacao), true, agora), registro_tipo: 'atividade', registro_id: oferta, titulo: 'Planilha de preços (exemplo)', url: 'https://docs.google.com/spreadsheets/d/exemplo' }];
+
+  return { atividade, atividade_produto, atividade_participante, checklist_item, comentario, vinculo, anexo_link };
 }

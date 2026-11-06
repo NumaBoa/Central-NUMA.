@@ -164,6 +164,13 @@ function migrar(versao: number) {
     alteracoes.atividade_produto = atividade_produto;
     alteracoes.atividade_participante = atividade_participante;
   }
+  if (versao < 8) {
+    const recemCriadas = alteracoes.atividade as readonly { exemplo: boolean }[] | undefined;
+    const exemplos = (recemCriadas ? recemCriadas.some((linha) => linha.exemplo) : lerAtividadesComExemplo()) ? atividadesDeExemplo(agora) : null;
+    for (const tabela of ['checklist_item', 'comentario', 'vinculo', 'anexo_link'] as const) {
+      if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = exemplos ? exemplos[tabela] : [];
+    }
+  }
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];
   } catch {
@@ -171,6 +178,15 @@ function migrar(versao: number) {
   }
   gravarTabelas(alteracoes);
   gravarMeta({ versao_dados: VERSAO_DADOS });
+}
+
+/** As atividades de exemplo ainda estão lá: os itens e comentários de exemplo têm a quem pertencer. */
+function lerAtividadesComExemplo(): boolean {
+  try {
+    return lerTabela<{ exemplo: boolean }>('atividade').some((linha) => linha.exemplo);
+  } catch {
+    return false;
+  }
 }
 
 function aindaHaExemplos(): boolean {

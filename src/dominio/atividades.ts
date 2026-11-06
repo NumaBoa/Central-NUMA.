@@ -1,6 +1,7 @@
 /** Regras de T03.01 (05-M03): atividades, quadro, lista e ações rápidas. */
 import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
+import { emTransacao } from '@/dados/transacao';
 import type { Area } from '@/dados/tipos/area';
 import type { Atividade } from '@/dados/tipos/atividade';
 import type { Marca, Produto } from '@/dados/tipos/marca';
@@ -147,7 +148,7 @@ export function dataPorExtenso(agora: Date = new Date(), fuso: string = fusoConf
 
 // ---------- Filtros (T03.01) ----------
 
-export type AtividadeDoDia = Atividade & { produtos: string[]; participantes: string[] };
+export type AtividadeDoDia = Atividade & { produtos: string[]; participantes: string[]; itensFeitos: number; itensTotal: number; comentarios: number };
 
 export type PeriodoDoPrazo = '' | 'atrasadas' | 'hoje' | 'semana' | '30dias' | 'sem_prazo' | 'intervalo';
 export type DestaqueDoResumo = '' | 'atrasadas' | 'hoje' | 'em_andamento' | 'aguardando' | 'bloqueadas' | 'concluidas';
@@ -497,8 +498,12 @@ export async function desbloquearAtividade(id: string): Promise<void> {
   await repositorios.atividade.atualizar(id, { bloqueada: false, bloqueio_motivo: null, bloqueada_em: null });
 }
 
+/** Quem vira responsável deixa de ser participante: não aparece duas vezes no cartão. */
 export async function trocarResponsavel(id: string, pessoaId: string): Promise<void> {
-  await repositorios.atividade.atualizar(id, { responsavel_id: pessoaId });
+  await emTransacao(async () => {
+    await repositorios.atividade.atualizar(id, { responsavel_id: pessoaId });
+    for (const ligacao of await repositorios.atividade_participante.listar({ onde: { atividade_id: id, pessoa_id: pessoaId } })) await repositorios.atividade_participante.arquivar(ligacao.id);
+  });
 }
 
 // ---------- Vínculos com os cadastros (RN-02.04) ----------
@@ -517,18 +522,36 @@ export async function quantasAtividadesAbertasNaArea(id: string): Promise<number
 }
 
 export async function quantasAtividadesAbertasNoProduto(id: string): Promise<number> {
-  const [ligacoes, todas] = await Promise.all([repositorios.atividade_produto.listar({ onde: { produto_id: id } }), repositorios.atividade.listar()]);
+  const [ligacoes, vinculadas, todas] = await Promise.all([repositorios.atividade_produto.listar({ onde: { produto_id: id } }), atividadesVinculadas('produto', id), repositorios.atividade.listar()]);
   const abertas = new Set(todas.filter(estaAberta).map((atividade) => atividade.id));
-  return ligacoes.filter((ligacao) => abertas.has(ligacao.atividade_id)).length;
+  return new Set([...ligacoes.map((ligacao) => ligacao.atividade_id), ...vinculadas].filter((atividadeId) => abertas.has(atividadeId))).size;
+}
+
+/** Ids das atividades ligadas a um registro pelo `vinculo` (RN-03.20). */
+async function atividadesVinculadas(tipo: string, id: string): Promise<string[]> {
+  const vinculos = await repositorios.vinculo.listar();
+  return vinculos.flatMap((vinculo) => {
+    if (vinculo.origem_tipo === tipo && vinculo.origem_id === id && vinculo.destino_tipo === 'atividade') return [vinculo.destino_id];
+    if (vinculo.destino_tipo === tipo && vinculo.destino_id === id && vinculo.origem_tipo === 'atividade') return [vinculo.origem_id];
+    return [];
+  });
+}
+
+export async function quantasAtividadesAbertasVinculadas(tipo: string, id: string): Promise<number> {
+  const [vinculadas, todas] = await Promise.all([atividadesVinculadas(tipo, id), repositorios.atividade.listar()]);
+  const abertas = new Set(todas.filter(estaAberta).map((atividade) => atividade.id));
+  return vinculadas.filter((atividadeId) => abertas.has(atividadeId)).length;
 }
 
 // ---------- Carga da tela ----------
 
 export async function carregarMeuDia(): Promise<DadosMeuDia> {
-  const [atividades, ligacoesProduto, ligacoesParticipante, pessoas, areas, produtos, marcas] = await Promise.all([
+  const [atividades, ligacoesProduto, ligacoesParticipante, itens, comentarios, pessoas, areas, produtos, marcas] = await Promise.all([
     repositorios.atividade.listar(),
     repositorios.atividade_produto.listar(),
     repositorios.atividade_participante.listar(),
+    repositorios.checklist_item.listar({ onde: { registro_tipo: 'atividade' } }),
+    repositorios.comentario.listar({ onde: { registro_tipo: 'atividade' } }),
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.produto.listar({ incluirArquivados: true }),
@@ -539,6 +562,9 @@ export async function carregarMeuDia(): Promise<DadosMeuDia> {
       ...atividade,
       produtos: ligacoesProduto.filter((ligacao) => ligacao.atividade_id === atividade.id).map((ligacao) => ligacao.produto_id),
       participantes: ligacoesParticipante.filter((ligacao) => ligacao.atividade_id === atividade.id).map((ligacao) => ligacao.pessoa_id),
+      itensTotal: itens.filter((item) => item.registro_id === atividade.id).length,
+      itensFeitos: itens.filter((item) => item.registro_id === atividade.id && item.feito).length,
+      comentarios: comentarios.filter((comentario) => comentario.registro_id === atividade.id && !comentario.removido_em).length,
     })),
     pessoas,
     areas,

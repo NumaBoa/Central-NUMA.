@@ -14,6 +14,7 @@ import type { Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte'
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import type { BackupRegistro } from '@/dados/tipos/backup-registro';
 import type { Controle } from '@/dados/tipos/controle';
+import type { AnexoLink, ChecklistItem, Comentario, Vinculo } from '@/dados/tipos/apoio';
 import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
 import type { Pessoa } from '@/dados/tipos/pessoa';
@@ -41,7 +42,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -305,6 +306,11 @@ export async function limparExemplos(): Promise<number> {
       ...(saiuSolicitante ? { solicitante_pessoa_id: null, solicitante_texto: nomeDe(atividade.solicitante_pessoa_id as string) } : {}),
     };
   });
+  // O que era de um registro fictício sai com ele, mesmo que tenha sido feito por alguém de verdade.
+  novasLinhas.checklist_item = (novasLinhas.checklist_item as ChecklistItem[]).filter((item) => !idsRemovidos.has(item.registro_id)).map((item) => (item.responsavel_id && !pessoasQueFicam.has(item.responsavel_id) ? { ...item, responsavel_id: null } : item));
+  novasLinhas.comentario = (novasLinhas.comentario as Comentario[]).filter((comentario) => !idsRemovidos.has(comentario.registro_id));
+  novasLinhas.anexo_link = (novasLinhas.anexo_link as AnexoLink[]).filter((anexo) => !idsRemovidos.has(anexo.registro_id));
+  novasLinhas.vinculo = (novasLinhas.vinculo as Vinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.origem_id) && !idsRemovidos.has(vinculo.destino_id));
   // Etiqueta é de quem a usa: o registro fictício sai, e a etiqueta fica sem esse vínculo.
   novasLinhas.etiqueta_vinculo = (novasLinhas.etiqueta_vinculo as EtiquetaVinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.registro_id));
   // Contraparte fictícia que saiu não fica pendurada em registro de verdade.

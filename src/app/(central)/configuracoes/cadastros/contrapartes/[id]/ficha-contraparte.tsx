@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Building2, Ellipsis, Pencil, Plus, Power, PowerOff, UserRound } from 'lucide-react';
+import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
@@ -17,6 +18,7 @@ import { Button } from '@/componentes/ui/button';
 import { mensagemDoErro } from '@/dados/erros';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import { useConsulta } from '@/dados/use-consulta';
+import { atividadesDoRegistro } from '@/dominio/atividades-painel';
 import { arquivarContraparte, formatarDocumento, inativarContraparte, nomeDaContraparte, reativarContraparte, responsavelDaContraparteDisponivel, restaurarContraparte, ROTULOS_ORIGEM, ROTULOS_TIPO_PESSOA, vinculosDaContraparte } from '@/dominio/contrapartes';
 import { enderecoEmLinha } from '@/dominio/endereco';
 import { historicoDoRegistro } from '@/dominio/historico';
@@ -264,6 +266,7 @@ export function FichaContraparte() {
               </div>
             ),
           },
+          { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('contraparte', contraparte.id)} dependencia={contraparte.id} vazio="As atividades vinculadas a esta contraparte aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={contraparte.id} /> },
         ]}
       />

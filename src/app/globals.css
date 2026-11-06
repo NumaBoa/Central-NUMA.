@@ -431,6 +431,31 @@
   .painel-lateral[data-state='closed'] {
     animation: numa-painel-sai var(--t-mid) var(--ease);
   }
+  /* Formulário rápido: folha inferior no celular (18 §10.6) */
+  @media (max-width: 767.98px) {
+    .painel-lateral[data-folha] {
+      inset: auto 0 0;
+      max-height: 90dvh;
+      border-radius: var(--r-xl) var(--r-xl) 0 0;
+      box-shadow: var(--sh-2);
+    }
+    .painel-lateral[data-folha]::before {
+      content: '';
+      display: block;
+      flex-shrink: 0;
+      width: 36px;
+      height: 4px;
+      border-radius: var(--r-pill);
+      background: var(--oat);
+      margin: 10px auto 0;
+    }
+    .painel-lateral[data-folha][data-state='open'] {
+      animation: numa-folha-sobe var(--t-slow) var(--ease);
+    }
+    .painel-lateral[data-folha][data-state='closed'] {
+      animation: numa-folha-desce var(--t-mid) var(--ease);
+    }
+  }
   @media (min-width: 768px) {
     .painel-lateral {
       inset: 0 0 0 auto;
@@ -454,7 +479,7 @@
   .menu-suspenso {
     z-index: 90;
     width: var(--largura-menu, 320px);
-    max-height: min(70dvh, 560px);
+    max-height: min(var(--radix-popover-content-available-height, 100dvh), 70dvh, 560px);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--oat) transparent;
@@ -561,6 +586,22 @@
 /* Antes de a abertura montar, nada da Central aparece por trás dela. */
 html[data-abertura] #moldura {
   visibility: hidden;
+}
+
+/* Destaque breve do que acabou de ser criado (T03.03) */
+@keyframes numa-destaque {
+  0%,
+  60% {
+    outline-color: var(--indigo);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+.destaque-recente {
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  animation: numa-destaque 2.4s var(--ease);
 }
 
 @keyframes numa-aparece {

@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { esquemaAnexoLink, esquemaChecklistItem, esquemaComentario, esquemaVinculo } from './tipos/apoio';
 import { esquemaArea, esquemaPessoaArea } from './tipos/area';
 import { esquemaAtividade, esquemaAtividadeParticipante, esquemaAtividadeProduto } from './tipos/atividade';
 import { esquemaFeriado } from './tipos/calendario';
@@ -33,6 +34,10 @@ export const TABELAS = {
   atividade: { rotulo: 'Atividades', esquema: esquemaAtividade },
   atividade_produto: { rotulo: 'Produtos das atividades', esquema: esquemaAtividadeProduto },
   atividade_participante: { rotulo: 'Participantes das atividades', esquema: esquemaAtividadeParticipante },
+  checklist_item: { rotulo: 'Itens de checklist', esquema: esquemaChecklistItem },
+  comentario: { rotulo: 'Comentários', esquema: esquemaComentario },
+  vinculo: { rotulo: 'Vínculos', esquema: esquemaVinculo },
+  anexo_link: { rotulo: 'Links do Drive', esquema: esquemaAnexoLink },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -51,5 +56,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 5: T02.05 e T02.06 acrescentam `entidade`, `entidade_representante` e `contraparte`.
  * 6: T02.07 a T02.10 acrescentam `categoria_financeira`, `conta_financeira`, `feriado`, `etiqueta` e `etiqueta_vinculo`.
  * 7: T03.01 acrescenta `atividade`, `atividade_produto` e `atividade_participante`.
+ * 8: T03.02 e T03.03 acrescentam `checklist_item`, `comentario`, `vinculo` e `anexo_link`.
  */
-export const VERSAO_DADOS = 7;
+export const VERSAO_DADOS = 8;

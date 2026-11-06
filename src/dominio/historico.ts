@@ -261,6 +261,42 @@ function pessoaEArea(dados: EventoAuditoria['depois'], nomes: Nomes): { pessoa: 
   return { pessoa: nomes.get(String(dados?.pessoa_id)) ?? 'Pessoa removida', area: nomes.get(String(dados?.area_id)) ?? 'área removida' };
 }
 
+/** Participantes, contexto, checklist, comentários, vínculos e links, em frases que fazem sentido no painel. */
+function fraseDoApoioDaAtividade(evento: EventoAuditoria, nomes: Nomes, quem: string): string | null {
+  const dados = evento.acao === 'arquivou' ? evento.antes : evento.depois;
+  const nome = (id: unknown, reserva: string) => nomes.get(String(id)) ?? reserva;
+  const entrou = evento.acao === 'inseriu';
+  const saiu = evento.acao === 'arquivou';
+  switch (evento.tabela) {
+    case 'atividade_participante':
+      if (entrou) return `${quem} colocou ${nome(dados?.pessoa_id, 'Pessoa removida')} como participante`;
+      return saiu ? `${quem} tirou ${nome(dados?.pessoa_id, 'Pessoa removida')} dos participantes` : null;
+    case 'atividade_produto':
+      if (entrou) return `${quem} colocou no contexto ${nome(dados?.produto_id, 'produto removido')}`;
+      return saiu ? `${quem} tirou do contexto ${nome(dados?.produto_id, 'produto removido')}` : null;
+    case 'checklist_item': {
+      const item = textoDe(evento.depois?.texto) ?? textoDe(evento.antes?.texto) ?? nomes.get(evento.registro_id ?? '') ?? 'um item';
+      if (entrou) return `${quem} acrescentou o item “${item}”`;
+      if (saiu) return `${quem} tirou o item “${item}”`;
+      if (evento.campos_alterados.includes('feito')) return `${quem} ${evento.depois?.feito ? 'concluiu' : 'reabriu'} o item “${item}”`;
+      return `${quem} alterou o item “${item}”`;
+    }
+    case 'comentario':
+      if (entrou) return `${quem} comentou`;
+      return evento.campos_alterados.includes('removido_em') ? `${quem} removeu um comentário` : `${quem} editou um comentário`;
+    case 'vinculo': {
+      const ligados = [dados?.origem_tipo === 'atividade' ? dados?.destino_id : dados?.origem_id];
+      if (entrou) return `${quem} vinculou ${nome(ligados[0], 'um registro')}`;
+      return saiu ? `${quem} tirou o vínculo com ${nome(ligados[0], 'um registro')}` : null;
+    }
+    case 'anexo_link':
+      if (entrou) return `${quem} acrescentou o link “${textoDe(dados?.titulo) ?? 'Arquivo do Drive'}”`;
+      return saiu ? `${quem} tirou o link “${textoDe(dados?.titulo) ?? 'Arquivo do Drive'}”` : null;
+    default:
+      return null;
+  }
+}
+
 /** Histórico legível (02 §6): quem fez o quê. */
 export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const quem = evento.usuario_id === null ? 'Sistema' : (nomes.get(evento.usuario_id) ?? 'Pessoa removida');
@@ -270,6 +306,8 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const ehLigacao = evento.tabela === 'pessoa_area';
   const ehRepresentante = evento.tabela === 'entidade_representante';
   const ehVinculoDeEtiqueta = evento.tabela === 'etiqueta_vinculo';
+  const fraseDeApoio = fraseDoApoioDaAtividade(evento, nomes, quem);
+  if (fraseDeApoio) return fraseDeApoio;
   const porExtenso = registroPorExtenso(evento, nomes);
   const motivo = evento.motivo ? `. Motivo: ${evento.motivo}` : '';
   switch (evento.acao) {
@@ -319,7 +357,7 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -331,8 +369,9 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.feriado.listar({ incluirArquivados: true }),
     repositorios.etiqueta.listar({ incluirArquivados: true }),
     repositorios.atividade.listar({ incluirArquivados: true }),
+    repositorios.checklist_item.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo])]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
@@ -349,6 +388,27 @@ export async function ultimaMudancaDeFase(): Promise<LinhaHistorico | null> {
   const [eventos, nomes] = await Promise.all([listarHistorico({ tabela: 'configuracao' }), nomesDosRegistros()]);
   const evento = eventos.find((item) => item.depois?.chave === 'fase_ativa');
   return evento ? paraLinha(evento, nomes) : null;
+}
+
+/** Painel da atividade (T03.02): ela e o que faz parte dela. */
+export async function historicoDaAtividade(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, itens, comentarios, anexos, vinculos] = await Promise.all([
+    listarHistorico(),
+    nomesDosRegistros(),
+    repositorios.checklist_item.listar({ onde: { registro_id: id }, incluirArquivados: true }),
+    repositorios.comentario.listar({ onde: { registro_id: id }, incluirArquivados: true }),
+    repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true }),
+    repositorios.vinculo.listar({ incluirArquivados: true }),
+  ]);
+  const dela = new Set([...itens, ...comentarios, ...anexos].map((linha) => linha.id));
+  for (const vinculo of vinculos) if (vinculo.origem_id === id || vinculo.destino_id === id) dela.add(vinculo.id);
+  return eventos
+    .filter((evento) => {
+      if (evento.tabela === 'atividade') return evento.registro_id === id;
+      if (evento.tabela === 'atividade_produto' || evento.tabela === 'atividade_participante') return evento.depois?.atividade_id === id || evento.antes?.atividade_id === id;
+      return Boolean(evento.registro_id && dela.has(evento.registro_id));
+    })
+    .map((evento) => paraLinha(evento, nomes));
 }
 
 /** Aba Histórico de uma ficha (P2): tudo o que aconteceu com aquele registro. */

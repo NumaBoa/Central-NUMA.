@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AdicionarAtividadeProvider } from '@/componentes/atividades/adicionar-atividade';
 import { CentralProvider } from '@/componentes/layout/central-provider';
 import { Moldura } from '@/componentes/layout/moldura';
 import { ProtecaoDeSaida } from '@/componentes/layout/protecao-saida';
@@ -9,7 +10,9 @@ export default function LayoutCentral({ children }: { children: ReactNode }) {
   return (
     <CentralProvider>
       <ProtecaoDeSaida>
-        <Moldura>{children}</Moldura>
+        <AdicionarAtividadeProvider>
+          <Moldura>{children}</Moldura>
+        </AdicionarAtividadeProvider>
       </ProtecaoDeSaida>
       <RegiaoAvisos />
       <Abertura />

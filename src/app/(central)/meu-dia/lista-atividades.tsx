@@ -99,6 +99,8 @@ export function ListaAtividades({ linhas, dados, hoje, acoes, agruparPor }: List
             linhas={grupo.linhas}
             colunas={colunas}
             chave={(atividade) => atividade.id}
+            aoAbrir={acoes.abrir}
+            cartaoInterativo
             acoesDaLinha={(atividade) => <MenuDaAtividade atividade={atividade} acoes={acoes} />}
             cartao={(atividade) => <ConteudoDoCartao atividade={atividade} dados={dados} hoje={hoje} acoes={acoes} />}
             vazio={null}

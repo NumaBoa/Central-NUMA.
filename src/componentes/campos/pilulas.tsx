@@ -1,6 +1,8 @@
 'use client';
 
 import { useId } from 'react';
+import { cn } from '@/lib/utils';
+
 export type OpcaoPilula = { valor: string; rotulo: string };
 
 type PilulasProps = {
@@ -9,17 +11,19 @@ type PilulasProps = {
   opcoes: readonly OpcaoPilula[];
   valor: string;
   aoMudar: (valor: string) => void;
+  /** Só para leitura: mostra o que está escolhido, sem deixar mudar. */
+  desativado?: boolean;
   className?: string;
 };
 
 const CLASSE_PILULA =
-  'inline-flex min-h-11 cursor-pointer items-center rounded-pill border border-line bg-paper px-3.5 text-[13px] font-semibold transition-colors duration-150 has-checked:border-espresso has-checked:bg-espresso has-checked:text-linen has-focus-visible:outline-[3px] has-focus-visible:outline-offset-[3px] has-focus-visible:outline-indigo md:min-h-9';
+  'inline-flex min-h-11 cursor-pointer has-disabled:cursor-default items-center rounded-pill border border-line bg-paper px-3.5 text-[13px] font-semibold transition-colors duration-150 has-checked:border-espresso has-checked:bg-espresso has-checked:text-linen has-focus-visible:outline-[3px] has-focus-visible:outline-offset-[3px] has-focus-visible:outline-indigo md:min-h-9';
 
 /** Escolha única com poucas opções (18 §9.2): rádios de verdade, com teclado funcionando. */
-export function Pilulas({ rotulo, obrigatorio = false, opcoes, valor, aoMudar, className }: PilulasProps) {
+export function Pilulas({ rotulo, obrigatorio = false, opcoes, valor, aoMudar, desativado = false, className }: PilulasProps) {
   const nome = useId();
   return (
-    <fieldset className={className}>
+    <fieldset disabled={desativado} className={cn(desativado && 'opacity-60', className)}>
       <legend className="mb-[7px] texto-rotulo">
         {rotulo}
         {obrigatorio && ' *'}
@@ -45,9 +49,9 @@ type PilulasMultiplasProps = Omit<PilulasProps, 'valor' | 'aoMudar'> & {
 };
 
 /** Várias escolhas com poucas opções: caixas de marcar de verdade, com a mesma aparência. */
-export function PilulasMultiplas({ rotulo, obrigatorio = false, opcoes, valores, aoMudar, className }: PilulasMultiplasProps) {
+export function PilulasMultiplas({ rotulo, obrigatorio = false, opcoes, valores, aoMudar, desativado = false, className }: PilulasMultiplasProps) {
   return (
-    <fieldset className={className}>
+    <fieldset disabled={desativado} className={cn(desativado && 'opacity-60', className)}>
       <legend className="mb-[7px] texto-rotulo">
         {rotulo}
         {obrigatorio && ' *'}

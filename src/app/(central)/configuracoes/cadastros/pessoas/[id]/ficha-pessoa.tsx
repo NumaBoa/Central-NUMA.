@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { Archive, ArrowLeft, ArchiveRestore, Ellipsis, Pencil, UserCheck, UserMinus, UserX } from 'lucide-react';
+import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
@@ -17,6 +18,7 @@ import { mensagemDoErro } from '@/dados/erros';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { useConsulta } from '@/dados/use-consulta';
+import { atividadesDaPessoa } from '@/dominio/atividades-painel';
 import { historicoDaPessoa } from '@/dominio/historico';
 import { areasDaPessoa, arquivarPessoa, carregarPessoas, formatarCpf, formatarTelefone, inativarPessoa, nomeDeExibicaoPadrao, reativarPessoa, restaurarPessoa, ROTULOS_PAPEL, ROTULOS_TIPO, vinculosDaPessoa } from '@/dominio/pessoas';
 import { FormularioPessoa } from '../formulario-pessoa';
@@ -215,6 +217,7 @@ export function FichaPessoa() {
         }
         abas={[
           { id: 'resumo', rotulo: 'Resumo', conteudo: <Resumo pessoa={pessoa} areas={areas} contraparte={dados.contrapartes.find((item) => item.id === pessoa.contraparte_id)} /> },
+          { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDaPessoa(pessoa.id)} dependencia={pessoa.id} vazio="As atividades em que esta pessoa é responsável ou participante aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={pessoa.id} /> },
         ]}
       />

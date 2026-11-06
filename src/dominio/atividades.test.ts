@@ -110,6 +110,9 @@ function atividade(alteracoes: Partial<AtividadeDoDia> = {}): AtividadeDoDia {
     dispensada_motivo: null,
     produtos: [],
     participantes: [],
+    itensFeitos: 0,
+    itensTotal: 0,
+    comentarios: 0,
     ...alteracoes,
   };
 }

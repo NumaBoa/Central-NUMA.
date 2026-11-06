@@ -18,7 +18,7 @@ export function ResumoErros({ erros, ref }: { erros: readonly ErroDeCampo[]; ref
         <a
           key={erro.campoId}
           href={`#${erro.campoId}`}
-          className="mt-1.5 block underline"
+          className="mt-0.5 flex min-h-11 items-center underline md:mt-1.5 md:block md:min-h-0"
           onClick={(evento) => {
             evento.preventDefault();
             document.getElementById(erro.campoId)?.focus();
@@ -45,6 +45,8 @@ type PainelFormularioProps = {
   rotuloSalvarEOutro?: string;
   salvando?: boolean;
   erros?: readonly ErroDeCampo[];
+  /** Formulário rápido (18 §10.6): no celular, folha inferior em vez de tela inteira. */
+  folhaNoCelular?: boolean;
   children: ReactNode;
 };
 
@@ -61,6 +63,7 @@ export function PainelFormulario({
   rotuloSalvarEOutro = 'Salvar e adicionar outro',
   salvando = false,
   erros = [],
+  folhaNoCelular = false,
   children,
 }: PainelFormularioProps) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
@@ -77,6 +80,7 @@ export function PainelFormulario({
           variante="painel"
           semFechar
           comDescricao={Boolean(descricao)}
+          data-folha={folhaNoCelular ? '' : undefined}
           onOpenAutoFocus={(evento) => {
             evento.preventDefault();
             (evento.currentTarget as HTMLElement).querySelector<HTMLElement>('input:not([type="radio"]), textarea, select')?.focus();

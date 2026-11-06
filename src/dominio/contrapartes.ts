@@ -4,6 +4,7 @@ import { ErroDeDados, ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { camposDoEndereco, CAMPOS_ENDERECO_VAZIOS, cepValido, enderecoDosCampos, esquemaCamposEndereco } from './endereco';
 import { cnpjValido, cpfValido, formatarCnpj, nomesParecidos, normalizarCnpj, normalizarTexto, soDigitos, telefoneValido } from './duplicidade';
 import { PAIS_BRASIL } from './paises';
@@ -187,8 +188,8 @@ export async function salvarContraparte(formulario: FormularioContraparte, id?: 
 
 /** O que depende da contraparte. Cada módulo novo que apontar para ela acrescenta aqui (T04, T05…). */
 export async function vinculosDaContraparte(id: string): Promise<string[]> {
-  const [contatos, entidades] = await Promise.all([repositorios.pessoa.listar({ onde: { contraparte_id: id } }), repositorios.entidade.listar({ onde: { contador_id: id } })]);
-  return [...contatos.map((pessoa) => `Contato: ${pessoa.nome_completo}`), ...entidades.map((entidade) => `Contador de ${entidade.nome}`)];
+  const [contatos, entidades, atividades] = await Promise.all([repositorios.pessoa.listar({ onde: { contraparte_id: id } }), repositorios.entidade.listar({ onde: { contador_id: id } }), quantasAtividadesAbertasVinculadas('contraparte', id)]);
+  return [...contatos.map((pessoa) => `Contato: ${pessoa.nome_completo}`), ...entidades.map((entidade) => `Contador de ${entidade.nome}`), ...(atividades ? [atividades === 1 ? '1 atividade aberta' : `${atividades} atividades abertas`] : [])];
 }
 
 export async function inativarContraparte(id: string): Promise<void> {

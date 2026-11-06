@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { BotaoFechar, Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/componentes/ui/popover';
 import { useEhCelular } from '@/lib/use-eh-celular';
@@ -19,14 +19,17 @@ type MenuSobrepostoProps = {
 export function MenuSobreposto({ gatilho, titulo, acaoCabecalho, largura = 320, alinhar = 'start', children }: MenuSobrepostoProps) {
   const celular = useEhCelular();
   const [aberto, setAberto] = useState(false);
+  const idDoMenu = useId();
   const fechar = () => setAberto(false);
   const conteudo = typeof children === 'function' ? children(fechar) : children;
 
   if (celular) {
     return (
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogTrigger asChild>{gatilho}</DialogTrigger>
-        <DialogContent semFechar>
+        <DialogTrigger asChild data-gatilho-do-menu={idDoMenu}>
+          {gatilho}
+        </DialogTrigger>
+        <DialogContent semFechar data-menu={idDoMenu}>
           <div className="flex items-center justify-between gap-3 pb-2">
             <DialogTitle className="text-[17px] leading-6 tracking-[-.01em] md:text-[17px] md:leading-6">{titulo}</DialogTitle>
             <div className="flex items-center gap-1">
@@ -42,8 +45,10 @@ export function MenuSobreposto({ gatilho, titulo, acaoCabecalho, largura = 320, 
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
-      <PopoverTrigger asChild>{gatilho}</PopoverTrigger>
-      <PopoverContent align={alinhar} aria-label={titulo} style={{ '--largura-menu': `${largura}px` } as CSSProperties}>
+      <PopoverTrigger asChild data-gatilho-do-menu={idDoMenu}>
+        {gatilho}
+      </PopoverTrigger>
+      <PopoverContent align={alinhar} aria-label={titulo} data-menu={idDoMenu} style={{ '--largura-menu': `${largura}px` } as CSSProperties}>
         <div className="flex items-center justify-between gap-3 pt-1 pr-1 pb-2 pl-3">
           <h2 className="text-[17px] leading-6 tracking-[-.01em]">{titulo}</h2>
           <div className="flex items-center gap-1">

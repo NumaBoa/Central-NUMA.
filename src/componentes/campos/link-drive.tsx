@@ -4,7 +4,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { linkDoDriveValido } from '@/dominio/link-drive';
 
-type EntradaLinkDriveProps = Omit<ComponentProps<'input'>, 'value'> & {
+type EntradaLinkDriveProps = ComponentProps<'input'> & {
   /** O link digitado até agora: o botão "Abrir" só aparece quando ele é válido. */
   link: string;
 };

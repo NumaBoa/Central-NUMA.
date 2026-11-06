@@ -3,19 +3,25 @@
 import { useEffect, type ReactElement } from 'react';
 import { Bell, CheckSquare, FileText, Inbox, AlarmClock, Receipt, Search, Users, Wrench } from 'lucide-react';
 import { EmBreve } from '@/componentes/padroes/etiquetas';
-import { LinhaEmBreve, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
+import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
+import { CLASSE_LINHA_MENU, LinhaEmBreve, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
+import { cn } from '@/lib/utils';
 
 /**
  * Busca (T13.03) e sino (T13.04) só ganham função na etapa 9, e cada formulário de "+ Novo" chega
  * com sua tela. Até lá aparecem como "Em breve", sem resultados de mentira (decisão de 05/11/2026).
+ * Tarefa, Demanda e Lembrete já abrem o formulário (T03.03).
  */
+const ITENS_DE_ATIVIDADE = [
+  { rotulo: 'Tarefa', tipo: 'tarefa', icone: <CheckSquare aria-hidden /> },
+  { rotulo: 'Demanda', tipo: 'demanda', icone: <Inbox aria-hidden /> },
+  { rotulo: 'Lembrete', tipo: 'lembrete', icone: <AlarmClock aria-hidden /> },
+] as const;
+
 const ITENS_NOVO = [
-  { rotulo: 'Tarefa', icone: <CheckSquare aria-hidden /> },
-  { rotulo: 'Demanda', icone: <Inbox aria-hidden /> },
-  { rotulo: 'Lembrete', icone: <AlarmClock aria-hidden /> },
   { rotulo: 'Despesa', icone: <Receipt aria-hidden /> },
   { rotulo: 'Ferramenta', icone: <Wrench aria-hidden /> },
   { rotulo: 'Arquivo', icone: <FileText aria-hidden /> },
@@ -24,13 +30,31 @@ const ITENS_NOVO = [
 
 /** "+ Novo" no computador; "Criar" no "+" da barra do celular (18 §10.5). */
 export function MenuNovo({ gatilho, alinhar = 'end' }: { gatilho: ReactElement; alinhar?: 'start' | 'end' }) {
+  const { abrirAdicionar } = useAdicionarAtividade();
   return (
     <MenuSobreposto titulo="Criar" gatilho={gatilho} alinhar={alinhar}>
-      <ul className="grid gap-0.5">
-        {ITENS_NOVO.map((item) => (
-          <LinhaEmBreve key={item.rotulo} rotulo={item.rotulo} icone={item.icone} />
-        ))}
-      </ul>
+      {(fechar) => (
+        <ul className="grid gap-0.5">
+          {ITENS_DE_ATIVIDADE.map((item) => (
+            <li key={item.tipo}>
+              <button
+                type="button"
+                className={cn(CLASSE_LINHA_MENU, 'hover:bg-hover')}
+                onClick={() => {
+                  fechar();
+                  abrirAdicionar(item.tipo);
+                }}
+              >
+                {item.icone}
+                {item.rotulo}
+              </button>
+            </li>
+          ))}
+          {ITENS_NOVO.map((item) => (
+            <LinhaEmBreve key={item.rotulo} rotulo={item.rotulo} icone={item.icone} />
+          ))}
+        </ul>
+      )}
     </MenuSobreposto>
   );
 }

@@ -31,6 +31,8 @@ type ListaProps<T> = {
   /** Versão em cartão, para o celular. */
   cartao: (linha: T) => ReactNode;
   aoAbrir?: (linha: T) => void;
+  /** O cartão do celular já tem botões próprios: não pode ficar dentro de outro botão. */
+  cartaoInterativo?: boolean;
   /** Ações sempre disponíveis, sem depender de hover (18 §9.6). */
   acoesDaLinha?: (linha: T) => ReactNode;
   estado?: 'pronto' | 'carregando' | 'erro';
@@ -43,7 +45,7 @@ type ListaProps<T> = {
 };
 
 /** Lista (P1 e 18 §9.6): tabela em papel; no celular, cartões. */
-export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, acoesDaLinha, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape }: ListaProps<T>) {
+export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape }: ListaProps<T>) {
   const [ordem, setOrdem] = useState<{ id: string; sentido: 1 | -1 } | null>(null);
   const [limite, setLimite] = useState(TAMANHO_PAGINA);
 
@@ -157,7 +159,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, acoe
       <ul className="space-y-2.5 md:hidden" aria-label={rotulo}>
         {visiveis.map((linha) => (
           <li key={chave(linha)} className="rounded-lg border border-line bg-paper">
-            {aoAbrir ? (
+            {aoAbrir && !cartaoInterativo ? (
               <button type="button" onClick={() => aoAbrir(linha)} className="block w-full p-4 text-left">
                 {cartao(linha)}
               </button>

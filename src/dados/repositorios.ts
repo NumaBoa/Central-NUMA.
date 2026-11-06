@@ -1,6 +1,7 @@
 import type { Repositorio, RepositorioConfiguracao } from './repositorio';
 import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-local';
 import { criarRepositorioLocal } from './repositorio-local';
+import { esquemaAnexoLink, esquemaChecklistItem, esquemaComentario, esquemaVinculo, type AnexoLink, type ChecklistItem, type Comentario, type Vinculo } from './tipos/apoio';
 import { esquemaArea, esquemaPessoaArea, type Area, type PessoaArea } from './tipos/area';
 import { esquemaAtividade, esquemaAtividadeParticipante, esquemaAtividadeProduto, type Atividade, type AtividadeParticipante, type AtividadeProduto } from './tipos/atividade';
 import { esquemaBackupRegistro, type BackupRegistro } from './tipos/backup-registro';
@@ -33,6 +34,10 @@ export const repositorios: {
   atividade: Repositorio<Atividade>;
   atividade_produto: Repositorio<AtividadeProduto>;
   atividade_participante: Repositorio<AtividadeParticipante>;
+  checklist_item: Repositorio<ChecklistItem>;
+  comentario: Repositorio<Comentario>;
+  vinculo: Repositorio<Vinculo>;
+  anexo_link: Repositorio<AnexoLink>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -53,4 +58,8 @@ export const repositorios: {
   atividade: criarRepositorioLocal({ tabela: 'atividade', esquema: esquemaAtividade, prefixoCodigo: 'ATV' }),
   atividade_produto: criarRepositorioLocal({ tabela: 'atividade_produto', esquema: esquemaAtividadeProduto }),
   atividade_participante: criarRepositorioLocal({ tabela: 'atividade_participante', esquema: esquemaAtividadeParticipante }),
+  checklist_item: criarRepositorioLocal({ tabela: 'checklist_item', esquema: esquemaChecklistItem }),
+  comentario: criarRepositorioLocal({ tabela: 'comentario', esquema: esquemaComentario }),
+  vinculo: criarRepositorioLocal({ tabela: 'vinculo', esquema: esquemaVinculo }),
+  anexo_link: criarRepositorioLocal({ tabela: 'anexo_link', esquema: esquemaAnexoLink }),
 };

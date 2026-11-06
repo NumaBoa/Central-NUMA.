@@ -9,6 +9,14 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
+/** Menu que abre um painel ao fechar: o botão clicado vai sumir, e o foco volta para o gatilho do menu. */
+function quemAbriu(): HTMLElement | null {
+  const ativo = document.activeElement;
+  if (!(ativo instanceof HTMLElement)) return null;
+  const menu = ativo.closest<HTMLElement>('[data-menu]');
+  return (menu && document.querySelector<HTMLElement>(`[data-gatilho-do-menu="${menu.dataset.menu}"]`)) ?? ativo;
+}
+
 export function BotaoFechar({ className, ...props }: ComponentProps<'button'>) {
   return (
     <button type="button" aria-label="Fechar" className={cn('botao-fechar', className)} {...props}>
@@ -35,7 +43,7 @@ export function DialogContent({ className, children, variante = 'dialogo', semFe
       <DialogPrimitive.Content
         className={cn(variante === 'painel' ? 'painel-lateral' : 'dialogo', className)}
         onOpenAutoFocus={(evento) => {
-          origemDoFoco.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          origemDoFoco.current = quemAbriu();
           if (onOpenAutoFocus) {
             onOpenAutoFocus(evento);
           } else {
@@ -47,6 +55,8 @@ export function DialogContent({ className, children, variante = 'dialogo', semFe
         // Diálogo aberto por código não tem gatilho: o foco volta para quem o abriu (RT-19).
         onCloseAutoFocus={(evento) => {
           evento.preventDefault();
+          // Se este menu abriu outro painel, o foco já está lá: tirá-lo do campo acusaria erro à toa.
+          if (document.activeElement?.closest('[role="dialog"],[role="alertdialog"]')) return;
           if (origemDoFoco.current?.isConnected) origemDoFoco.current.focus();
         }}
         {...descricao}
