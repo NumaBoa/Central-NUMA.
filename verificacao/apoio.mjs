@@ -87,6 +87,7 @@ export async function iniciar({ nome, porta, rotinas = false }) {
     tabela: (nomeTabela) => c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:${nomeTabela}')||'[]')`),
     medir: () => c.avaliar(MEDIR),
     conferirTela: async (rotulo, largura) => {
+      await c.ate(`document.getAnimations().every((a)=>a.playState!=='running'||a.effect?.getTiming().iterations===Infinity)`, 3000).catch(() => {});
       const m = await c.avaliar(MEDIR);
       ok(`${rotulo}: sem rolagem lateral em ${largura}px`, !m.rolagemLateral && m.larguraJanela === largura, m.larguraJanela);
       ok(`${rotulo}: nada abaixo de 12px em ${largura}px`, m.textoAbaixo12.length === 0, m.textoAbaixo12.join(','));

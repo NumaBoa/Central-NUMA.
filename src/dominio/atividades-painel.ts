@@ -319,7 +319,10 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
 
 // ---------- RN-03.20: a atividade aparece na ficha do registro vinculado ----------
 
-/** Vinculadas a um registro: pelo `vinculo` e, no caso do produto, também pelo contexto. */
+/** A origem do alerta, para cada tipo de registro que tem ficha. */
+const ORIGEM_DO_ALERTA: Readonly<Record<string, string>> = { titulo: 'titulo', ferramenta: 'ferramenta', ativo_digital: 'ativo' };
+
+/** Vinculadas a um registro: pelo `vinculo`, no caso do produto também pelo contexto, e os alertas que nasceram dele. */
 export async function atividadesDoRegistro(tipo: string, id: string): Promise<Atividade[]> {
   const [vinculos, ligacoes, atividades] = await Promise.all([repositorios.vinculo.listar(), tipo === 'produto' ? repositorios.atividade_produto.listar({ onde: { produto_id: id } }) : Promise.resolve([]), repositorios.atividade.listar()]);
   const ids = new Set([
@@ -330,7 +333,7 @@ export async function atividadesDoRegistro(tipo: string, id: string): Promise<At
       return [];
     }),
   ]);
-  return atividades.filter((atividade) => ids.has(atividade.id));
+  return atividades.filter((atividade) => ids.has(atividade.id) || (atividade.tipo === 'alerta' && atividade.origem_id === id && Boolean(ORIGEM_DO_ALERTA[tipo]) && atividade.origem_tipo === ORIGEM_DO_ALERTA[tipo]));
 }
 
 /** Responsável ou participante. */

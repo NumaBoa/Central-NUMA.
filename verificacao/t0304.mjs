@@ -75,7 +75,9 @@ await passo('rotinas do dia ao abrir', async () => {
   ok('numeradas em ordem', backup.every((a, i) => a.ocorrencia_numero === i + 1));
   const total = backup.length + despesas.length + (await atividadesDaRotina(ID_EXEMPLO)).filter((a) => a.situacao !== 'concluida').length;
   const avisoNaTela = await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent).find(t=>t.includes('Rotinas do dia'))`);
-  ok('o aviso diz o que nasceu', avisoNaTela.includes(`Rotinas do dia executadas: ${total} ocorrências novas.`), avisoNaTela);
+  const alertasNovos = (await tabela('atividade')).filter((a) => a.tipo === 'alerta' && a.chave_idempotencia).length;
+  const dosAlertas = alertasNovos ? `${alertasNovos} ${alertasNovos === 1 ? 'alerta novo' : 'alertas novos'} e ` : '';
+  ok('o aviso diz o que nasceu', avisoNaTela.includes(`Rotinas do dia executadas: ${dosAlertas}${total} ocorrências novas.`), avisoNaTela);
   ok('registra a última execução', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).ultima_rotina_em`)).startsWith(d.slice(0, 4)));
   const criadas = (await tabela('atividade')).filter((a) => a.recorrencia_id === ID_BACKUP);
   ok('criadas pelo Sistema', criadas.every((a) => a.criado_por === null));

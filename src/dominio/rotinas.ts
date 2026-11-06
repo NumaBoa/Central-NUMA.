@@ -42,26 +42,34 @@ type OpcoesRotinas = {
 };
 
 /** Duas rodadas ao mesmo tempo leriam a mesma lista e gerariam tudo em dobro. */
-let rodando = false;
+let emAndamento: Promise<ResultadoRotinas> | null = null;
+
+const NAO_RODOU: ResultadoRotinas = { executou: false, novos: 0, falhas: [], novidades: [] };
 
 /**
  * Ao abrir o app, se a última execução for anterior a hoje (02 §0.5). Uma rotina que falha não
  * impede as outras, e o dia só conta como feito se todas passarem, para tentar de novo depois.
  */
 export async function executarRotinas(opcoes: OpcoesRotinas = {}): Promise<ResultadoRotinas> {
-  if (rodando) return { executou: false, novos: 0, falhas: [], novidades: [] };
-  rodando = true;
+  // A da abertura não espera: se outra já está rodando, basta ela. "Rodar rotinas agora" espera a vez e roda,
+  // para o aviso contar o que aconteceu, e não dizer "nada novo" sem ter rodado (o clique logo ao abrir a página).
+  while (emAndamento) {
+    if (!opcoes.manual) return NAO_RODOU;
+    await emAndamento.catch(() => undefined);
+  }
+  const rodada = rodarRotinas(opcoes);
+  emAndamento = rodada;
   try {
-    return await rodarRotinas(opcoes);
+    return await rodada;
   } finally {
-    rodando = false;
+    if (emAndamento === rodada) emAndamento = null;
   }
 }
 
 async function rodarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA }: OpcoesRotinas): Promise<ResultadoRotinas> {
   const agora = new Date();
   const hoje = hojeISO(agora);
-  if (!manual && jaRodouHoje(lerMeta().ultima_rotina_em, hoje)) return { executou: false, novos: 0, falhas: [], novidades: [] };
+  if (!manual && jaRodouHoje(lerMeta().ultima_rotina_em, hoje)) return NAO_RODOU;
 
   // Sem servidor, ninguém garante abrir a Central no dia 1: quem abre depois, no mês seguinte, não perde a extensão.
   const ultimaEm = lerMeta().ultima_rotina_em;

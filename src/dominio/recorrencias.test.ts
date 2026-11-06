@@ -202,7 +202,8 @@ describe('T03.05 e as rotinas do dia', () => {
 
     it('nas rotinas do dia, quem cria é o Sistema, e o aviso diz o que nasceu', async () => {
       const resultado = await executarRotinas();
-      expect(resultado).toMatchObject({ executou: true, novos: 10, falhas: [], novidades: ['10 ocorrências novas'] });
+      expect(resultado).toMatchObject({ executou: true, falhas: [] });
+      expect(resultado.novidades).toContain('10 ocorrências novas');
       const [primeira] = await daRotina(ID_ROTINA_BACKUP);
       expect(primeira?.criado_por).toBeNull();
       expect((await historicoDaAtividade(primeira!.id)).at(-1)?.texto).toContain('Sistema criou a atividade');

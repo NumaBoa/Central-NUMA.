@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Copy, Ellipsis, ExternalLink, Pencil, Receipt, Undo2 } from 'lucide-react';
@@ -391,6 +391,17 @@ export function FichaTitulo() {
   const [editando, setEditando] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+
+  // Vindo do alerta (`?acao=baixa`), a baixa abre sozinha, uma vez só: recarregar a página não abre de novo.
+  const pedidoDoAlerta = useRef(false);
+  useEffect(() => {
+    if (pedidoDoAlerta.current || consulta.estado !== 'pronto') return;
+    pedidoDoAlerta.current = true;
+    if (new URLSearchParams(window.location.search).get('acao') !== 'baixa') return;
+    window.history.replaceState(window.history.state, '', window.location.pathname);
+    const titulo = consulta.dados?.titulo;
+    if (titulo && titulo.situacao !== 'cancelado' && titulo.saldo > 0) setBaixando('pagamento');
+  }, [consulta.estado, consulta.dados]);
 
   const voltar = (
     <LinkCentral href={CAMINHO} className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-pill pr-3 text-[13px] font-medium text-ink-soft hover:text-ink md:min-h-0 [&_svg]:size-4">

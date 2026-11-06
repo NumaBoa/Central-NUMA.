@@ -8,7 +8,7 @@ import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-so
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
 import type { Atividade } from '@/dados/tipos/atividade';
-import { ACOES_DE_ALERTA, contextosDaAtividade, estaAberta, estaAtrasada, estaBloqueada, primeiroNome, ROTULOS_ORIGEM_ALERTA, ROTULOS_TIPO_ATIVIDADE, textoDoPrazo, textoDosAdiamentos, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
+import { acaoDoAlerta, contextosDaAtividade, estaAberta, estaAtrasada, estaBloqueada, primeiroNome, ROTULOS_ORIGEM_ALERTA, ROTULOS_TIPO_ATIVIDADE, textoDoPrazo, textoDosAdiamentos, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { useEhCelular } from '@/lib/use-eh-celular';
 import { cn } from '@/lib/utils';
@@ -166,7 +166,7 @@ export function ConteudoDoCartao({ atividade, dados, hoje, acoes }: { atividade:
   const adiamentos = textoDosAdiamentos(atividade);
   const contextos = contextosDaAtividade(atividade, dados);
   const area = dados.areas.find((item) => item.id === atividade.area_id)?.nome;
-  const acao = atividade.alerta_acao ? ACOES_DE_ALERTA[atividade.alerta_acao] : undefined;
+  const acao = acaoDoAlerta(atividade);
   const concluida = atividade.situacao === 'concluida';
   const aguardandoDe = atividade.aguardando_de_pessoa_id ? nomeDaPessoa(atividade.aguardando_de_pessoa_id, dados) : atividade.aguardando_de_texto;
 

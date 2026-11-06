@@ -37,19 +37,24 @@ const fecharAvisos = async () => {};
 let baixados = 0;
 const NOMES_BAIXADOS = [];
 async function baixado() {
-  for (let i = 0; i < 800; i++) {
+  // Só vale com o tamanho parado, sem `.crdownload` ao lado: antes disso, o Chrome ainda está gravando.
+  let anterior = -1;
+  for (let i = 0; i < 400; i++) {
     const presentes = readdirSync(downloads);
     const nome = presentes.find((n) => /^central-numa-.*\.json$/.test(n));
-    // O Chrome reserva o nome antes de terminar: só vale com conteúdo e sem `.crdownload` ao lado.
-    if (nome && !presentes.some((n) => n.endsWith('.crdownload')) && statSync(path.join(downloads, nome)).size > 0) {
-      await c.espera(100);
-      baixados += 1;
-      const destino = path.join(downloads, `b${baixados}-${nome}`);
-      renameSync(path.join(downloads, nome), destino);
-      NOMES_BAIXADOS.push(nome);
-      return destino;
-    }
-    await c.espera(25);
+    if (nome && !presentes.some((n) => n.endsWith('.crdownload'))) {
+      const tamanho = statSync(path.join(downloads, nome)).size;
+      if (tamanho > 0 && tamanho === anterior) {
+        await c.espera(300);
+        baixados += 1;
+        const destino = path.join(downloads, `b${baixados}-${nome}`);
+        renameSync(path.join(downloads, nome), destino);
+        NOMES_BAIXADOS.push(nome);
+        return destino;
+      }
+      anterior = tamanho;
+    } else anterior = -1;
+    await c.espera(100);
   }
   throw new Error('download não chegou');
 }
@@ -82,13 +87,14 @@ await passo('primeira abertura', async () => {
 let primeiroBackup;
 await passo('exportar', async () => {
   await c.clicar('texto=Exportar tudo');
+  await c.ate(`[...document.querySelectorAll('[data-sonner-toast]')].some(t=>t.textContent.includes('Backups/Central'))`);
+  const avisoDoBackup = await ultimoAviso();
   primeiroBackup = await baixado();
   const arquivo = JSON.parse(readFileSync(primeiroBackup, 'utf8'));
   ok('baixa com a data no nome', /^central-numa-\d{4}-\d{2}-\d{2}\.json$/.test(NOMES_BAIXADOS[0]), NOMES_BAIXADOS[0]);
   ok('o arquivo traz todas as tabelas', arquivo.formato === 'central-numa' && arquivo.tabelas.pessoa.length === 4 && arquivo.tabelas.backup_registro.length === 1 && Array.isArray(arquivo.tabelas.auditoria));
   ok('o arquivo diz quem exportou', arquivo.exportado_por?.nome === 'Kimberly Grebe', arquivo.exportado_por?.nome);
-  await c.ate(`document.querySelector('[data-sonner-toast]')`);
-  ok('orienta salvar no Drive', (await ultimoAviso()).includes('Backups/Central'), await ultimoAviso());
+  ok('orienta salvar no Drive', avisoDoBackup.includes('Backups/Central'), avisoDoBackup);
   await c.espera(100);
   const p = await pagina();
   ok('mostra o último backup e quem fez', p.includes('por Kimberly Grebe') && !p.includes('Último backupNenhum'));
@@ -189,12 +195,15 @@ await passo('importar: arquivos ruins', async () => {
   }
   ok('nenhum arquivo ruim alterou os dados', (await c.avaliar(`localStorage.getItem('numa-central:v1:pessoa')`)) === antes);
 });
+let alertasDosExemplos = 0;
 await passo('rotinas', async () => {
   await c.avaliar(`(()=>{const k='numa-central:v1:recorrencia';localStorage.setItem(k,JSON.stringify(JSON.parse(localStorage.getItem(k)).map(r=>({...r,situacao:'pausada'}))))})()`);
   await c.clicar('texto=Rodar rotinas agora');
   await c.ate(`document.querySelector('[data-sonner-toast]')`);
   await c.ate(`[...document.querySelectorAll('[data-sonner-toast]')].some(t=>t.textContent.includes('Rotinas do dia executadas'))`);
-  ok('avisa o resultado', (await ultimoAviso()).includes('Rotinas do dia executadas: nada novo.'), await ultimoAviso());
+  alertasDosExemplos = (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:atividade'))`)).filter((a) => a.tipo === 'alerta' && a.chave_idempotencia).length;
+  const alertasNovos = alertasDosExemplos;
+  ok('avisa o resultado, com os alertas dos exemplos', alertasNovos > 0 && (await ultimoAviso()).includes(`Rotinas do dia executadas: ${alertasNovos} alertas novos.`), `${alertasNovos} ${await ultimoAviso()}`);
   await c.espera(100);
   ok('mostra a última execução', /Última execução: \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/.test(await pagina()));
   ok('o histórico registra', (await historico())[0]?.includes('rodou as rotinas do dia'), (await historico())[0]);
@@ -223,8 +232,10 @@ await passo('backup atrasado', async () => {
   await c.foto('d-atrasado');
 });
 await passo('mudança vinda de outra aba', async () => {
+  // Os 151 da carga, mais os alertas que os exemplos geraram na rodada manual.
+  const registros = 151 + alertasDosExemplos;
   await c.avaliar(`(()=>{const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l.pop();const novo=JSON.stringify(l);localStorage.setItem(k,novo);window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:novo}))})()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros150')`, 3000);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros${registros - 1}')`, 3000);
   ok('a tela atualiza sozinha', true);
 });
 await passo('restaurar', async () => {

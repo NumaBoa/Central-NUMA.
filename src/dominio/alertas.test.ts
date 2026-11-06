@@ -4,9 +4,9 @@ import { ID_CAMILA, ID_KIMBERLY } from '@/dados/exemplos/base';
 import { esquecerMetaEmMemoria } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import type { Atividade } from '@/dados/tipos/atividade';
-import { chaveDoAlerta, gerarAlertas, sincronizarAlertas, type AlertaDesejado } from './alertas';
+import { chaveDoAlerta, sincronizarAlertas, sincronizarAlertasDeBackup, type AlertaDesejado } from './alertas';
 import { dispensarAlerta } from './atividades';
-import { exportarTudo } from './dados';
+import { exportarTudo, limparExemplos } from './dados';
 import { executarRotinas, mensagemDasRotinas } from './rotinas';
 
 const alertasReais = async (): Promise<Atividade[]> => (await repositorios.atividade.listar({ onde: { tipo: 'alerta' } })).filter((atividade) => !atividade.exemplo);
@@ -70,29 +70,29 @@ describe('alertas (05-M03 §5)', () => {
     const diasDepois = (dias: number) => new Date(Date.now() + dias * 86_400_000);
 
     it('Central recém-aberta não tem atraso; passados 8 dias da primeira carga, tem', async () => {
-      expect(await gerarAlertas()).toBe(0);
+      expect(await sincronizarAlertasDeBackup()).toBe(0);
       expect(await alertasReais()).toEqual([]);
-      expect(await gerarAlertas(diasDepois(8))).toBe(0);
-      expect(await gerarAlertas(diasDepois(9))).toBe(1);
-      expect(await gerarAlertas(diasDepois(9))).toBe(0);
+      expect(await sincronizarAlertasDeBackup(diasDepois(8))).toBe(0);
+      expect(await sincronizarAlertasDeBackup(diasDepois(9))).toBe(1);
+      expect(await sincronizarAlertasDeBackup(diasDepois(9))).toBe(0);
       const [alerta] = await alertasReais();
       expect(alerta).toMatchObject({ titulo: 'Exportar os dados da Central', responsavel_id: ID_CAMILA, alerta_motivo: 'Backup atrasado', alerta_data_referencia: '2026-11-14', alerta_acao: 'exportar_dados', prioridade: 'alta' });
     });
 
     it('a responsável vem de T02.01', async () => {
       await repositorios.configuracao.salvar({ responsavel_backup_id: ID_KIMBERLY });
-      await gerarAlertas(diasDepois(9));
+      await sincronizarAlertasDeBackup(diasDepois(9));
       expect((await alertasReais())[0]?.responsavel_id).toBe(ID_KIMBERLY);
     });
 
     it('exportar conclui o alerta na hora, e o próximo atraso é outro alerta', async () => {
-      await gerarAlertas(diasDepois(9));
+      await sincronizarAlertasDeBackup(diasDepois(9));
       vi.setSystemTime(diasDepois(10));
       await exportarTudo();
       const [alerta] = (await repositorios.atividade.listar({ onde: { origem_tipo: 'backup' } })).filter((atividade) => !atividade.exemplo);
       expect(alerta).toMatchObject({ situacao: 'concluida', concluida_por: null, conclusao_nota: 'Concluído por Exportar dados em Configurações.' });
-      expect(await gerarAlertas()).toBe(0);
-      expect(await gerarAlertas(diasDepois(9))).toBe(1);
+      expect(await sincronizarAlertasDeBackup()).toBe(0);
+      expect(await sincronizarAlertasDeBackup(diasDepois(9))).toBe(1);
       const abertos = (await alertasReais()).filter((atividade) => atividade.situacao === 'a_fazer');
       expect(abertos).toHaveLength(1);
       expect(abertos[0]?.id).not.toBe(alerta?.id);
@@ -105,6 +105,7 @@ describe('alertas (05-M03 §5)', () => {
     });
 
     it('nas rotinas do dia, entra no aviso', async () => {
+      await limparExemplos();
       vi.setSystemTime(diasDepois(0));
       await executarRotinas();
       vi.setSystemTime(diasDepois(9));

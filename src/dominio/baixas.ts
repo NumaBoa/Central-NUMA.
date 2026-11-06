@@ -8,6 +8,7 @@ import type { ContaFinanceira } from '@/dados/tipos/financeiro';
 import type { Baixa, MovimentoSocietario, Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { lerCambio, lerValor, valorParaCampo } from './dinheiro';
+import { sincronizarAlertasDosTitulos } from './alertas';
 import { carregarLancamentos, type DadosDosLancamentos, type LinhaDoTitulo } from './lancamentos';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { erroDoRateioDoTitulo, recalcularRateio, refazerTratamento, registrarPagamento, saldoDoTitulo, situacaoPelasBaixas, valorEmReais, type DadosDoPagamento } from './titulos';
@@ -104,6 +105,12 @@ function pagamentoDoFormulario(formulario: FormularioBaixa, moeda: string): Dado
   };
 }
 
+/** RN-03.12 e CA-03.11: o que muda aqui chega ao Meu dia sem esperar a rotina do dia. */
+async function avisarAlertas(ids: readonly (string | null | undefined)[], hoje?: string): Promise<void> {
+  const unicos = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  if (unicos.length) await sincronizarAlertasDosTitulos(unicos, hoje);
+}
+
 export async function registrarBaixa(titulo: Pick<Titulo, 'id' | 'moeda'>, formulario: FormularioBaixa, hoje: string = hojeISO()): Promise<void> {
   if (formulario.tipo === 'estorno') {
     await estornarBaixa(formulario.baixa_original_id, formulario.motivo, hoje);
@@ -114,6 +121,7 @@ export async function registrarBaixa(titulo: Pick<Titulo, 'id' | 'moeda'>, formu
     return;
   }
   await registrarPagamento(titulo.id, pagamentoDoFormulario(formulario, titulo.moeda), hoje);
+  await avisarAlertas([titulo.id], hoje);
 }
 
 /** Juros, multa, tarifa: sai do caixa e não mexe no saldo do título. */
@@ -150,9 +158,11 @@ export function pagamentosEstornaveis(baixas: readonly Baixa[]): Baixa[] {
 export async function estornarBaixa(baixaId: string, motivo: string, hoje: string = hojeISO()): Promise<void> {
   const limpo = motivo.trim();
   if (!limpo) throw new ErroDeRegra('Diga por que está estornando.');
+  let afetados: (string | null)[] = [];
   await emTransacao(async () => {
     const original = await repositorios.baixa.obter(baixaId);
     if (!original || original.tipo !== 'pagamento') throw new ErroDeRegra('Escolha o pagamento a estornar.');
+    afetados = [original.titulo_id, original.titulo_reembolso_id];
     const doTitulo = await repositorios.baixa.listar({ onde: { titulo_id: original.titulo_id } });
     if (doTitulo.some((baixa) => baixa.tipo === 'estorno' && baixa.baixa_original_id === baixaId)) throw new ErroDeRegra('Este pagamento já foi estornado.');
     await refazerTratamento(original, null, null, limpo);
@@ -182,18 +192,22 @@ export async function estornarBaixa(baixaId: string, motivo: string, hoje: strin
       await repositorios.titulo.atualizar(titulo.id, { situacao: situacaoPelasBaixas(titulo, baixas) });
     }
   });
+  await avisarAlertas(afetados, hoje);
 }
 
 /** RN-05.06: o tratamento pode mudar depois, com motivo, desfazendo e refazendo o que nasceu dele. */
 export async function alterarTratamento(baixaId: string, novo: NonNullable<Baixa['tratamento']>, vencimentoReembolso: string | null, motivo: string): Promise<void> {
   const limpo = motivo.trim();
   if (!limpo) throw new ErroDeRegra('Diga por que o tratamento mudou.');
+  let antes: (string | null)[] = [];
   await emTransacao(async () => {
     const baixa = await repositorios.baixa.obter(baixaId);
     if (!baixa) throw new ErroDeRegra('Esta baixa não existe mais.');
     if (baixa.tratamento === novo) throw new ErroDeRegra('Este já é o tratamento.');
+    antes = [baixa.titulo_id, baixa.titulo_reembolso_id];
     await refazerTratamento(baixa, novo, vencimentoReembolso, limpo);
   });
+  await avisarAlertas([...antes, (await repositorios.baixa.obter(baixaId))?.titulo_reembolso_id]);
 }
 
 // ---------- Baixa em lote (T05.01) ----------
@@ -218,6 +232,7 @@ export async function registrarBaixaEmLote(ids: readonly string[], dados: DadosD
       await registrarPagamento(id, { ...dados, valorMoeda: saldo, cambio: null, iofBrl: null, valorBrl: saldo, pagoAMais: false, motivo: null }, hoje);
     }
   });
+  await avisarAlertas(ids, hoje);
   return ids.length;
 }
 
@@ -247,6 +262,13 @@ export function edicaoPedeMotivo(titulo: Pick<Titulo, 'origem' | 'valor' | 'venc
 }
 
 export async function salvarTitulo(id: string, formulario: FormularioTitulo): Promise<Titulo> {
+  const salvo = await gravarTitulo(id, formulario);
+  // CA-03.13: adiar o vencimento atualiza o alerta aberto, sem outro.
+  await avisarAlertas([id]);
+  return salvo;
+}
+
+async function gravarTitulo(id: string, formulario: FormularioTitulo): Promise<Titulo> {
   return emTransacao(async () => {
     const titulo = await repositorios.titulo.obter(id);
     if (!titulo) throw new ErroDeRegra('Este título não existe mais.');
@@ -283,6 +305,7 @@ export async function confirmarTitulo(id: string): Promise<void> {
   const titulo = await repositorios.titulo.obter(id);
   if (titulo?.situacao !== 'previsto') throw new ErroDeRegra('Só título previsto precisa de confirmação.');
   await repositorios.titulo.atualizar(id, { situacao: 'aberto' });
+  await avisarAlertas([id]);
 }
 
 /** RN-05.14: exige motivo, e título com baixas precisa de estorno antes. */
@@ -295,6 +318,7 @@ export async function cancelarTitulo(id: string, motivo: string): Promise<void> 
   if (saldoDoTitulo(titulo, baixas) !== titulo.valor) throw new ErroDeRegra('Este título tem pagamentos. Estorne antes de cancelar.');
   // Marcado à mão, a geração não traz de volta (RN-05.13).
   await repositorios.titulo.atualizar(id, { situacao: 'cancelado', cancelado_motivo: limpo, ajustado_manualmente: true }, { motivo: limpo });
+  await avisarAlertas([id]);
 }
 
 export type LinhaRateioDoTitulo = { ligacaoId: string; percentual: string };

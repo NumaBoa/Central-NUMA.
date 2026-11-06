@@ -14,6 +14,7 @@ import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { AREAS_INICIAIS } from '@/dados/exemplos/base';
+import { sincronizarAlertasDasFerramentas, sincronizarAlertasDosTitulos } from './alertas';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { ativosDaFerramenta } from './ativos';
 import { cobrancasPrevistas, MESES_DA_PERIODICIDADE, somarMeses } from './cobrancas';
@@ -344,7 +345,21 @@ async function sincronizarContextos(ferramentaId: string, escolhidos: readonly s
   }
 }
 
+/** RN-03.12: o que muda na ferramenta chega aos alertas dela e aos dos lançamentos dela, sem esperar a rotina do dia. */
+async function avisarAlertas(ids: readonly string[], hoje?: string): Promise<void> {
+  if (!ids.length) return;
+  await sincronizarAlertasDasFerramentas(ids, hoje);
+  const titulos = (await repositorios.titulo.listar({ incluirArquivados: true })).filter((titulo) => titulo.ferramenta_id && ids.includes(titulo.ferramenta_id));
+  if (titulos.length) await sincronizarAlertasDosTitulos(titulos.map((titulo) => titulo.id), hoje);
+}
+
 export async function criarFerramenta(formulario: FormularioFerramenta, hoje: string = hojeISO()): Promise<Ferramenta> {
+  const ferramenta = await gravarNovaFerramenta(formulario, hoje);
+  await avisarAlertas([ferramenta.id], hoje);
+  return ferramenta;
+}
+
+async function gravarNovaFerramenta(formulario: FormularioFerramenta, hoje: string): Promise<Ferramenta> {
   return emTransacao(async () => {
     const ferramenta = await repositorios.ferramenta.criar({ ...dadosDaFerramenta(formulario), recuperacao_verificada_em: null, trata_dados_pessoais: false, tipos_dados: [], regiao_dados: null, acordo_dados_situacao: null, acordo_dados_url: null, dados_revisado_em: null, cancelada_em: null, cancelamento_motivo: null });
     await sincronizarContextos(ferramenta.id, formulario.contextos, hoje);
@@ -376,7 +391,13 @@ function situacaoAoSalvar({ situacao, modalidade, fim_teste }: Pick<FormularioFe
   return acompanhada === 'teste_expirado' && modalidade === 'teste' && fim_teste >= hoje ? 'teste' : acompanhada;
 }
 
-export async function salvarFerramenta(id: string, formulario: FormularioFerramenta, { motivoDoValor = '', trocarPlano = false, hoje = hojeISO() }: { motivoDoValor?: string; trocarPlano?: boolean; hoje?: string } = {}): Promise<Ferramenta> {
+export async function salvarFerramenta(id: string, formulario: FormularioFerramenta, opcoes: { motivoDoValor?: string; trocarPlano?: boolean; hoje?: string } = {}): Promise<Ferramenta> {
+  const ferramenta = await gravarFerramenta(id, formulario, opcoes);
+  await avisarAlertas([id], opcoes.hoje);
+  return ferramenta;
+}
+
+async function gravarFerramenta(id: string, formulario: FormularioFerramenta, { motivoDoValor = '', trocarPlano = false, hoje = hojeISO() }: { motivoDoValor?: string; trocarPlano?: boolean; hoje?: string }): Promise<Ferramenta> {
   if (trocarPlano && !formulario.modalidade) throw new ErroDeRegra('Escolha a modalidade do novo plano.');
   return emTransacao(async () => {
     const ferramenta = await repositorios.ferramenta.atualizar(id, { ...dadosDaFerramenta(formulario), situacao: situacaoAoSalvar(formulario, hoje) });
@@ -420,6 +441,7 @@ export async function cancelarFerramenta(id: string, { data, motivo }: { data: s
     for (const assinatura of await repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: id, situacao: 'ativa' } })) await repositorios.assinatura_ferramenta.atualizar(assinatura.id, { situacao: 'encerrada', fim: data });
     await cancelarTitulosFuturos(id, data, `Ferramenta cancelada: ${limpo}`);
   });
+  await avisarAlertas([id]);
 }
 
 /** Cada módulo novo que apontar para a ferramenta bloqueia aqui. */
@@ -437,12 +459,14 @@ export async function arquivarFerramenta(id: string): Promise<void> {
   const vinculos = await vinculosDaFerramenta(id);
   if (vinculos.length) throw new ErroDeRegra(`Esta ferramenta tem ${vinculos.join(' e ')}. Conclua ou tire o vínculo antes.`);
   await repositorios.ferramenta.arquivar(id);
+  await avisarAlertas([id]);
 }
 
 export async function restaurarFerramenta(id: string): Promise<void> {
   const [ferramenta, ativas] = await Promise.all([repositorios.ferramenta.obter(id), repositorios.ferramenta.listar()]);
   if (ferramenta && ativas.some((outra) => outra.situacao !== 'cancelada' && normalizarTexto(outra.nome) === normalizarTexto(ferramenta.nome))) throw new ErroDeRegra('Já existe uma ferramenta ativa com esse nome. Mude o nome dela antes de restaurar esta.');
   await repositorios.ferramenta.restaurar(id);
+  await avisarAlertas([id]);
 }
 
 // ---------- Arquivos (links do Drive, até o M08) ----------
@@ -552,6 +576,7 @@ export async function mudarResponsavelTecnica(ids: readonly string[], pessoaId: 
 export async function atualizarSituacoesDasFerramentas(hoje: string = hojeISO()): Promise<number> {
   const [ferramentas, assinaturas] = await Promise.all([repositorios.ferramenta.listar(), repositorios.assinatura_ferramenta.listar({ onde: { situacao: 'ativa' } })]);
   let mudancas = 0;
+  const mudadas = new Set<string>();
   await emTransacao(async () => {
     for (const assinatura of assinaturas) {
       const ferramenta = ferramentas.find((item) => item.id === assinatura.ferramenta_id);
@@ -565,9 +590,12 @@ export async function atualizarSituacoesDasFerramentas(hoje: string = hojeISO())
         for (let voltas = 1; proxima < hoje && voltas < 240; voltas += 1) proxima = somarMeses(assinatura.proxima_cobranca, meses * voltas, assinatura.dia_cobranca);
         await repositorios.assinatura_ferramenta.atualizar(assinatura.id, { proxima_cobranca: proxima });
         mudancas += 1;
+        mudadas.add(assinatura.ferramenta_id);
       }
     }
   });
+  // A renovação passou e a data andou: o alerta dela se resolve hoje, e não amanhã.
+  await avisarAlertas([...mudadas], hoje);
   return mudancas;
 }
 

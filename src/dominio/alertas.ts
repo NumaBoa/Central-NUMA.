@@ -1,15 +1,21 @@
 /**
- * A rotina do dia `gerar_alertas` (05-M03 §5). Nesta etapa, só a origem que já existe: o backup.
- * Vencimentos, renovações, fim de teste e domínio entram junto com as telas deles (etapa 15).
+ * A rotina do dia `gerar_alertas` (05-M03 §5), com as origens da F0a: títulos a pagar, reembolsos a
+ * sócias, assinaturas de ferramentas, domínios e o backup. Duas chaves e revisão de acessos são da F2 (D14).
  */
 import { AREAS_INICIAIS } from '@/dados/exemplos/base';
 import { repositorios } from '@/dados/repositorios';
 import { comoSistema } from '@/dados/sessao';
 import { emTransacao } from '@/dados/transacao';
 import type { Atividade } from '@/dados/tipos/atividade';
+import type { AtivoDigital } from '@/dados/tipos/ativo';
+import type { AssinaturaFerramenta, Ferramenta } from '@/dados/tipos/ferramenta';
+import type { Baixa, Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
-import { estaAberta } from './atividades';
+import { formatarDiaISO } from '@/lib/formatacao';
+import { ACOES_DE_ALERTA, estaAberta, MAXIMO_NO_TITULO } from './atividades';
 import { backupAtrasado, DIAS_ATE_BACKUP_ATRASADO } from './backup';
+import { somarDias } from './repeticao';
+import { saldoDoTitulo } from './titulos';
 
 /** O que a origem quer ver no Meu dia neste momento. */
 export type AlertaDesejado = {
@@ -21,10 +27,35 @@ export type AlertaDesejado = {
   responsavel_id: string;
   area_id: string | null;
   acao: string;
+  /** Nasce de um registro de exemplo: sai junto quando os exemplos forem limpos. */
+  exemplo?: boolean;
 };
 
 /** `tipo_origem + id_origem + motivo + data_referencia` (05-M03 §5). */
 export const chaveDoAlerta = ({ origem_tipo, origem_id, motivo, data_referencia }: Pick<AlertaDesejado, 'origem_tipo' | 'origem_id' | 'motivo' | 'data_referencia'>) => `${origem_tipo}:${origem_id}:${motivo}:${data_referencia}`;
+
+/** Os motivos da F0a, como na tabela de 05-M03 §5. */
+export const MOTIVOS_DE_ALERTA = {
+  vencimentoProximo: 'Vencimento próximo',
+  vencido: 'Vencido',
+  reembolso: 'Reembolso pendente há 30 dias',
+  renovacao: 'Renovação',
+  fimDoTeste: 'Fim do período de teste',
+  prazoParaCancelar: 'Prazo para cancelar',
+  dominio: 'Vencimento',
+  backup: 'Backup atrasado',
+} as const;
+
+const ORIGEM_TITULO = 'titulo';
+const ORIGEM_FERRAMENTA = 'ferramenta';
+const ORIGEM_ATIVO = 'ativo';
+
+const idDaArea = (nome: string) => AREAS_INICIAIS.find((area) => area.nome === nome)?.id ?? null;
+const AREA_FINANCEIRO = idDaArea('Financeiro');
+const AREA_TECNOLOGIA = idDaArea('Tecnologia');
+
+/** O título da atividade tem limite: o nome da origem pode ser longo. */
+const limitar = (texto: string) => (texto.length <= MAXIMO_NO_TITULO ? texto : `${texto.slice(0, MAXIMO_NO_TITULO - 1).trimEnd()}…`);
 
 function novoAlerta(desejado: AlertaDesejado) {
   return {
@@ -65,43 +96,218 @@ function novoAlerta(desejado: AlertaDesejado) {
     conclusao_nota: null,
     cancelada_motivo: null,
     dispensada_motivo: null,
+    exemplo: desejado.exemplo ?? false,
   };
 }
 
+/** A nota de quem resolveu depende do que aconteceu na origem (RN-03.12). */
+type NotaAoResolver = string | ((alerta: Atividade) => string);
+
+/** Gerado por este motor. O alerta de exemplo da carga inicial não tem chave, e fica como está. */
+const doMotor = (atividade: Atividade) => atividade.tipo === 'alerta' && (!atividade.exemplo || Boolean(atividade.chave_idempotencia));
+
 /**
- * Deixa os alertas de uma origem iguais ao que ela pede. O mesmo motivo e a mesma data nunca voltam,
- * nem depois de dispensados (RN-03.13 e RT-09). Data de referência que mudou atualiza o alerta aberto,
- * e origem que deixou de exigir ação o conclui em nome do Sistema (RN-03.14). Exemplos ficam de fora.
+ * Deixa os alertas de uma origem iguais ao que ela pede. Dispensado ou concluído à mão não volta com o
+ * mesmo motivo e a mesma data (RN-03.13 e RT-09). Data de referência que mudou atualiza o alerta aberto
+ * (RN-03.14), e origem que deixou de exigir ação o conclui em nome do Sistema, com a nota (RN-03.12).
+ * Concluído pelo Sistema volta a abrir se a origem voltar a pedir ação, como depois de um estorno.
+ * `apenas` limita aos registros que uma ação acabou de mudar: o alerta se resolve na hora (CA-03.11).
  */
-export async function sincronizarAlertas(origemTipo: string, desejados: readonly AlertaDesejado[], notaAoResolver: string): Promise<number> {
-  const existentes = (await repositorios.atividade.listar({ onde: { origem_tipo: origemTipo }, incluirArquivados: true })).filter((atividade) => atividade.tipo === 'alerta' && !atividade.exemplo);
+export async function sincronizarAlertas(origemTipo: string, desejados: readonly AlertaDesejado[], notaAoResolver: NotaAoResolver, { apenas }: { apenas?: readonly string[] } = {}): Promise<number> {
+  const existentes = (await repositorios.atividade.listar({ onde: { origem_tipo: origemTipo }, incluirArquivados: true })).filter((atividade) => doMotor(atividade) && (!apenas || apenas.includes(atividade.origem_id ?? '')));
   const abertos = existentes.filter(estaAberta);
   const mesmoAlerta = (atividade: Atividade, desejado: AlertaDesejado) => atividade.origem_id === desejado.origem_id && atividade.alerta_motivo === desejado.motivo;
+  const nota = (alerta: Atividade) => (typeof notaAoResolver === 'function' ? notaAoResolver(alerta) : notaAoResolver);
   let novos = 0;
   await emTransacao(async () => {
     for (const desejado of desejados) {
       const chave = chaveDoAlerta(desejado);
-      if (existentes.some((atividade) => atividade.chave_idempotencia === chave)) continue;
       const aberto = abertos.find((atividade) => mesmoAlerta(atividade, desejado));
       if (aberto) {
-        await repositorios.atividade.atualizar(aberto.id, { alerta_data_referencia: desejado.data_referencia, prazo: desejado.data_referencia, chave_idempotencia: chave });
-      } else {
-        await repositorios.atividade.criar(novoAlerta(desejado));
-        novos += 1;
+        if (aberto.chave_idempotencia !== chave || aberto.titulo !== desejado.titulo) await repositorios.atividade.atualizar(aberto.id, { alerta_data_referencia: desejado.data_referencia, prazo: desejado.data_referencia, chave_idempotencia: chave, titulo: desejado.titulo });
+        continue;
       }
+      const anterior = existentes.find((atividade) => atividade.chave_idempotencia === chave);
+      if (anterior) {
+        if (anterior.situacao === 'concluida' && !anterior.concluida_por && !anterior.arquivado_em) {
+          await repositorios.atividade.atualizar(anterior.id, { situacao: 'a_fazer', concluida_em: null, concluida_por: null, conclusao_nota: null, titulo: desejado.titulo });
+          novos += 1;
+        }
+        continue;
+      }
+      await repositorios.atividade.criar(novoAlerta(desejado));
+      novos += 1;
     }
     for (const aberto of abertos) {
-      if (!desejados.some((desejado) => mesmoAlerta(aberto, desejado))) await repositorios.atividade.atualizar(aberto.id, { situacao: 'concluida', concluida_em: new Date().toISOString(), concluida_por: null, conclusao_nota: notaAoResolver });
+      if (!desejados.some((desejado) => mesmoAlerta(aberto, desejado))) await repositorios.atividade.atualizar(aberto.id, { situacao: 'concluida', concluida_em: new Date().toISOString(), concluida_por: null, conclusao_nota: nota(aberto) });
     }
   });
   return novos;
+}
+
+const abertosDe = (abertos: readonly Atividade[], origemId: string, motivo: string) => abertos.some((atividade) => atividade.origem_id === origemId && atividade.alerta_motivo === motivo && estaAberta(atividade));
+
+// ---------- Títulos e reembolsos (M05) ----------
+
+const PEDEM_PAGAMENTO: readonly Titulo['situacao'][] = ['previsto', 'aberto', 'parcial'];
+
+export type OpcoesDosTitulos = {
+  hoje: string;
+  /** Antecedência do vencimento (T02.01). */
+  dias: number;
+  /** "Kimberly" em 05-M03 §5: a responsável padrão da área Financeiro. */
+  responsavelDoReembolso: string | null;
+  nomeDaPessoa: (id: string | null) => string;
+};
+
+/**
+ * Vencimento próximo: N dias antes, até o dia do vencimento; depois dele, vira "Vencido". Previsto
+ * também pede pagamento. Adiado para fora da janela, o alerta aberto continua, com a data nova (RN-03.14).
+ */
+export function alertasDosTitulos(titulos: readonly Titulo[], baixas: readonly Baixa[], abertos: readonly Atividade[], { hoje, dias, responsavelDoReembolso, nomeDaPessoa }: OpcoesDosTitulos): AlertaDesejado[] {
+  const desejados: AlertaDesejado[] = [];
+  for (const titulo of titulos) {
+    if (titulo.arquivado_em || !PEDEM_PAGAMENTO.includes(titulo.situacao)) continue;
+    if (saldoDoTitulo(titulo, baixas.filter((baixa) => baixa.titulo_id === titulo.id)) <= 0) continue;
+    const base = { origem_tipo: ORIGEM_TITULO, origem_id: titulo.id, responsavel_id: titulo.responsavel_id, area_id: AREA_FINANCEIRO, exemplo: titulo.exemplo };
+    if (titulo.vencimento < hoje) {
+      desejados.push({ ...base, motivo: MOTIVOS_DE_ALERTA.vencido, data_referencia: titulo.vencimento, titulo: limitar(`${titulo.natureza === 'receber' ? 'Recebimento' : 'Pagamento'} vencido: ${titulo.descricao}`), acao: 'registrar_baixa' });
+    } else if (titulo.natureza === 'pagar' && (somarDias(titulo.vencimento, -dias) <= hoje || abertosDe(abertos, titulo.id, MOTIVOS_DE_ALERTA.vencimentoProximo))) {
+      desejados.push({ ...base, motivo: MOTIVOS_DE_ALERTA.vencimentoProximo, data_referencia: titulo.vencimento, titulo: limitar(`Vencimento de ${titulo.descricao}`), acao: 'registrar_pagamento' });
+    }
+    if (titulo.origem === 'reembolso' && titulo.natureza === 'pagar') {
+      const desde = somarDias(hojeISO(new Date(titulo.criado_em)), 30);
+      if (desde <= hoje) {
+        desejados.push({ ...base, responsavel_id: responsavelDoReembolso ?? titulo.responsavel_id, motivo: MOTIVOS_DE_ALERTA.reembolso, data_referencia: desde, titulo: limitar(`Reembolso a ${nomeDaPessoa(titulo.beneficiario_pessoa_id)} pendente há 30 dias: ${titulo.descricao.replace(/^Reembolso: /, '')}`), acao: 'registrar_pagamento' });
+      }
+    }
+  }
+  return desejados;
+}
+
+function notaDoTitulo(titulos: readonly Titulo[], baixas: readonly Baixa[], hoje: string) {
+  return (alerta: Atividade): string => {
+    const titulo = titulos.find((item) => item.id === alerta.origem_id);
+    if (!titulo || titulo.arquivado_em) return 'Concluído: o lançamento não existe mais.';
+    if (titulo.situacao === 'cancelado') return 'Concluído: o lançamento foi cancelado.';
+    if (saldoDoTitulo(titulo, baixas.filter((baixa) => baixa.titulo_id === titulo.id)) <= 0) return `Concluído por ${ACOES_DE_ALERTA[alerta.alerta_acao ?? '']?.rotulo ?? 'Registrar baixa'} em Financeiro.`;
+    if (alerta.alerta_motivo === MOTIVOS_DE_ALERTA.vencimentoProximo && titulo.vencimento < hoje) return 'Substituído pelo alerta de vencido.';
+    if (alerta.alerta_motivo === MOTIVOS_DE_ALERTA.vencido && titulo.vencimento >= hoje) return `Concluído: o vencimento mudou para ${formatarDiaISO(titulo.vencimento)}.`;
+    return 'Concluído: o lançamento não pede mais ação.';
+  };
+}
+
+/** Sem `ids`, todos os títulos; com eles, só os que uma ação acabou de mudar. */
+export async function sincronizarAlertasDosTitulos(ids?: readonly string[], hoje: string = hojeISO()): Promise<number> {
+  return comoSistema(async () => {
+    const [titulos, baixas, alertas, configuracao, areas, pessoas] = await Promise.all([
+      repositorios.titulo.listar({ incluirArquivados: true }),
+      repositorios.baixa.listar(),
+      repositorios.atividade.listar({ onde: { origem_tipo: ORIGEM_TITULO } }),
+      repositorios.configuracao.ler(),
+      repositorios.area.listar({ incluirArquivados: true }),
+      repositorios.pessoa.listar({ incluirArquivados: true }),
+    ]);
+    const escolhidos = ids ? titulos.filter((titulo) => ids.includes(titulo.id)) : titulos;
+    const desejados = alertasDosTitulos(escolhidos, baixas, alertas.filter(estaAberta), {
+      hoje,
+      dias: configuracao.alerta_vencimento_dias,
+      responsavelDoReembolso: areas.find((area) => area.id === AREA_FINANCEIRO)?.responsavel_padrao_id ?? null,
+      nomeDaPessoa: (id) => pessoas.find((pessoa) => pessoa.id === id)?.nome_completo ?? 'sócia',
+    });
+    return sincronizarAlertas(ORIGEM_TITULO, desejados, notaDoTitulo(titulos, baixas, hoje), ids ? { apenas: ids } : {});
+  });
+}
+
+// ---------- Assinaturas de ferramentas (M04) ----------
+
+export type OpcoesDasFerramentas = { hoje: string; diasRenovacao: number; diasTeste: number };
+
+/** Uma cobrança única ou por uso não se renova. */
+const renova = (assinatura: AssinaturaFerramenta) => assinatura.modalidade === 'paga' && Boolean(assinatura.proxima_cobranca) && assinatura.periodicidade !== 'unica' && assinatura.periodicidade !== 'por_uso';
+
+/**
+ * Renovação: N dias antes da próxima cobrança, e fica até a data mudar. Prazo para cancelar: renovação −
+ * aviso − 3 dias, só na renovação automática com aviso informado. Fim do teste: N dias antes, e fica até a
+ * ferramenta sair do teste, mesmo expirado (RN-04.09).
+ */
+export function alertasDasFerramentas(ferramentas: readonly Ferramenta[], assinaturas: readonly AssinaturaFerramenta[], abertos: readonly Atividade[], { hoje, diasRenovacao, diasTeste }: OpcoesDasFerramentas): AlertaDesejado[] {
+  const desejados: AlertaDesejado[] = [];
+  for (const ferramenta of ferramentas) {
+    if (ferramenta.arquivado_em || ferramenta.situacao === 'cancelada') continue;
+    const assinatura = assinaturas.find((item) => item.ferramenta_id === ferramenta.id && item.situacao === 'ativa' && !item.arquivado_em);
+    if (!assinatura) continue;
+    const base = { origem_tipo: ORIGEM_FERRAMENTA, origem_id: ferramenta.id, exemplo: ferramenta.exemplo };
+    const financeira = { responsavel_id: ferramenta.responsavel_financeiro_id ?? ferramenta.responsavel_tecnico_id, area_id: AREA_FINANCEIRO };
+    if (renova(assinatura)) {
+      const renovacao = assinatura.proxima_cobranca as string;
+      if (somarDias(renovacao, -diasRenovacao) <= hoje) desejados.push({ ...base, ...financeira, motivo: MOTIVOS_DE_ALERTA.renovacao, data_referencia: renovacao, titulo: limitar(`Renovação de ${ferramenta.nome}`), acao: 'revisar_renovacao' });
+      if (assinatura.renovacao === 'automatica' && assinatura.aviso_cancelamento_dias !== null) {
+        const limite = somarDias(renovacao, -assinatura.aviso_cancelamento_dias);
+        if (somarDias(limite, -3) <= hoje) desejados.push({ ...base, ...financeira, motivo: MOTIVOS_DE_ALERTA.prazoParaCancelar, data_referencia: limite, titulo: limitar(`Prazo para cancelar ${ferramenta.nome}`), acao: 'cancelar_ou_manter' });
+      }
+    }
+    const emTeste = ferramenta.situacao === 'teste' || ferramenta.situacao === 'teste_expirado';
+    if (emTeste && assinatura.modalidade === 'teste' && assinatura.fim_teste && (somarDias(assinatura.fim_teste, -diasTeste) <= hoje || abertosDe(abertos, ferramenta.id, MOTIVOS_DE_ALERTA.fimDoTeste))) {
+      desejados.push({ ...base, responsavel_id: ferramenta.responsavel_tecnico_id, area_id: AREA_TECNOLOGIA, motivo: MOTIVOS_DE_ALERTA.fimDoTeste, data_referencia: assinatura.fim_teste, titulo: limitar(`Fim do teste de ${ferramenta.nome}`), acao: 'decidir_teste' });
+    }
+  }
+  return desejados;
+}
+
+function notaDaFerramenta(ferramentas: readonly Ferramenta[], assinaturas: readonly AssinaturaFerramenta[]) {
+  return (alerta: Atividade): string => {
+    const ferramenta = ferramentas.find((item) => item.id === alerta.origem_id);
+    if (!ferramenta || ferramenta.arquivado_em) return 'Concluído: a ferramenta não existe mais.';
+    if (ferramenta.situacao === 'cancelada') return 'Concluído por Cancelar ferramenta em Ferramentas.';
+    if (alerta.alerta_motivo === MOTIVOS_DE_ALERTA.fimDoTeste) return 'Concluído: a ferramenta saiu do teste.';
+    const assinatura = assinaturas.find((item) => item.ferramenta_id === ferramenta.id && item.situacao === 'ativa' && !item.arquivado_em);
+    if (!assinatura || !renova(assinatura)) return 'Concluído: a assinatura não tem mais renovação.';
+    return 'Concluído: a data de renovação foi atualizada.';
+  };
+}
+
+export async function sincronizarAlertasDasFerramentas(ids?: readonly string[], hoje: string = hojeISO()): Promise<number> {
+  return comoSistema(async () => {
+    const [ferramentas, assinaturas, alertas, configuracao] = await Promise.all([repositorios.ferramenta.listar({ incluirArquivados: true }), repositorios.assinatura_ferramenta.listar({ incluirArquivados: true }), repositorios.atividade.listar({ onde: { origem_tipo: ORIGEM_FERRAMENTA } }), repositorios.configuracao.ler()]);
+    const escolhidas = ids ? ferramentas.filter((ferramenta) => ids.includes(ferramenta.id)) : ferramentas;
+    const desejados = alertasDasFerramentas(escolhidas, assinaturas, alertas.filter(estaAberta), { hoje, diasRenovacao: configuracao.alerta_renovacao_ferramenta_dias, diasTeste: configuracao.alerta_fim_teste_dias });
+    return sincronizarAlertas(ORIGEM_FERRAMENTA, desejados, notaDaFerramenta(ferramentas, assinaturas), ids ? { apenas: ids } : {});
+  });
+}
+
+// ---------- Domínios (M04) ----------
+
+/** N dias antes do vencimento, e fica depois dele, até a data mudar (RN-04.18). */
+export function alertasDosAtivos(ativos: readonly AtivoDigital[], { hoje, dias }: { hoje: string; dias: number }): AlertaDesejado[] {
+  return ativos.flatMap((ativo) =>
+    !ativo.arquivado_em && ativo.tipo === 'dominio' && ativo.vencimento && somarDias(ativo.vencimento, -dias) <= hoje
+      ? [{ origem_tipo: ORIGEM_ATIVO, origem_id: ativo.id, motivo: MOTIVOS_DE_ALERTA.dominio, data_referencia: ativo.vencimento, titulo: limitar(`Renovar o domínio ${ativo.identificador}`), responsavel_id: ativo.responsavel_id, area_id: AREA_TECNOLOGIA, acao: 'renovar_dominio', exemplo: ativo.exemplo }]
+      : [],
+  );
+}
+
+function notaDoAtivo(ativos: readonly AtivoDigital[]) {
+  return (alerta: Atividade): string => {
+    const ativo = ativos.find((item) => item.id === alerta.origem_id);
+    if (!ativo || ativo.arquivado_em) return 'Concluído: o ativo não existe mais.';
+    if (ativo.tipo !== 'dominio' || !ativo.vencimento) return 'Concluído: o ativo não tem mais vencimento de domínio.';
+    return 'Concluído: o vencimento do domínio foi atualizado.';
+  };
+}
+
+export async function sincronizarAlertasDosAtivos(ids?: readonly string[], hoje: string = hojeISO()): Promise<number> {
+  return comoSistema(async () => {
+    const [ativos, configuracao] = await Promise.all([repositorios.ativo_digital.listar({ incluirArquivados: true }), repositorios.configuracao.ler()]);
+    const escolhidos = ids ? ativos.filter((ativo) => ids.includes(ativo.id)) : ativos;
+    return sincronizarAlertas(ORIGEM_ATIVO, alertasDosAtivos(escolhidos, { hoje, dias: configuracao.alerta_dominio_dias }), notaDoAtivo(ativos), ids ? { apenas: ids } : {});
+  });
 }
 
 // ---------- Backup ----------
 
 const ORIGEM_BACKUP = 'backup';
 const ID_DO_BACKUP = 'central';
-const AREA_DO_BACKUP = AREAS_INICIAIS.find((area) => area.nome === 'Tecnologia')?.id ?? null;
 const UM_DIA = 86_400_000;
 
 /**
@@ -117,11 +323,11 @@ async function alertasDeBackup(agora: Date): Promise<AlertaDesejado[]> {
     {
       origem_tipo: ORIGEM_BACKUP,
       origem_id: ID_DO_BACKUP,
-      motivo: 'Backup atrasado',
+      motivo: MOTIVOS_DE_ALERTA.backup,
       data_referencia: hojeISO(new Date(new Date(desde).getTime() + DIAS_ATE_BACKUP_ATRASADO * UM_DIA)),
       titulo: 'Exportar os dados da Central',
       responsavel_id: responsavel_backup_id,
-      area_id: AREA_DO_BACKUP,
+      area_id: AREA_TECNOLOGIA,
       acao: 'exportar_dados',
     },
   ];
@@ -133,7 +339,12 @@ export async function sincronizarAlertasDeBackup(agora: Date = new Date()): Prom
   return comoSistema(async () => sincronizarAlertas(ORIGEM_BACKUP, await alertasDeBackup(agora), NOTA_DO_BACKUP));
 }
 
-/** Soma de todas as origens: cada módulo acrescenta a sua aqui. */
+/** Soma de todas as origens da F0a. */
 export async function gerarAlertas(agora: Date = new Date()): Promise<number> {
-  return sincronizarAlertasDeBackup(agora);
+  const hoje = hojeISO(agora);
+  let novos = await sincronizarAlertasDeBackup(agora);
+  novos += await sincronizarAlertasDosTitulos(undefined, hoje);
+  novos += await sincronizarAlertasDasFerramentas(undefined, hoje);
+  novos += await sincronizarAlertasDosAtivos(undefined, hoje);
+  return novos;
 }

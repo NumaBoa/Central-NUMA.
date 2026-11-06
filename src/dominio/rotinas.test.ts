@@ -52,6 +52,14 @@ describe('rotinas do dia', () => {
     expect(segunda.executou).toBe(false);
   });
 
+  it('"Rodar rotinas agora" durante outra rodada espera a vez e roda, em vez de dizer "nada novo"', async () => {
+    const rotina = rotinaQueConta('Gerar alertas', 1);
+    const [automatica, manual] = await Promise.all([executarRotinas({ rotinas: [rotina] }), executarRotinas({ rotinas: [rotina], manual: true })]);
+    expect(automatica.executou).toBe(true);
+    expect(manual).toMatchObject({ executou: true, novos: 1 });
+    expect(rotina.executar).toHaveBeenCalledTimes(2);
+  });
+
   it('o botão "Rodar rotinas agora" roda mesmo se já rodaram hoje', async () => {
     const rotina = rotinaQueConta('Gerar alertas');
     await executarRotinas({ rotinas: [rotina] });

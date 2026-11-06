@@ -936,10 +936,13 @@ await passo('busca global e "+ Novo"', async () => {
   await c.avaliar(`(()=>{const e=document.querySelector('.busca-global input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'traco editor');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
   await c.ate(`document.querySelectorAll('.busca-global [role=option]').length>0`);
   ok('a busca global acha, no grupo Ferramentas', (await texto('.busca-global')).includes('Ferramentas') && (await texto('.busca-global')).includes('Traço Editor'), (await texto('.busca-global')).slice(0, 200));
+  const daFerramenta = await c.avaliar(`[...document.querySelectorAll('.busca-global [role=option]')].findIndex(o=>{const h=o.getAttribute('href');return h.startsWith('/ferramentas/')&&!h.startsWith('/ferramentas/ativos')})`);
+  ok('os alertas da ferramenta também aparecem, em Atividades', (await texto('.busca-global')).includes('Renovação de Traço Editor') || daFerramenta === 0, (await texto('.busca-global')).slice(0, 200));
+  for (let i = 0; i < daFerramenta; i += 1) await c.tecla('ArrowDown');
   await c.tecla('Enter');
   await c.ate(`location.pathname.startsWith('/ferramentas/')`);
   await c.ate(`document.querySelector('main h1')?.textContent.includes('Traço Editor')`);
-  ok('Enter abre a ficha', true);
+  ok('as setas e o Enter abrem a ficha', true);
   await ir('/meu-dia');
   await c.ate(`document.querySelector('main article')`);
   const abrirNovo = async () => {

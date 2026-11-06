@@ -9,6 +9,7 @@ import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { Area } from '@/dados/tipos/area';
 import { hojeISO } from '@/lib/datas';
+import { sincronizarAlertasDosAtivos } from './alertas';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { normalizarTexto } from './duplicidade';
@@ -198,12 +199,17 @@ export function conferirAtivo(formulario: FormularioAtivo, existentes: readonly 
 // ---------- Gravar ----------
 
 export async function criarAtivo(formulario: FormularioAtivo, pessoas: readonly Pick<Pessoa, 'id' | 'nome_completo'>[]): Promise<AtivoDigital> {
-  return repositorios.ativo_digital.criar({ ...dadosDoAtivo(formulario, pessoas), evidencia_transferencia_url: null, transferido_em: null });
+  const ativo = await repositorios.ativo_digital.criar({ ...dadosDoAtivo(formulario, pessoas), evidencia_transferencia_url: null, transferido_em: null });
+  await sincronizarAlertasDosAtivos([ativo.id]);
+  return ativo;
 }
 
+/** RN-03.14: renovar o domínio muda o vencimento, e o alerta se resolve na hora. */
 export async function salvarAtivo(id: string, formulario: FormularioAtivo, pessoas: readonly Pick<Pessoa, 'id' | 'nome_completo'>[]): Promise<AtivoDigital> {
   const atual = await repositorios.ativo_digital.obter(id);
-  return repositorios.ativo_digital.atualizar(id, dadosDoAtivo(formulario, pessoas, atual));
+  const salvo = await repositorios.ativo_digital.atualizar(id, dadosDoAtivo(formulario, pessoas, atual));
+  await sincronizarAlertasDosAtivos([id]);
+  return salvo;
 }
 
 export const esquemaRegistrarTransferencia = z
@@ -258,10 +264,12 @@ export async function arquivarAtivo(id: string): Promise<void> {
   const vinculos = await vinculosDoAtivo(id);
   if (vinculos.length) throw new ErroDeRegra(`Este ativo tem ${vinculos.join(', ')}. Conclua ou tire o vínculo antes.`);
   await repositorios.ativo_digital.arquivar(id);
+  await sincronizarAlertasDosAtivos([id]);
 }
 
 export async function restaurarAtivo(id: string): Promise<void> {
   await repositorios.ativo_digital.restaurar(id);
+  await sincronizarAlertasDosAtivos([id]);
 }
 
 // ---------- Arquivos (links do Drive, até o M08) ----------

@@ -25,7 +25,7 @@ import { mensagemDoErro } from '@/dados/erros';
 import type { Atividade } from '@/dados/tipos/atividade';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarFormularioAtividade } from '@/dominio/atividades-formulario';
-import { ACOES_DE_ALERTA, estaAberta, ROTULOS_ORIGEM_ALERTA, ROTULOS_PRIORIDADE_ATIVIDADE, ROTULOS_SITUACAO_ATIVIDADE, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
+import { acaoDoAlerta, estaAberta, ROTULOS_ORIGEM_ALERTA, ROTULOS_PRIORIDADE_ATIVIDADE, ROTULOS_SITUACAO_ATIVIDADE, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
 import {
   adicionarAnexo,
   adicionarItem,
@@ -699,7 +699,7 @@ function SecaoArquivos({ atividade, painel }: { atividade: Atividade; painel: Da
 }
 
 function SecaoAlerta({ atividade, acoes, doDia }: { atividade: Atividade; acoes: AcoesDaAtividade; doDia: AtividadeDoDia }) {
-  const acao = atividade.alerta_acao ? ACOES_DE_ALERTA[atividade.alerta_acao] : undefined;
+  const acao = acaoDoAlerta(atividade);
   return (
     <Secao titulo="Alerta">
       <dl className="grid gap-1 text-[13px]">
