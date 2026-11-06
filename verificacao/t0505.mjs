@@ -398,6 +398,33 @@ await passo('T05.07: conta encerrada', async () => {
   ok('conta que não existe explica', true);
 });
 
+await passo('estornar transferência (decisão de 06/11)', async () => {
+  await irPara('/financeiro/transferencias', 'Transferências');
+  const antes = (await tabela('transferencia')).length;
+  const original = (await tabela('transferencia')).find((t) => t.conta_destino_id === ID_DOLAR);
+  await clicarBotao(`Estornar a transferência de ${original.data.split('-').reverse().join('/')}`);
+  await dialogoAberto();
+  await c.espera(200);
+  ok('o diálogo explica o que acontece', (await texto('.dialogo')).includes('transferência inversa, de Conta em dólar para Banco Numa'), await texto('.dialogo'));
+  await clicarNoDialogo('Estornar');
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Diga por que está estornando.')`);
+  ok('pede o motivo', true);
+  await c.avaliar(`(()=>{const e=document.querySelector('.dialogo textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Foi para a conta errada');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+  await c.espera(60);
+  await clicarNoDialogo('Estornar');
+  await esperarAviso('Transferência estornada.');
+  await dialogoFechado();
+  await c.espera(300);
+  const estorno = (await tabela('transferencia')).find((t) => t.transferencia_original_id === original.id);
+  ok('lança a inversa, ligada à original', (await tabela('transferencia')).length === antes + 1 && estorno?.conta_origem_id === ID_DOLAR && estorno.conta_destino_id === ID_BANCO && estorno.valor_origem === 99.5 && estorno.valor_destino === 540 && estorno.data === diaISO() && estorno.observacao === 'Estorno: Foi para a conta errada', js(estorno));
+  const lista = await linhas('Transferências');
+  ok('a lista marca as duas, e só a normal oferece estornar', lista.some((l) => l.includes('Estornada')) && lista.some((l) => l.includes('Estorno:')) && (await c.avaliar(`[...document.querySelectorAll('table[aria-label="Transferências"] button')].filter(b=>b.textContent.trim()==='Estornar').length`)) === 1, lista.join(' ; '));
+  await c.foto('p-estorno', { inteira: true });
+  await irPara('/financeiro/contas', 'Contas e saldos');
+  const cartaoDa = (nome) => c.avaliar(`[...document.querySelectorAll('ul[aria-label="Contas"] li')].map(l=>l.textContent).find(t=>t.startsWith(${js(nome)}))`);
+  ok('os saldos voltam', espacos(await cartaoDa('Banco Numa')).includes(reais(1240)) && espacos(await cartaoDa('Conta em dólar')).includes('US$ 0,00'), `${espacos(await cartaoDa('Banco Numa'))} | ${espacos(await cartaoDa('Conta em dólar'))}`);
+});
+
 await passo('responsivo', async () => {
   for (const largura of [1440, 768, 360]) {
     await c.tamanho(largura, largura === 360 ? 780 : 900);

@@ -90,7 +90,47 @@ export async function registrarTransferencia(formulario: FormularioTransferencia
     cambio: mesmaMoeda ? null : lerCambio(formulario.cambio),
     comprovante_url: formulario.sem_comprovante ? null : formulario.comprovante_url || null,
     observacao: observacao || null,
+    transferencia_original_id: null,
   });
+}
+
+/**
+ * Decisão de Kimberly em 06/11/2026: a transferência não se edita nem se apaga; o estorno lança a inversa,
+ * hoje, ligada à original, como o estorno da baixa (RN-05.04). Uma vez só, e estorno não se estorna.
+ */
+export async function estornarTransferencia(id: string, motivo: string, hoje: string = hojeISO()): Promise<Transferencia> {
+  const limpo = motivo.trim();
+  if (!limpo) throw new ErroDeRegra('Diga por que está estornando.');
+  return emTransacao(async () => {
+    const [original, todas, contas] = await Promise.all([repositorios.transferencia.obter(id), repositorios.transferencia.listar(), repositorios.conta_financeira.listar({ incluirArquivados: true })]);
+    if (!original) throw new ErroDeRegra('Esta transferência não existe mais.');
+    if (original.transferencia_original_id) throw new ErroDeRegra('Esta já é um estorno, e estorno não se estorna.');
+    if (todas.some((item) => item.transferencia_original_id === id)) throw new ErroDeRegra('Esta transferência já foi estornada.');
+    for (const contaId of [original.conta_origem_id, original.conta_destino_id]) {
+      const conta = contas.find((item) => item.id === contaId);
+      if (!conta || !contasParaTransferencia([conta]).length) throw new ErroDeRegra(`A conta ${conta?.nome ?? 'da transferência'} não está ativa: reative-a antes de estornar.`);
+    }
+    return repositorios.transferencia.criar({
+      data: hoje,
+      conta_origem_id: original.conta_destino_id,
+      conta_destino_id: original.conta_origem_id,
+      valor_origem: original.valor_destino,
+      moeda_origem: original.moeda_destino,
+      valor_destino: original.valor_origem,
+      moeda_destino: original.moeda_origem,
+      cambio: original.cambio,
+      comprovante_url: original.comprovante_url,
+      observacao: `Estorno: ${limpo}`,
+      transferencia_original_id: original.id,
+    });
+  });
+}
+
+export type SituacaoDaTransferencia = 'normal' | 'estornada' | 'estorno';
+
+export function situacaoDaTransferencia(transferencia: Pick<Transferencia, 'id' | 'transferencia_original_id'>, todas: readonly Pick<Transferencia, 'transferencia_original_id'>[]): SituacaoDaTransferencia {
+  if (transferencia.transferencia_original_id) return 'estorno';
+  return todas.some((item) => item.transferencia_original_id === transferencia.id) ? 'estornada' : 'normal';
 }
 
 export type FiltrosTransferencias = { busca: string; conta: string };
@@ -165,8 +205,9 @@ export function extratoDaConta(conta: ContaFinanceira, { baixas, titulos, transf
     linhas.push({ id: baixa.id, data: baixa.data, descricao: `${prefixo}${titulo?.descricao ?? 'Título removido'}`, entrada: sinal > 0 ? valor : 0, saida: sinal < 0 ? valor : 0, href: titulo ? `/financeiro/${titulo.id}` : null, criadoEm: baixa.criado_em });
   }
   for (const transferencia of transferencias) {
-    if (transferencia.conta_origem_id === conta.id) linhas.push({ id: `${transferencia.id}-saida`, data: transferencia.data, descricao: 'Transferência enviada', entrada: 0, saida: transferencia.valor_origem, href: '/financeiro/transferencias', criadoEm: transferencia.criado_em });
-    if (transferencia.conta_destino_id === conta.id) linhas.push({ id: `${transferencia.id}-entrada`, data: transferencia.data, descricao: 'Transferência recebida', entrada: transferencia.valor_destino, saida: 0, href: '/financeiro/transferencias', criadoEm: transferencia.criado_em });
+    const estorno = Boolean(transferencia.transferencia_original_id);
+    if (transferencia.conta_origem_id === conta.id) linhas.push({ id: `${transferencia.id}-saida`, data: transferencia.data, descricao: estorno ? 'Estorno de transferência' : 'Transferência enviada', entrada: 0, saida: transferencia.valor_origem, href: '/financeiro/transferencias', criadoEm: transferencia.criado_em });
+    if (transferencia.conta_destino_id === conta.id) linhas.push({ id: `${transferencia.id}-entrada`, data: transferencia.data, descricao: estorno ? 'Estorno de transferência' : 'Transferência recebida', entrada: transferencia.valor_destino, saida: 0, href: '/financeiro/transferencias', criadoEm: transferencia.criado_em });
   }
   // Aporte em dinheiro entra na conta da Numa. O que uma sócia pagou de despesa não passa por ela.
   for (const movimento of movimentos) {

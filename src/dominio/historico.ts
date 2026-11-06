@@ -294,6 +294,7 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     cambio: { rotulo: 'Câmbio', valor: (valor) => String(valor).replace('.', ',') },
     comprovante_url: { rotulo: 'Comprovante' },
     observacao: { rotulo: 'Observação' },
+    transferencia_original_id: { rotulo: 'Estorno de outra transferência', valor: () => 'sim' },
   },
   conferencia_saldo: {
     conta_id: { rotulo: 'Conta', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },

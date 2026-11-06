@@ -11,7 +11,7 @@ import { arquivarConta } from './contas';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { limparExemplos, resumoDosDados } from './dados';
 import { historicoDaConta } from './historico';
-import { carregarSaldos, conferirSaldo, contasDoPainel, contasParaTransferencia, criarEsquemaConferencia, criarEsquemaTransferencia, diferencaDoSaldo, extratoDaConta, filtrarTransferencias, FILTROS_TRANSFERENCIAS_INICIAIS, formularioConferenciaVazio, formularioTransferenciaVazio, registrarTransferencia, saldoDaConta, sugestaoDoDestino, ultimaMovimentacao, type FormularioConferencia, type FormularioTransferencia } from './saldos';
+import { carregarSaldos, conferirSaldo, estornarTransferencia, situacaoDaTransferencia, contasDoPainel, contasParaTransferencia, criarEsquemaConferencia, criarEsquemaTransferencia, diferencaDoSaldo, extratoDaConta, filtrarTransferencias, FILTROS_TRANSFERENCIAS_INICIAIS, formularioConferenciaVazio, formularioTransferenciaVazio, registrarTransferencia, saldoDaConta, sugestaoDoDestino, ultimaMovimentacao, type FormularioConferencia, type FormularioTransferencia } from './saldos';
 import { novoAporteEmDinheiro, formularioAporteVazio } from './socias';
 import { criarDespesa, formularioDespesaVazio, registrarPagamento, type DadosDoPagamento } from './titulos';
 
@@ -178,6 +178,40 @@ describe('T05.06 e T05.07: transferências, contas e saldos', () => {
       expect(salva).toMatchObject({ valor_origem: 540, moeda_origem: 'BRL', valor_destino: 99.41, moeda_destino: 'USD', cambio: 5.4321 });
       expect(await saldo(origem.id)).toBe(460);
       expect(await saldo(destino.id)).toBe(99.41);
+    });
+
+    it('estornar lança a inversa, hoje, ligada à original, e devolve os saldos (decisão de 06/11)', async () => {
+      const origem = await novaConta({ nome: 'Reais' });
+      const destino = await novaConta({ nome: 'Dólar', moeda: 'USD', saldo_inicial: 0 });
+      const original = await registrarTransferencia(transferencia(origem.id, destino.id, { data: '2026-11-02', valor_origem: '540,00', cambio: '5,4', valor_destino: '100,00' }), HOJE);
+      const estorno = await estornarTransferencia(original.id, ' Lançada na conta errada ', HOJE);
+      expect(estorno).toMatchObject({ data: HOJE, conta_origem_id: destino.id, conta_destino_id: origem.id, valor_origem: 100, moeda_origem: 'USD', valor_destino: 540, moeda_destino: 'BRL', cambio: 5.4, comprovante_url: DRIVE, observacao: 'Estorno: Lançada na conta errada', transferencia_original_id: original.id });
+      expect(await saldo(origem.id)).toBe(1000);
+      expect(await saldo(destino.id)).toBe(0);
+      expect((await extrato(origem.id)).at(-1)).toMatchObject({ descricao: 'Estorno de transferência', entrada: 540 });
+      const todas = await repositorios.transferencia.listar();
+      expect(situacaoDaTransferencia(original, todas)).toBe('estornada');
+      expect(situacaoDaTransferencia(estorno, todas)).toBe('estorno');
+    });
+
+    it('estorno pede motivo, uma vez só, e não se estorna', async () => {
+      const a = await novaConta({ nome: 'A' });
+      const b = await novaConta({ nome: 'B' });
+      const original = await registrarTransferencia(transferencia(a.id, b.id), HOJE);
+      await expect(estornarTransferencia(original.id, '  ', HOJE)).rejects.toThrow('Diga por que');
+      const estorno = await estornarTransferencia(original.id, 'Errada', HOJE);
+      await expect(estornarTransferencia(original.id, 'De novo', HOJE)).rejects.toThrow('já foi estornada');
+      await expect(estornarTransferencia(estorno.id, 'Desfazer', HOJE)).rejects.toThrow('estorno não se estorna');
+      await expect(estornarTransferencia('sumiu', 'Errada', HOJE)).rejects.toThrow('não existe mais');
+      expect(await repositorios.transferencia.listar()).toHaveLength(2);
+    });
+
+    it('com uma das contas encerrada, o estorno espera a conta voltar', async () => {
+      const a = await novaConta({ nome: 'A' });
+      const b = await novaConta({ nome: 'B' });
+      const original = await registrarTransferencia(transferencia(a.id, b.id), HOJE);
+      await repositorios.conta_financeira.atualizar(b.id, { situacao: 'encerrada' });
+      await expect(estornarTransferencia(original.id, 'Errada', HOJE)).rejects.toThrow('A conta B não está ativa');
     });
 
     it('sugere quanto chega, nos dois sentidos', () => {
@@ -375,6 +409,22 @@ describe('T05.06 e T05.07: transferências, contas e saldos', () => {
       expect((await resumoDosDados()).registros).toBe(antes);
       await registrarTransferencia(transferencia(a.id, b.id), HOJE);
       expect((await resumoDosDados()).registros).toBe(antes + 1);
+    });
+
+    it('da versão 14: a transferência ganha o campo do estorno, vazio, e o backup antigo continua valendo', async () => {
+      const a = await novaConta({ nome: 'A' });
+      const b = await novaConta({ nome: 'B' });
+      const original = await registrarTransferencia(transferencia(a.id, b.id), HOJE);
+      const semOCampo = JSON.parse(armazenamento.getItem(chaveDaTabela('transferencia')) as string).map(({ transferencia_original_id: _sem, ...linha }: Record<string, unknown>) => linha);
+      armazenamento.setItem(chaveDaTabela('transferencia'), JSON.stringify(semOCampo));
+      // Sem migrar (um backup antigo importado), o campo falta, e vale como "não é estorno".
+      expect((await repositorios.transferencia.obter(original.id))?.transferencia_original_id).toBeFalsy();
+      expect(situacaoDaTransferencia((await repositorios.transferencia.obter(original.id))!, await repositorios.transferencia.listar())).toBe('normal');
+      gravarMeta({ versao_dados: 14 });
+      esquecerMetaEmMemoria();
+      expect((await repositorios.transferencia.listar())[0]).toMatchObject({ id: original.id, transferencia_original_id: null });
+      expect(JSON.parse(armazenamento.getItem(chaveDaTabela('transferencia')) as string)[0]).toHaveProperty('transferencia_original_id', null);
+      expect(lerMeta().versao_dados).toBe(VERSAO_DADOS);
     });
 
     it('quem já usa a Central recebe as tabelas novas, vazias, sem perder nada', async () => {

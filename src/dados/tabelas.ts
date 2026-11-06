@@ -83,5 +83,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 12: T04.04 e T04.05 acrescentam `ativo_digital`.
  * 13: T05.01 e T05.02 acrescentam `titulo`, `titulo_rateio`, `baixa` e `movimento_societario`.
  * 14: T05.06 e T05.07 acrescentam `transferencia` e `conferencia_saldo`.
+ * 15: a transferência ganha `transferencia_original_id`, para o estorno.
  */
-export const VERSAO_DADOS = 14;
+export const VERSAO_DADOS = 15;

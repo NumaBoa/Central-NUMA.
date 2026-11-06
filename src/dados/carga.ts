@@ -198,6 +198,14 @@ function migrar(versao: number) {
     alteracoes.transferencia = [];
     alteracoes.conferencia_saldo = [];
   }
+  if (versao < 15) {
+    try {
+      const transferencias = lerTabela<Record<string, unknown>>('transferencia');
+      if (transferencias.some((linha) => !('transferencia_original_id' in linha))) alteracoes.transferencia = transferencias.map((linha) => ('transferencia_original_id' in linha ? linha : { ...linha, transferencia_original_id: null }));
+    } catch {
+      // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
+    }
+  }
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

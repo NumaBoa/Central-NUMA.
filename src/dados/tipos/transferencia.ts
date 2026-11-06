@@ -16,6 +16,8 @@ export const esquemaTransferencia = esquemaControle
     cambio: z.number().positive().nullable(),
     comprovante_url: z.string().nullable(),
     observacao: z.string().nullable(),
+    /** Campo novo em relação a `16` (decisão de Kimberly em 06/11/2026): o estorno aponta para a original. Backup antigo, sem ele, vale como nulo. */
+    transferencia_original_id: z.string().nullable().default(null),
   })
   .refine((transferencia) => transferencia.conta_origem_id !== transferencia.conta_destino_id, { path: ['conta_destino_id'], message: 'A conta de destino precisa ser outra.' });
 
