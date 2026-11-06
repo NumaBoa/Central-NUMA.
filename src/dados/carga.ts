@@ -5,7 +5,7 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { atividadesDeExemplo, contasDeExemplo, contrapartesDeExemplo } from './exemplos';
+import { atividadesDeExemplo, contasDeExemplo, contrapartesDeExemplo, rotinaDeExemplo, rotinasIniciais } from './exemplos';
 import { AREAS_INICIAIS, CATEGORIAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
 import { feriadosDoAno } from './referencia/feriados';
 import { hojeISO } from '@/lib/datas';
@@ -108,6 +108,7 @@ const VALORES_INICIAIS = {
   entidade: entidadesIniciais,
   categoria_financeira: categoriasIniciais,
   feriado: feriadosIniciais,
+  recorrencia: rotinasIniciais,
 } as const;
 
 export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
@@ -118,7 +119,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [] };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)] };
 }
 
 /**
@@ -171,6 +172,8 @@ function migrar(versao: number) {
       if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = exemplos ? exemplos[tabela] : [];
     }
   }
+  // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
+  if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];
   } catch {

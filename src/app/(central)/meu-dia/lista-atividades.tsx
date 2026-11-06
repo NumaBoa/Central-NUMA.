@@ -8,7 +8,7 @@ import type { Atividade } from '@/dados/tipos/atividade';
 import { agruparAtividades, contextosDaAtividade, estaBloqueada, primeiroNome, ROTULOS_ORIGEM_ALERTA, ROTULOS_SITUACAO_ATIVIDADE, textoDoPrazo, type AgruparPor, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
 import { cn } from '@/lib/utils';
 import type { AcoesDaAtividade } from './acoes-atividade';
-import { ConteudoDoCartao, MenuDaAtividade, TipoDaAtividade } from './cartao-atividade';
+import { ConteudoDoCartao, MarcaDeRotina, MenuDaAtividade, TipoDaAtividade } from './cartao-atividade';
 
 const TIPOS_DA_SITUACAO: Readonly<Record<Atividade['situacao'], TipoSituacao>> = { a_fazer: 'neutro', em_andamento: 'info', aguardando: 'atencao', concluida: 'sucesso', cancelada: 'neutro' };
 
@@ -42,6 +42,7 @@ export function ListaAtividades({ linhas, dados, hoje, acoes, agruparPor }: List
             <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-soft tabular-nums">
               <TipoDaAtividade tipo={atividade.tipo} />
               {atividade.codigo}
+              {atividade.recorrencia_id && <MarcaDeRotina />}
               {atividade.tipo === 'alerta' && <span>· Origem: {ROTULOS_ORIGEM_ALERTA[atividade.origem_tipo ?? ''] ?? 'Sistema'}</span>}
             </span>
           </span>

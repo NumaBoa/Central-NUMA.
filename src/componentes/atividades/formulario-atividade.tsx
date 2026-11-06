@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
+import { CampoRepeticao, idDoCampoDaRepeticao } from '@/componentes/atividades/campo-repeticao';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
@@ -35,6 +36,7 @@ import {
 } from '@/dominio/atividades-formulario';
 import { LEMBRETE_LINK_DRIVE } from '@/dominio/link-drive';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
+import { repeticaoPadrao, type FormularioRepeticao } from '@/dominio/repeticao';
 import { hojeISO } from '@/lib/datas';
 
 const TIPOS = [
@@ -66,6 +68,7 @@ const ID_DO_CAMPO: Partial<Record<keyof Formulario, string>> = {
   arquivo: 'atividade-arquivo',
 };
 const CAMPOS_COM_ERRO = Object.keys(ID_DO_CAMPO) as (keyof Formulario)[];
+const ID_DA_REPETICAO = 'atividade-repeticao';
 /** Errar dentro de "Mais opções" abre a seção, para o erro não ficar escondido. */
 const CAMPOS_DE_MAIS_OPCOES: readonly (keyof Formulario)[] = ['inicio', 'arquivo'];
 
@@ -117,15 +120,18 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
   const lembrete = tipo === 'lembrete';
   const demanda = tipo === 'demanda';
   const compartilhada = dados ? areaCompartilhada(areaId, dados.areas) : false;
+  const repetir = watch('repetir');
+  const repeticao = watch('repeticao');
+  const errosDaRepeticao = errors.repeticao as Partial<Record<keyof FormularioRepeticao, { message?: string }>> | undefined;
 
   // Erro em campo escondido não pode passar despercebido. O aviso só fica lá fora no lembrete.
-  const erroEscondido = CAMPOS_DE_MAIS_OPCOES.some((campo) => errors[campo]) || (!lembrete && Boolean(errors.aviso_dia || errors.aviso_hora));
+  const erroEscondido = CAMPOS_DE_MAIS_OPCOES.some((campo) => errors[campo]) || (!lembrete && Boolean(errors.aviso_dia || errors.aviso_hora)) || Boolean(errosDaRepeticao);
   useEffect(() => {
     if (erroEscondido) setMaisOpcoes(true);
   }, [erroEscondido]);
 
   // Depois de tentar salvar, um campo pode resolver o erro de outro: o tipo, o prazo e o início, o dia e a hora do aviso.
-  const camposLigados = watch(['tipo', 'solicitante', 'prazo', 'prazo_hora', 'inicio', 'aviso_dia', 'aviso_hora']).join('|');
+  const camposLigados = JSON.stringify(watch(['tipo', 'solicitante', 'prazo', 'prazo_hora', 'inicio', 'aviso_dia', 'aviso_hora', 'repetir', 'repeticao']));
   useEffect(() => {
     if (formState.isSubmitted) void trigger();
   }, [camposLigados, formState.isSubmitted, trigger]);
@@ -133,11 +139,14 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
   // O título abre com o foco: escolher o tipo antes de escrever não é erro. Em branco, só acusa ao salvar.
   const erroDoTitulo = titulo || formState.isSubmitted ? errors.titulo?.message : undefined;
 
-  const erros: ErroDeCampo[] = CAMPOS_COM_ERRO.flatMap((campo) => {
-    const mensagem = campo === 'titulo' ? erroDoTitulo : errors[campo]?.message;
-    const campoId = ID_DO_CAMPO[campo];
-    return mensagem && campoId ? [{ campoId, mensagem }] : [];
-  });
+  const erros: ErroDeCampo[] = [
+    ...CAMPOS_COM_ERRO.flatMap((campo) => {
+      const mensagem = campo === 'titulo' ? erroDoTitulo : errors[campo]?.message;
+      const campoId = ID_DO_CAMPO[campo];
+      return typeof mensagem === 'string' && campoId ? [{ campoId, mensagem }] : [];
+    }),
+    ...Object.entries(errosDaRepeticao ?? {}).flatMap(([campo, erro]) => (erro?.message ? [{ campoId: idDoCampoDaRepeticao(ID_DA_REPETICAO, campo as keyof FormularioRepeticao), mensagem: erro.message }] : [])),
+  ];
 
   function escolherPrazo(opcao: string) {
     setOpcaoPrazo(opcao);
@@ -226,7 +235,7 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
             />
           )}
 
-          {lembrete ? (
+          {repetir ? null : lembrete ? (
             <div className="grid grid-cols-2 gap-3">
               <Campo id={ID_DO_CAMPO.aviso_dia} rotulo="Data do aviso" obrigatorio erro={errors.aviso_dia?.message}>
                 {(controle) => <Input type="date" {...controle} {...register('aviso_dia')} />}
@@ -325,19 +334,40 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
                 name="prioridade"
                 render={({ field }) => <Pilulas rotulo="Prioridade" valor={field.value} aoMudar={field.onChange} opcoes={OPCOES_PRIORIDADE} />}
               />
+              <Pilulas
+                rotulo="Repetição"
+                valor={repetir ? 'sim' : 'nao'}
+                aoMudar={(valor) => {
+                  const liga = valor === 'sim';
+                  setValue('repetir', liga, { shouldDirty: true });
+                  // Parte do prazo já escolhido, para não perguntar duas vezes.
+                  if (liga) setValue('repeticao', { ...repeticaoPadrao(watch('prazo') > hojeISO() ? watch('prazo') : hojeISO()), hora: watch('prazo_hora') || watch('aviso_hora') }, { shouldDirty: true });
+                }}
+                opcoes={[
+                  { valor: 'nao', rotulo: 'Não repete' },
+                  { valor: 'sim', rotulo: 'Repete' },
+                ]}
+              />
+              {repetir && (
+                <Controller control={control} name="repeticao" render={({ field }) => <CampoRepeticao id={ID_DA_REPETICAO} valor={field.value} aoMudar={field.onChange} lembrete={lembrete} hoje={hojeISO()} erros={Object.fromEntries(Object.entries(errosDaRepeticao ?? {}).map(([campo, erro]) => [campo, erro?.message]))} />} />
+              )}
               {!lembrete && (
                 <>
-                  <Campo id={ID_DO_CAMPO.inicio} rotulo="Início" erro={errors.inicio?.message}>
-                    {(controle) => <Input type="date" {...controle} {...register('inicio')} />}
-                  </Campo>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo id={ID_DO_CAMPO.aviso_dia} rotulo="Avisar no dia" erro={errors.aviso_dia?.message}>
-                      {(controle) => <Input type="date" {...controle} {...register('aviso_dia')} />}
-                    </Campo>
-                    <Campo id={ID_DO_CAMPO.aviso_hora} rotulo="Às" erro={errors.aviso_hora?.message}>
-                      {(controle) => <Input type="time" {...controle} {...register('aviso_hora')} />}
-                    </Campo>
-                  </div>
+                  {!repetir && (
+                    <>
+                      <Campo id={ID_DO_CAMPO.inicio} rotulo="Início" erro={errors.inicio?.message}>
+                        {(controle) => <Input type="date" {...controle} {...register('inicio')} />}
+                      </Campo>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Campo id={ID_DO_CAMPO.aviso_dia} rotulo="Avisar no dia" erro={errors.aviso_dia?.message}>
+                          {(controle) => <Input type="date" {...controle} {...register('aviso_dia')} />}
+                        </Campo>
+                        <Campo id={ID_DO_CAMPO.aviso_hora} rotulo="Às" erro={errors.aviso_hora?.message}>
+                          {(controle) => <Input type="time" {...controle} {...register('aviso_hora')} />}
+                        </Campo>
+                      </div>
+                    </>
+                  )}
                   <Campo id="atividade-checklist" rotulo="Checklist" ajuda="Um item por linha.">
                     {(controle) => <Textarea {...controle} {...register('checklist')} />}
                   </Campo>

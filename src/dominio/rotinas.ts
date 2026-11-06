@@ -1,11 +1,15 @@
 import { gravarMeta, lerMeta } from '@/dados/meta';
 import { registrarEvento } from '@/dados/historico';
-import { idDaPessoaAtual } from '@/dados/sessao';
+import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
+import { gerarAlertas } from './alertas';
+import { gerarOcorrencias } from './recorrencias';
 
 /** Uma rotina diz quantos itens novos gerou. Rodar de novo não duplica (RT-09). */
 export type Rotina = {
   nome: string;
+  /** Como contar o que ela gerou, no aviso: `['alerta novo', 'alertas novos']`. */
+  novidade?: readonly [string, string];
   /** Só no dia 1 do mês, como a extensão da programação. */
   soNoDiaPrimeiro?: boolean;
   executar: () => Promise<number>;
@@ -14,17 +18,17 @@ export type Rotina = {
 const nadaAFazerAinda = async () => 0;
 
 /**
- * Rotinas do dia, nesta ordem (02 §0.5). Elas ainda não têm o que gerar: cada uma ganha conteúdo
- * junto com a sua tela (alertas e ocorrências no Meu dia, situações e programação no Financeiro).
+ * Rotinas do dia, nesta ordem (02 §0.5). Situações e programação ganham conteúdo junto com o
+ * Financeiro (etapa 12).
  */
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
-  { nome: 'Gerar alertas', executar: nadaAFazerAinda },
-  { nome: 'Gerar ocorrências de rotinas', executar: nadaAFazerAinda },
+  { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: () => gerarAlertas() },
+  { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: () => gerarOcorrencias() },
   { nome: 'Atualizar situações', executar: nadaAFazerAinda },
   { nome: 'Estender programação', soNoDiaPrimeiro: true, executar: nadaAFazerAinda },
 ];
 
-export type ResultadoRotinas = { executou: boolean; novos: number; falhas: string[] };
+export type ResultadoRotinas = { executou: boolean; novos: number; falhas: string[]; novidades: string[] };
 
 function jaRodouHoje(ultimaEm: string | null, hoje: string): boolean {
   return Boolean(ultimaEm) && hojeISO(new Date(ultimaEm!)) === hoje;
@@ -36,22 +40,38 @@ type OpcoesRotinas = {
   rotinas?: readonly Rotina[];
 };
 
+/** Duas rodadas ao mesmo tempo leriam a mesma lista e gerariam tudo em dobro. */
+let rodando = false;
+
 /**
  * Ao abrir o app, se a última execução for anterior a hoje (02 §0.5). Uma rotina que falha não
  * impede as outras, e o dia só conta como feito se todas passarem, para tentar de novo depois.
  */
-export async function executarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA }: OpcoesRotinas = {}): Promise<ResultadoRotinas> {
+export async function executarRotinas(opcoes: OpcoesRotinas = {}): Promise<ResultadoRotinas> {
+  if (rodando) return { executou: false, novos: 0, falhas: [], novidades: [] };
+  rodando = true;
+  try {
+    return await rodarRotinas(opcoes);
+  } finally {
+    rodando = false;
+  }
+}
+
+async function rodarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA }: OpcoesRotinas): Promise<ResultadoRotinas> {
   const agora = new Date();
   const hoje = hojeISO(agora);
-  if (!manual && jaRodouHoje(lerMeta().ultima_rotina_em, hoje)) return { executou: false, novos: 0, falhas: [] };
+  if (!manual && jaRodouHoje(lerMeta().ultima_rotina_em, hoje)) return { executou: false, novos: 0, falhas: [], novidades: [] };
 
   const diaPrimeiro = hoje.endsWith('-01');
   let novos = 0;
   const falhas: string[] = [];
+  const novidades: string[] = [];
   for (const rotina of rotinas) {
     if (rotina.soNoDiaPrimeiro && !diaPrimeiro) continue;
     try {
-      novos += await rotina.executar();
+      const geradas = await comoSistema(rotina.executar);
+      novos += geradas;
+      if (geradas > 0 && rotina.novidade) novidades.push(`${geradas} ${geradas === 1 ? rotina.novidade[0] : rotina.novidade[1]}`);
     } catch {
       falhas.push(rotina.nome);
     }
@@ -61,12 +81,12 @@ export async function executarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA
   if (manual || novos > 0 || falhas.length > 0) {
     registrarEvento({ usuarioId: manual ? idDaPessoaAtual() : null, acao: 'executou_acao', depois: { funcao: 'rodar_rotinas', novos, falhas } });
   }
-  return { executou: true, novos, falhas };
+  return { executou: true, novos, falhas, novidades };
 }
 
 /** Aviso discreto (02 §0.5): "Rotinas do dia executadas: 3 alertas novos". */
-export function mensagemDasRotinas({ novos, falhas }: Pick<ResultadoRotinas, 'novos' | 'falhas'>): string {
+export function mensagemDasRotinas({ falhas, novidades }: Pick<ResultadoRotinas, 'falhas' | 'novidades'>): string {
   if (falhas.length) return `Algumas rotinas não terminaram: ${falhas.join(', ')}. Elas rodam de novo na próxima abertura.`;
-  if (novos === 0) return 'Rotinas do dia executadas: nenhum alerta novo.';
-  return `Rotinas do dia executadas: ${novos} ${novos === 1 ? 'alerta novo' : 'alertas novos'}.`;
+  if (!novidades.length) return 'Rotinas do dia executadas: nada novo.';
+  return `Rotinas do dia executadas: ${novidades.join(' e ')}.`;
 }

@@ -4,8 +4,9 @@ import type { Pessoa } from '../tipos/pessoa';
 import { atividadesDeExemplo } from './atividades';
 import { ID_BRUNA, ID_CAMILA, ID_CONTA_CAMILA, ID_CONTA_KIMBERLY, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY } from './base';
 import { controle } from './controle';
+import { rotinaDeExemplo, rotinasIniciais } from './rotinas';
 
-export { atividadesDeExemplo, controle };
+export { atividadesDeExemplo, controle, rotinaDeExemplo, rotinasIniciais };
 
 /*
  * Dados de exemplo (02 §0.3 e 17 §6). As sócias são reais; os demais registros são fictícios e

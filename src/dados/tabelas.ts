@@ -12,6 +12,7 @@ import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaPessoa } from './tipos/pessoa';
+import { esquemaRecorrencia } from './tipos/recorrencia';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -38,6 +39,7 @@ export const TABELAS = {
   comentario: { rotulo: 'Comentários', esquema: esquemaComentario },
   vinculo: { rotulo: 'Vínculos', esquema: esquemaVinculo },
   anexo_link: { rotulo: 'Links do Drive', esquema: esquemaAnexoLink },
+  recorrencia: { rotulo: 'Rotinas', esquema: esquemaRecorrencia },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -57,5 +59,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 6: T02.07 a T02.10 acrescentam `categoria_financeira`, `conta_financeira`, `feriado`, `etiqueta` e `etiqueta_vinculo`.
  * 7: T03.01 acrescenta `atividade`, `atividade_produto` e `atividade_participante`.
  * 8: T03.02 e T03.03 acrescentam `checklist_item`, `comentario`, `vinculo` e `anexo_link`.
+ * 9: T03.05 acrescenta `recorrencia`.
  */
-export const VERSAO_DADOS = 8;
+export const VERSAO_DADOS = 9;

@@ -172,6 +172,9 @@ export type FiltrosMeuDia = {
   destaque: DestaqueDoResumo;
 };
 
+/** O que o Meu dia e o Histórico filtram do mesmo jeito (T03.04). */
+export type FiltrosComuns = Omit<FiltrosMeuDia, 'situacao' | 'destaque'>;
+
 export const FILTROS_MEU_DIA_INICIAIS: FiltrosMeuDia = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', situacao: 'abertas', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', origem: '', destaque: '' };
 
 export const ROTULOS_PERIODO = { atrasadas: 'Atrasadas', hoje: 'Hoje', semana: 'Esta semana', '30dias': 'Próximos 30 dias', sem_prazo: 'Sem prazo', intervalo: 'Intervalo' } as const;
@@ -201,7 +204,7 @@ function somarDias(dia: string, dias: number): string {
   return data.toISOString().slice(0, 10);
 }
 
-function passaNoPeriodo(atividade: Atividade, { periodo, prazoDe, prazoAte }: FiltrosMeuDia, hoje: string): boolean {
+function passaNoPeriodo(atividade: Atividade, { periodo, prazoDe, prazoAte }: FiltrosComuns, hoje: string): boolean {
   const prazo = prazoEfetivo(atividade);
   switch (periodo) {
     case 'atrasadas':
@@ -221,14 +224,14 @@ function passaNoPeriodo(atividade: Atividade, { periodo, prazoDe, prazoAte }: Fi
   }
 }
 
-function passaNaPessoa(atividade: AtividadeDoDia, { pessoa, soResponsavel }: FiltrosMeuDia, pessoaAtualId: string): boolean {
+function passaNaPessoa(atividade: AtividadeDoDia, { pessoa, soResponsavel }: FiltrosComuns, pessoaAtualId: string): boolean {
   if (!pessoa) return true;
   const alvo = pessoa === MINHAS ? pessoaAtualId : pessoa;
   return atividade.responsavel_id === alvo || (!soResponsavel && atividade.participantes.includes(alvo));
 }
 
 /** Os contextos do filtro; sem nenhum, vale o seletor global. Atividade sem produto é da Numa. */
-function passaNoContexto(atividade: AtividadeDoDia, { contextos }: FiltrosMeuDia, contextoGlobalId: string): boolean {
+function passaNoContexto(atividade: AtividadeDoDia, { contextos }: FiltrosComuns, contextoGlobalId: string): boolean {
   const escolhidos = contextos.length ? contextos : contextoGlobalId === ID_CONSOLIDADA ? [] : [contextoGlobalId];
   if (!escolhidos.length) return true;
   return escolhidos.some((id) => (id === ID_INSTITUCIONAL ? atividade.produtos.length === 0 : atividade.produtos.includes(id)));
@@ -240,18 +243,22 @@ function passaNaBusca(atividade: AtividadeDoDia, busca: string, nomeDaPessoa: (i
   return normalizarTexto(`${atividade.titulo} ${atividade.codigo} ${atividade.descricao ?? ''} ${nomeDaPessoa(atividade.responsavel_id)}`).includes(texto);
 }
 
+export function passaNosFiltrosComuns(atividade: AtividadeDoDia, filtros: FiltrosComuns, { hoje, pessoaAtualId, contextoGlobalId, nomeDaPessoa }: OpcoesDosFiltros): boolean {
+  return (
+    passaNaBusca(atividade, filtros.busca, nomeDaPessoa) &&
+    passaNaPessoa(atividade, filtros, pessoaAtualId) &&
+    passaNoContexto(atividade, filtros, contextoGlobalId) &&
+    (!filtros.area || atividade.area_id === filtros.area) &&
+    (!filtros.tipo || atividade.tipo === filtros.tipo) &&
+    (!filtros.prioridades.length || filtros.prioridades.includes(atividade.prioridade)) &&
+    passaNoPeriodo(atividade, filtros, hoje) &&
+    (!filtros.origem || atividade.origem_tipo === filtros.origem)
+  );
+}
+
 /** Tudo o que não depende da situação nem do destaque: é a base dos contadores (RN-03.19). */
-export function atividadesDaBase(atividades: readonly AtividadeDoDia[], filtros: FiltrosMeuDia, { hoje, pessoaAtualId, contextoGlobalId, nomeDaPessoa }: OpcoesDosFiltros): AtividadeDoDia[] {
-  return atividades
-    .filter((atividade) => estaNoDia(atividade, hoje))
-    .filter((atividade) => passaNaBusca(atividade, filtros.busca, nomeDaPessoa))
-    .filter((atividade) => passaNaPessoa(atividade, filtros, pessoaAtualId))
-    .filter((atividade) => passaNoContexto(atividade, filtros, contextoGlobalId))
-    .filter((atividade) => !filtros.area || atividade.area_id === filtros.area)
-    .filter((atividade) => !filtros.tipo || atividade.tipo === filtros.tipo)
-    .filter((atividade) => !filtros.prioridades.length || filtros.prioridades.includes(atividade.prioridade))
-    .filter((atividade) => passaNoPeriodo(atividade, filtros, hoje))
-    .filter((atividade) => !filtros.origem || atividade.origem_tipo === filtros.origem);
+export function atividadesDaBase(atividades: readonly AtividadeDoDia[], filtros: FiltrosMeuDia, opcoes: OpcoesDosFiltros): AtividadeDoDia[] {
+  return atividades.filter((atividade) => estaNoDia(atividade, opcoes.hoje) && passaNosFiltrosComuns(atividade, filtros, opcoes));
 }
 
 function passaNoDestaque(atividade: Atividade, destaque: DestaqueDoResumo, hoje: string): boolean {
@@ -422,7 +429,7 @@ export async function desfazerConclusao(id: string, situacaoAnterior: Situacao):
 /** RN-03.07: reabrir exige motivo e preserva o histórico. */
 export async function reabrirAtividade(id: string, motivo: string): Promise<void> {
   if (!motivo.trim()) throw new ErroDeRegra('Informe o motivo para reabrir.');
-  await repositorios.atividade.atualizar(id, { situacao: 'a_fazer', concluida_em: null, concluida_por: null, conclusao_nota: null, ...SEM_AGUARDANDO }, { motivo });
+  await repositorios.atividade.atualizar(id, { situacao: 'a_fazer', concluida_em: null, concluida_por: null, conclusao_nota: null, cancelada_motivo: null, dispensada_motivo: null, ...SEM_AGUARDANDO }, { motivo });
 }
 
 /** RN-03.07: cancelar exige motivo. A atividade sai do quadro e vai para o histórico. */
@@ -477,10 +484,10 @@ export async function adiarAtividade(id: string, novaData: string, hoje: string)
   const adiamentos = atual ? atividade.adiamentos + 1 : atividade.adiamentos;
   if (atividade.tipo === 'lembrete' && atividade.aviso_em && !atividade.prazo) {
     const dias = Math.round((Date.parse(`${novaData}T00:00:00Z`) - Date.parse(`${atual}T00:00:00Z`)) / UM_DIA);
-    await repositorios.atividade.atualizar(id, { aviso_em: new Date(new Date(atividade.aviso_em).getTime() + dias * UM_DIA).toISOString(), adiamentos });
+    await repositorios.atividade.atualizar(id, { aviso_em: new Date(new Date(atividade.aviso_em).getTime() + dias * UM_DIA).toISOString(), adiamentos, editada_individualmente: Boolean(atividade.recorrencia_id) });
     return antes;
   }
-  await repositorios.atividade.atualizar(id, { prazo: novaData, adiamentos });
+  await repositorios.atividade.atualizar(id, { prazo: novaData, adiamentos, editada_individualmente: Boolean(atividade.recorrencia_id) });
   return antes;
 }
 
@@ -498,10 +505,11 @@ export async function desbloquearAtividade(id: string): Promise<void> {
   await repositorios.atividade.atualizar(id, { bloqueada: false, bloqueio_motivo: null, bloqueada_em: null });
 }
 
-/** Quem vira responsável deixa de ser participante: não aparece duas vezes no cartão. */
+/** Quem vira responsável deixa de ser participante: não aparece duas vezes no cartão. Numa ocorrência, vale só para ela. */
 export async function trocarResponsavel(id: string, pessoaId: string): Promise<void> {
+  const atividade = await obterAtividade(id);
   await emTransacao(async () => {
-    await repositorios.atividade.atualizar(id, { responsavel_id: pessoaId });
+    await repositorios.atividade.atualizar(id, { responsavel_id: pessoaId, editada_individualmente: Boolean(atividade.recorrencia_id) });
     for (const ligacao of await repositorios.atividade_participante.listar({ onde: { atividade_id: id, pessoa_id: pessoaId } })) await repositorios.atividade_participante.arquivar(ligacao.id);
   });
 }

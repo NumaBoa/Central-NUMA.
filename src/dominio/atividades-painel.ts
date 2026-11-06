@@ -6,6 +6,7 @@ import { emTransacao } from '@/dados/transacao';
 import { parDoVinculo, type AnexoLink, type ChecklistItem, type Comentario, type Vinculo } from '@/dados/tipos/apoio';
 import type { Atividade } from '@/dados/tipos/atividade';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import type { Recorrencia } from '@/dados/tipos/recorrencia';
 import { diaEHoraNoFuso, instanteNoFuso } from '@/lib/datas';
 import { estaAberta, MAXIMO_NO_TITULO } from './atividades';
 import { normalizarTexto } from './duplicidade';
@@ -59,7 +60,7 @@ export async function alterarPrazo(id: string, prazo: string, hora: string): Pro
   if (prazo && atividade.inicio && atividade.inicio > prazo) throw new ErroDeRegra('O prazo precisa ser depois do início.');
   if (prazo && atividade.aviso_em && diaEHoraNoFuso(atividade.aviso_em).dia > prazo) throw new ErroDeRegra('O aviso está depois deste prazo: mude o aviso antes.');
   const adiou = Boolean(atividade.prazo && prazo && prazo > atividade.prazo);
-  await repositorios.atividade.atualizar(id, { prazo: prazo || null, prazo_hora: hora || null, adiamentos: adiou ? atividade.adiamentos + 1 : atividade.adiamentos });
+  await repositorios.atividade.atualizar(id, { prazo: prazo || null, prazo_hora: hora || null, adiamentos: adiou ? atividade.adiamentos + 1 : atividade.adiamentos, editada_individualmente: Boolean(atividade.recorrencia_id) });
 }
 
 /** Lembrete exige data e hora (RN-03.03). Tarefa e demanda podem ficar sem aviso. */
@@ -68,7 +69,7 @@ export async function alterarAviso(id: string, dia: string, hora: string): Promi
   if (atividade.tipo === 'lembrete' && (!dia || !hora)) throw new ErroDeRegra('Lembrete exige a data e a hora do aviso.');
   if (Boolean(dia) !== Boolean(hora)) throw new ErroDeRegra('Informe o dia e a hora do aviso.');
   if (dia && atividade.prazo && dia > atividade.prazo) throw new ErroDeRegra('O aviso precisa ser antes do prazo.');
-  await repositorios.atividade.atualizar(id, { aviso_em: dia ? instanteNoFuso(dia, hora) : null });
+  await repositorios.atividade.atualizar(id, { aviso_em: dia ? instanteNoFuso(dia, hora) : null, editada_individualmente: Boolean(atividade.recorrencia_id) });
 }
 
 /** Tira quem saiu e coloca quem entrou, sem repetir nem mexer em quem ficou. */
@@ -207,7 +208,7 @@ export async function duplicarAtividade(id: string): Promise<Atividade> {
   return emTransacao(async () => {
     const { id: _id, codigo: _codigo, criado_em: _criado, criado_por: _criadoPor, atualizado_em: _atualizado, atualizado_por: _atualizadoPor, arquivado_em: _arquivado, arquivado_por: _arquivadoPor, versao_registro: _versao, exemplo: _exemplo, ...campos } = original;
     const titulo = `${original.titulo.slice(0, MAXIMO_NO_TITULO - 8)} (cópia)`;
-    const nova = await repositorios.atividade.criar({ ...campos, titulo, situacao: 'a_fazer', bloqueada: false, bloqueio_motivo: null, bloqueada_em: null, aguardando_de_pessoa_id: null, aguardando_de_texto: null, aguardando_desde: null, acompanhamento_em: null, adiamentos: 0, concluida_em: null, concluida_por: null, conclusao_nota: null, cancelada_motivo: null, dispensada_motivo: null, recorrencia_id: null, ocorrencia_numero: null, ocorrencia_data: null, editada_individualmente: false });
+    const nova = await repositorios.atividade.criar({ ...campos, titulo, situacao: 'a_fazer', bloqueada: false, bloqueio_motivo: null, bloqueada_em: null, aguardando_de_pessoa_id: null, aguardando_de_texto: null, aguardando_desde: null, acompanhamento_em: null, adiamentos: 0, concluida_em: null, concluida_por: null, conclusao_nota: null, cancelada_motivo: null, dispensada_motivo: null, recorrencia_id: null, ocorrencia_numero: null, ocorrencia_data: null, editada_individualmente: false, chave_idempotencia: null });
     for (const ligacao of await repositorios.atividade_produto.listar({ onde: { atividade_id: id } })) await repositorios.atividade_produto.criar({ atividade_id: nova.id, produto_id: ligacao.produto_id });
     for (const ligacao of await repositorios.atividade_participante.listar({ onde: { atividade_id: id } })) await repositorios.atividade_participante.criar({ atividade_id: nova.id, pessoa_id: ligacao.pessoa_id });
     for (const item of await repositorios.checklist_item.listar({ onde: { registro_id: id } })) await repositorios.checklist_item.criar({ registro_tipo: TIPO_DO_REGISTRO, registro_id: nova.id, ordem: item.ordem, texto: item.texto, responsavel_id: item.responsavel_id, feito: false, feito_por: null, feito_em: null });
@@ -236,6 +237,8 @@ export type DadosDoPainel = {
   anexos: AnexoLink[];
   /** "Por quem" do bloqueio vem do histórico: a tabela só guarda o motivo e a data (16 §4.3). */
   quemBloqueou: string | null;
+  /** A rotina de que esta atividade é ocorrência (T03.05). */
+  rotina: Recorrencia | null;
 };
 
 async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
@@ -264,7 +267,7 @@ export async function vinculosDaAtividade(id: string): Promise<LinhaDeVinculo[]>
 export async function carregarPainel(id: string): Promise<DadosDoPainel | null> {
   const atividade = await repositorios.atividade.obter(id);
   if (!atividade) return null;
-  const [produtos, participantes, itens, comentarios, anexos, vinculos, eventos] = await Promise.all([
+  const [produtos, participantes, itens, comentarios, anexos, vinculos, eventos, rotina] = await Promise.all([
     repositorios.atividade_produto.listar({ onde: { atividade_id: id } }),
     repositorios.atividade_participante.listar({ onde: { atividade_id: id } }),
     repositorios.checklist_item.listar({ onde: { registro_id: id } }),
@@ -272,6 +275,7 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
     repositorios.anexo_link.listar({ onde: { registro_id: id } }),
     vinculosDaAtividade(id),
     listarHistorico({ tabela: 'atividade', registroId: id }),
+    atividade.recorrencia_id ? repositorios.recorrencia.obter(atividade.recorrencia_id) : Promise.resolve(null),
   ]);
   const bloqueio = eventos.find((evento) => evento.depois?.bloqueada === true);
   return {
@@ -283,6 +287,7 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
     vinculos,
     anexos,
     quemBloqueou: bloqueio?.usuario_id ?? null,
+    rotina,
   };
 }
 

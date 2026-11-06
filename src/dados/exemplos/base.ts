@@ -6,6 +6,11 @@ export const ID_CAMILA = '1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02';
 /** Freelancer fictícia de `17 §6`. */
 export const ID_BRUNA = '2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03';
 
+/** A rotina do backup semanal acompanha a responsável de T02.01. */
+export const ID_ROTINA_BACKUP = 'f7c1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e01';
+/** Rotina fictícia de `17 §6`. */
+export const ID_ROTINA_EXEMPLO = 'f7c1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e11';
+
 /**
  * Áreas de T02.03 e D11: dados reais, não são exemplo. Quem atua em cada uma vem da mesma tabela;
  * Produto é compartilhada entre as duas sócias (decisão de 05/11/2026).

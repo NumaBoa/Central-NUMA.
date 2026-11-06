@@ -17,6 +17,7 @@ import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
+import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
 
 type Nomes = ReadonlyMap<string, string>;
 
@@ -210,6 +211,16 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     aguardando_de_pessoa_id: { rotulo: 'Aguardando de', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
     aguardando_de_texto: { rotulo: 'Aguardando de' },
     acompanhamento_em: { rotulo: 'Acompanhamento', valor: (valor) => formatarDiaISO(String(valor)) },
+    inicio: { rotulo: 'Início', valor: (valor) => formatarDiaISO(String(valor)) },
+    conclusao_nota: { rotulo: 'Nota' },
+    recorrencia_id: { rotulo: 'Rotina', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'rotina removida' },
+  },
+  recorrencia: {
+    titulo: { rotulo: 'Título' },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_ROTINA[valor as keyof typeof ROTULOS_SITUACAO_ROTINA] },
+    modelo: { rotulo: 'Detalhes das próximas ocorrências', semValores: true },
+    fim_data: { rotulo: 'Fim', valor: (valor) => formatarDiaISO(String(valor)) },
   },
   etiqueta: {
     nome: { rotulo: 'Nome' },
@@ -247,6 +258,10 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   if (evento.tabela === 'atividade') {
     const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
     return titulo && `a atividade ${titulo}`;
+  }
+  if (evento.tabela === 'recorrencia') {
+    const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
+    return titulo && `a rotina ${titulo}`;
   }
   const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade', categoria_financeira: 'a categoria', conta_financeira: 'a conta', feriado: 'o feriado', etiqueta: 'a etiqueta' };
   const artigo = artigos[evento.tabela ?? ''];
@@ -357,7 +372,7 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -370,8 +385,9 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.etiqueta.listar({ incluirArquivados: true }),
     repositorios.atividade.listar({ incluirArquivados: true }),
     repositorios.checklist_item.listar({ incluirArquivados: true }),
+    repositorios.recorrencia.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
+  return new Map([...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {

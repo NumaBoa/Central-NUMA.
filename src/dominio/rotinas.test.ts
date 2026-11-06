@@ -27,8 +27,8 @@ describe('rotinas do dia', () => {
 
   it('rodam ao abrir e não repetem no mesmo dia', async () => {
     const rotina = rotinaQueConta('Gerar alertas', 2);
-    expect(await executarRotinas({ rotinas: [rotina] })).toEqual({ executou: true, novos: 2, falhas: [] });
-    expect(await executarRotinas({ rotinas: [rotina] })).toEqual({ executou: false, novos: 0, falhas: [] });
+    expect(await executarRotinas({ rotinas: [rotina] })).toEqual({ executou: true, novos: 2, falhas: [], novidades: [] });
+    expect(await executarRotinas({ rotinas: [rotina] })).toEqual({ executou: false, novos: 0, falhas: [], novidades: [] });
     expect(rotina.executar).toHaveBeenCalledTimes(1);
     expect(lerMeta().ultima_rotina_em).toBe('2026-11-05T15:00:00.000Z');
   });
@@ -42,6 +42,14 @@ describe('rotinas do dia', () => {
     vi.setSystemTime(new Date('2026-11-06T03:01:00.000Z')); // já dia 6
     await executarRotinas({ rotinas: [rotina] });
     expect(rotina.executar).toHaveBeenCalledTimes(2);
+  });
+
+  it('duas rodadas ao mesmo tempo não geram em dobro', async () => {
+    const rotina = rotinaQueConta('Gerar alertas', 1);
+    const [primeira, segunda] = await Promise.all([executarRotinas({ rotinas: [rotina] }), executarRotinas({ rotinas: [rotina] })]);
+    expect(rotina.executar).toHaveBeenCalledTimes(1);
+    expect(primeira.executou).toBe(true);
+    expect(segunda.executou).toBe(false);
   });
 
   it('o botão "Rodar rotinas agora" roda mesmo se já rodaram hoje', async () => {
@@ -68,7 +76,7 @@ describe('rotinas do dia', () => {
       },
     };
     const depois = rotinaQueConta('Estender', 1);
-    expect(await executarRotinas({ rotinas: [quebrada, depois] })).toEqual({ executou: true, novos: 1, falhas: ['Atualizar situações'] });
+    expect(await executarRotinas({ rotinas: [quebrada, depois] })).toEqual({ executou: true, novos: 1, falhas: ['Atualizar situações'], novidades: [] });
     expect(depois.executar).toHaveBeenCalled();
     expect(lerMeta().ultima_rotina_em).toBeNull();
   });
@@ -87,9 +95,9 @@ describe('rotinas do dia', () => {
 
 describe('mensagemDasRotinas', () => {
   it('fala como a especificação', () => {
-    expect(mensagemDasRotinas({ novos: 3, falhas: [] })).toBe('Rotinas do dia executadas: 3 alertas novos.');
-    expect(mensagemDasRotinas({ novos: 1, falhas: [] })).toBe('Rotinas do dia executadas: 1 alerta novo.');
-    expect(mensagemDasRotinas({ novos: 0, falhas: [] })).toBe('Rotinas do dia executadas: nenhum alerta novo.');
-    expect(mensagemDasRotinas({ novos: 0, falhas: ['Gerar alertas'] })).toContain('Gerar alertas');
+    expect(mensagemDasRotinas({ novidades: ['3 alertas novos'], falhas: [] })).toBe('Rotinas do dia executadas: 3 alertas novos.');
+    expect(mensagemDasRotinas({ novidades: ['1 alerta novo', '9 ocorrências novas'], falhas: [] })).toBe('Rotinas do dia executadas: 1 alerta novo e 9 ocorrências novas.');
+    expect(mensagemDasRotinas({ novidades: [], falhas: [] })).toBe('Rotinas do dia executadas: nada novo.');
+    expect(mensagemDasRotinas({ novidades: [], falhas: ['Gerar alertas'] })).toContain('Gerar alertas');
   });
 });

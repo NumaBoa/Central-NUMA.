@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowLeft, Check, Ellipsis, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { CampoRepeticao, type ErrosDaRepeticao } from '@/componentes/atividades/campo-repeticao';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { PilulasMultiplas } from '@/componentes/campos/pilulas';
@@ -17,7 +18,7 @@ import { ListaHistorico } from '@/componentes/padroes/historico';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Avatar } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
-import { BotaoFechar, Dialog, DialogContent, DialogTitle } from '@/componentes/ui/dialog';
+import { BotaoFechar, Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -33,13 +34,10 @@ import {
   alterarCampos,
   alterarInicio,
   alterarPrazo,
-  alterarTitulo,
   CAMINHO_DA_ATIVIDADE,
   carregarPainel,
   comentar,
   converterAtividade,
-  definirContextos,
-  definirParticipantes,
   definirResponsavelDoItem,
   duplicarAtividade,
   editarComentario,
@@ -52,8 +50,10 @@ import {
 } from '@/dominio/atividades-painel';
 import { historicoDaAtividade } from '@/dominio/historico';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
+import { editarOcorrencia, repetirAtividade, type CamposDaOcorrencia, type EscopoDaEdicao } from '@/dominio/recorrencias';
+import { errosDaRepeticao, regraDoFormulario, regraPorExtenso, repeticaoPadrao, fimPorExtenso } from '@/dominio/repeticao';
 import { AVISO_CREDENCIAL, pareceCredencial } from '@/dominio/segredos';
-import { diaEHoraNoFuso } from '@/lib/datas';
+import { diaEHoraNoFuso, hojeISO } from '@/lib/datas';
 import { formatarData, formatarDataHora, formatarDiaISO, formatarHora } from '@/lib/formatacao';
 import { cn } from '@/lib/utils';
 import type { AcoesDaAtividade } from './acoes-atividade';
@@ -68,6 +68,9 @@ async function salvar(acao: () => Promise<unknown>): Promise<string | null> {
     return mensagemDoErro(erro);
   }
 }
+
+/** Grava os campos; numa ocorrência, pergunta antes até onde vale (RN-03.17). `false` é quem desistiu. */
+type EditarAtividade = (campos: CamposDaOcorrencia) => Promise<boolean>;
 
 /** Para as ações sem um campo onde mostrar a mensagem. */
 function salvarComAviso(acao: () => Promise<unknown>) {
@@ -95,9 +98,12 @@ function TextoSalvo({ id, rotulo, valor, aoSalvar, tipo = 'text', multilinha = f
 
   async function confirmar() {
     if (texto.trim() === valor.trim()) return;
-    const falha = await salvar(() => aoSalvar(texto));
+    let desistiu = false;
+    const falha = await salvar(async () => {
+      desistiu = (await aoSalvar(texto)) === false;
+    });
     setErro(falha);
-    if (falha) setTexto(valor);
+    if (falha || desistiu) setTexto(valor);
   }
 
   const aoTeclar = (evento: KeyboardEvent<HTMLInputElement>) => {
@@ -114,7 +120,7 @@ function TextoSalvo({ id, rotulo, valor, aoSalvar, tipo = 'text', multilinha = f
   );
 }
 
-function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir }: { atividade: Atividade; painel: DadosDoPainel; dados: DadosMeuDia; acoes: AcoesDaAtividade; aoFechar: () => void; aoAbrir: (id: string) => void }) {
+function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir, editar }: { atividade: Atividade; painel: DadosDoPainel; dados: DadosMeuDia; acoes: AcoesDaAtividade; aoFechar: () => void; aoAbrir: (id: string) => void; editar: EditarAtividade }) {
   const { pessoa } = useCentral();
   const aberta = estaAberta(atividade);
   const doDia: AtividadeDoDia = { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0 };
@@ -180,7 +186,7 @@ function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir }: { ati
         {alerta ? (
           <p className="font-display text-xl leading-[26px] font-semibold tracking-[-.02em] break-words">{atividade.titulo}</p>
         ) : (
-          <TextoSalvo id="painel-titulo" rotulo="Título" valor={atividade.titulo} aoSalvar={(novo) => alterarTitulo(atividade.id, novo)} desativado={!aberta} />
+          <TextoSalvo id="painel-titulo" rotulo="Título" valor={atividade.titulo} aoSalvar={(novo) => editar({ titulo: novo })} desativado={!aberta} />
         )}
       </div>
 
@@ -202,7 +208,7 @@ function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir }: { ati
         </Campo>
         <Campo id="painel-prioridade" rotulo="Prioridade">
           {(controle) => (
-            <Selecao {...controle} disabled={!aberta} value={atividade.prioridade} onChange={(evento) => void trocar(() => alterarCampos(atividade.id, { prioridade: evento.target.value as Atividade['prioridade'] }))}>
+            <Selecao {...controle} disabled={!aberta} value={atividade.prioridade} onChange={(evento) => void trocar(() => editar({ prioridade: evento.target.value as Atividade['prioridade'] }))}>
               {Object.entries(ROTULOS_PRIORIDADE_ATIVIDADE).map(([valor, rotulo]) => (
                 <option key={valor} value={valor}>
                   {rotulo}
@@ -213,7 +219,12 @@ function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir }: { ati
         </Campo>
         <Campo id="painel-responsavel" rotulo="Responsável" className="col-span-2 md:col-span-1">
           {(controle) => (
-            <Selecao {...controle} disabled={!aberta} value={atividade.responsavel_id} onChange={(evento) => acoes.trocarResponsavel(doDia, evento.target.value)}>
+            <Selecao {...controle} disabled={!aberta} value={atividade.responsavel_id} onChange={(evento) => {
+                const pessoaId = evento.target.value;
+                void trocar(async () => {
+                  if (await editar({ responsavel_id: pessoaId })) aviso('Responsável alterada.');
+                });
+              }}>
               {responsaveis.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.nome_completo}
@@ -247,7 +258,7 @@ function Cabecalho({ atividade, painel, dados, acoes, aoFechar, aoAbrir }: { ati
   );
 }
 
-function Detalhes({ atividade, painel, dados }: { atividade: Atividade; painel: DadosDoPainel; dados: DadosMeuDia }) {
+function Detalhes({ atividade, painel, dados, editar, escopo, aoEsquecerEscopo }: { atividade: Atividade; painel: DadosDoPainel; dados: DadosMeuDia; editar: EditarAtividade; escopo: EscopoDaEdicao | null; aoEsquecerEscopo: () => void }) {
   const aberta = estaAberta(atividade);
   const alerta = atividade.tipo === 'alerta';
   const lembrete = atividade.tipo === 'lembrete';
@@ -274,10 +285,10 @@ function Detalhes({ atividade, painel, dados }: { atividade: Atividade; painel: 
   return (
     <Secao titulo="Detalhes">
       <div className="grid gap-[18px]">
-        <TextoSalvo id="painel-descricao" rotulo="Descrição" multilinha valor={atividade.descricao ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarCampos(atividade.id, { descricao: novo.trim() || null })} ajuda={pareceCredencial(atividade.descricao ?? '') ? <span className="text-warn">{AVISO_CREDENCIAL}</span> : undefined} />
+        <TextoSalvo id="painel-descricao" rotulo="Descrição" multilinha valor={atividade.descricao ?? ''} desativado={!aberta} aoSalvar={(novo) => editar({ descricao: novo.trim() || null })} ajuda={pareceCredencial(atividade.descricao ?? '') ? <span className="text-warn">{AVISO_CREDENCIAL}</span> : undefined} />
         <Campo id="painel-area" rotulo="Área">
           {(controle) => (
-            <Selecao {...controle} disabled={!aberta} value={atividade.area_id ?? ''} onChange={(evento) => salvarComAviso(() => alterarCampos(atividade.id, { area_id: evento.target.value || null }))}>
+            <Selecao {...controle} disabled={!aberta} value={atividade.area_id ?? ''} onChange={(evento) => salvarComAviso(() => editar({ area_id: evento.target.value || null }))}>
               <option value="">Nenhuma</option>
               {areas.map((area) => (
                 <option key={area.id} value={area.id}>
@@ -287,14 +298,15 @@ function Detalhes({ atividade, painel, dados }: { atividade: Atividade; painel: 
             </Selecao>
           )}
         </Campo>
-        <PilulasMultiplas rotulo="Contexto" desativado={!aberta} valores={painel.produtos} aoMudar={(valores) => salvarComAviso(() => definirContextos(atividade.id, valores))} opcoes={produtos.map((produto) => ({ valor: produto.id, rotulo: produto.nome }))} />
+        <PilulasMultiplas rotulo="Contexto" desativado={!aberta} valores={painel.produtos} aoMudar={(valores) => salvarComAviso(() => editar({ produtos: valores }))} opcoes={produtos.map((produto) => ({ valor: produto.id, rotulo: produto.nome }))} />
         <p className="-mt-3 text-xs text-ink-soft">Sem produto marcado, é da Numa.</p>
-        <PilulasMultiplas rotulo="Participantes" desativado={!aberta} valores={painel.participantes} aoMudar={(valores) => salvarComAviso(() => definirParticipantes(atividade.id, valores))} opcoes={pessoas.map((pessoa) => ({ valor: pessoa.id, rotulo: pessoa.nome_completo }))} />
+        <PilulasMultiplas rotulo="Participantes" desativado={!aberta} valores={painel.participantes} aoMudar={(valores) => salvarComAviso(() => editar({ participantes: valores }))} opcoes={pessoas.map((pessoa) => ({ valor: pessoa.id, rotulo: pessoa.nome_completo }))} />
         {!lembrete && <TextoSalvo id="painel-inicio" rotulo="Início" tipo="date" valor={atividade.inicio ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarInicio(atividade.id, novo)} />}
         {!lembrete && !alerta && (
           <div className="grid grid-cols-2 gap-3">
             <TextoSalvo id="painel-prazo" rotulo="Prazo" tipo="date" valor={atividade.prazo ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarPrazo(atividade.id, novo, novo ? (atividade.prazo_hora ?? '') : '')} />
             <TextoSalvo id="painel-prazo-hora" rotulo="Hora (opcional)" tipo="time" valor={atividade.prazo_hora ?? ''} desativado={!aberta || !atividade.prazo} aoSalvar={(novo) => alterarPrazo(atividade.id, atividade.prazo ?? '', novo)} />
+            {atividade.recorrencia_id && aberta && <p className="col-span-2 -mt-1 text-xs text-ink-soft">A data muda só nesta ocorrência. Para mudar as próximas, edite a rotina.</p>}
           </div>
         )}
         {alerta && atividade.prazo && <p className="text-[13px]">Prazo: {formatarDiaISO(atividade.prazo)}</p>}
@@ -311,19 +323,107 @@ function Detalhes({ atividade, painel, dados }: { atividade: Atividade; painel: 
             {erroAviso && <MensagemErro>{erroAviso}</MensagemErro>}
           </div>
         )}
+        {!alerta && <RepeticaoDaAtividade atividade={atividade} painel={painel} escopo={escopo} aoEsquecerEscopo={aoEsquecerEscopo} />}
       </div>
     </Secao>
   );
 }
 
-function SecaoDemanda({ atividade, dados }: { atividade: Atividade; dados: DadosMeuDia }) {
+/** "Recorrência (resumo + editar)" (T03.02). Quem não repete pode passar a repetir. */
+function RepeticaoDaAtividade({ atividade, painel, escopo, aoEsquecerEscopo }: { atividade: Atividade; painel: DadosDoPainel; escopo: EscopoDaEdicao | null; aoEsquecerEscopo: () => void }) {
+  const [repetindo, setRepetindo] = useState(false);
+  const { rotina } = painel;
+  const aberta = estaAberta(atividade);
+  const fim = rotina ? fimPorExtenso(rotina) : null;
+  return (
+    <div>
+      <p className="mb-[7px] texto-rotulo">Repetição</p>
+      {rotina ? (
+        <div className="grid gap-1 text-[13px]" data-repeticao>
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span>
+              {regraPorExtenso(rotina)}
+              {fim ? `, ${fim}` : ''}
+              {atividade.ocorrencia_numero ? ` · Ocorrência ${atividade.ocorrencia_numero}` : ''}
+            </span>
+            <LinkCentral href={`/meu-dia/rotinas?rotina=${rotina.id}`} className="inline-flex min-h-11 items-center font-semibold text-indigo underline-offset-2 hover:underline md:min-h-0">
+              Ver rotina
+            </LinkCentral>
+          </p>
+          {escopo && aberta && (
+            <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-soft">
+              <span>Nesta abertura, as mudanças valem para {escopo === 'esta' ? 'somente esta ocorrência' : 'esta e as próximas'}.</span>
+              <Button variante="terciario" tamanho="pequeno" onClick={aoEsquecerEscopo}>
+                Perguntar de novo
+              </Button>
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="flex flex-wrap items-center gap-x-2 text-[13px]">
+          <span className="text-ink-soft">Não repete.</span>
+          {aberta && (
+            <Button variante="terciario" tamanho="pequeno" onClick={() => setRepetindo(true)}>
+              Repetir
+            </Button>
+          )}
+        </p>
+      )}
+      {repetindo && <DialogoDeRepetir atividade={atividade} aoFechar={() => setRepetindo(false)} />}
+    </div>
+  );
+}
+
+function DialogoDeRepetir({ atividade, aoFechar }: { atividade: Atividade; aoFechar: () => void }) {
+  const hoje = hojeISO();
+  const lembrete = atividade.tipo === 'lembrete';
+  const aviso_ = atividade.aviso_em ? diaEHoraNoFuso(atividade.aviso_em) : null;
+  const dia = atividade.prazo ?? aviso_?.dia ?? hoje;
+  const [valor, setValor] = useState(() => ({ ...repeticaoPadrao(dia > hoje ? dia : hoje), hora: atividade.prazo_hora ?? aviso_?.hora ?? '' }));
+  const [erros, setErros] = useState<ErrosDaRepeticao>({});
+  const [falha, setFalha] = useState<string | null>(null);
+
+  async function confirmar() {
+    const encontrados = errosDaRepeticao(valor, { lembrete, minimoInicio: hoje });
+    setErros(encontrados);
+    if (Object.keys(encontrados).length) return;
+    try {
+      await repetirAtividade(atividade.id, regraDoFormulario(valor));
+      aviso('Agora esta atividade faz parte de uma rotina.');
+      aoFechar();
+    } catch (erro) {
+      setFalha(mensagemDoErro(erro));
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent semFechar comDescricao>
+        <DialogTitle>Repetir esta atividade</DialogTitle>
+        <DialogDescription className="mt-2">Ela vira a primeira ocorrência, na primeira data da regra. As próximas nascem no Meu dia, até 30 dias à frente.</DialogDescription>
+        <div className="mt-4">
+          <CampoRepeticao id="painel-repeticao" valor={valor} aoMudar={setValor} erros={erros} lembrete={lembrete} hoje={hoje} />
+        </div>
+        {falha && <MensagemErro>{falha}</MensagemErro>}
+        <div className="acoes-dialogo">
+          <Button variante="secundario" onClick={aoFechar}>
+            Voltar
+          </Button>
+          <Button onClick={() => void confirmar()}>Repetir</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SecaoDemanda({ atividade, dados, editar }: { atividade: Atividade; dados: DadosMeuDia; editar: EditarAtividade }) {
   const aberta = estaAberta(atividade);
   return (
     <Secao titulo="Demanda">
       <div className="grid gap-[18px]">
         <Campo id="painel-solicitante" rotulo="Solicitante">
           {(controle) => (
-            <Selecao {...controle} disabled={!aberta} value={atividade.solicitante_pessoa_id ?? ''} onChange={(evento) => salvarComAviso(() => alterarCampos(atividade.id, { solicitante_pessoa_id: evento.target.value || null, solicitante_texto: evento.target.value ? null : atividade.solicitante_texto }))}>
+            <Selecao {...controle} disabled={!aberta} value={atividade.solicitante_pessoa_id ?? ''} onChange={(evento) => salvarComAviso(() => editar({ solicitante_pessoa_id: evento.target.value || null, solicitante_texto: evento.target.value ? null : atividade.solicitante_texto }))}>
               <option value="">Outra: escrever o nome</option>
               {dados.pessoas
                 .filter((pessoa) => !pessoa.arquivado_em || pessoa.id === atividade.solicitante_pessoa_id)
@@ -335,8 +435,8 @@ function SecaoDemanda({ atividade, dados }: { atividade: Atividade; dados: Dados
             </Selecao>
           )}
         </Campo>
-        {!atividade.solicitante_pessoa_id && <TextoSalvo id="painel-solicitante-texto" rotulo="Quem pediu" valor={atividade.solicitante_texto ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarCampos(atividade.id, { solicitante_texto: novo.trim() || null })} />}
-        <TextoSalvo id="painel-resultado" rotulo="Resultado esperado" multilinha valor={atividade.resultado_esperado ?? ''} desativado={!aberta} aoSalvar={(novo) => alterarCampos(atividade.id, { resultado_esperado: novo.trim() || null })} />
+        {!atividade.solicitante_pessoa_id && <TextoSalvo id="painel-solicitante-texto" rotulo="Quem pediu" valor={atividade.solicitante_texto ?? ''} desativado={!aberta} aoSalvar={(novo) => editar({ solicitante_texto: novo.trim() || null })} />}
+        <TextoSalvo id="painel-resultado" rotulo="Resultado esperado" multilinha valor={atividade.resultado_esperado ?? ''} desativado={!aberta} aoSalvar={(novo) => editar({ resultado_esperado: novo.trim() || null })} />
       </div>
     </Secao>
   );
@@ -744,8 +844,38 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
   }, [id]);
   const consulta = useConsulta(() => (atual ? carregarPainel(atual) : Promise.resolve(null)), [atual]);
   const painel = consulta.dados;
+  const atividade = painel?.atividade;
+  const doDia: AtividadeDoDia | null = atividade && painel ? { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0 } : null;
   const [temRascunho, setTemRascunho] = useState(false);
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
+  // RN-03.17: pergunta uma vez por abertura, e a resposta fica à vista até o painel fechar.
+  const [escopo, setEscopo] = useState<EscopoDaEdicao | null>(null);
+  const [pergunta, setPergunta] = useState<{ responder: (resposta: EscopoDaEdicao | null) => void } | null>(null);
+  const idDaAtividade = atividade?.id;
+  const ehOcorrencia = Boolean(atividade?.recorrencia_id);
+
+  useEffect(() => setEscopo(null), [id]);
+
+  const editar = useCallback<EditarAtividade>(
+    async (campos) => {
+      if (!idDaAtividade) return false;
+      if (!ehOcorrencia) {
+        await editarOcorrencia(idDaAtividade, campos, 'esta');
+        return true;
+      }
+      const escolhido = escopo ?? (await new Promise<EscopoDaEdicao | null>((responder) => setPergunta({ responder })));
+      if (!escolhido) return false;
+      setEscopo(escolhido);
+      await editarOcorrencia(idDaAtividade, campos, escolhido);
+      return true;
+    },
+    [idDaAtividade, ehOcorrencia, escopo],
+  );
+
+  function responderEscopo(resposta: EscopoDaEdicao | null) {
+    pergunta?.responder(resposta);
+    setPergunta(null);
+  }
 
   // Fechar com o cursor num campo (Esc, voltar do navegador) salva o que foi escrito: o painel ainda está na tela enquanto sai.
   useEffect(() => {
@@ -759,8 +889,6 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
     else aoFechar();
   }
 
-  const atividade = painel?.atividade;
-  const doDia: AtividadeDoDia | null = atividade && painel ? { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0 } : null;
 
   return (
     <>
@@ -790,7 +918,7 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
         {atividade && painel && doDia && (
           // No celular, a tela é pequena para um cabeçalho fixo: tudo rola, menos a barra de cima.
           <div key={atividade.id} className="flex min-h-0 flex-1 flex-col max-md:relative max-md:overflow-y-auto">
-            <Cabecalho atividade={atividade} painel={painel} dados={dados} acoes={acoes} aoFechar={pedirFechar} aoAbrir={aoAbrir} />
+            <Cabecalho atividade={atividade} painel={painel} dados={dados} acoes={acoes} aoFechar={pedirFechar} aoAbrir={aoAbrir} editar={editar} />
             <div className="grid content-start gap-4 px-4 py-5 md:min-h-0 md:flex-1 md:overflow-y-auto md:px-6 [&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
               {atividade.tipo === 'alerta' && <SecaoAlerta atividade={atividade} acoes={acoes} doDia={doDia} />}
               {atividade.bloqueada && estaAberta(atividade) && <SecaoBloqueio atividade={atividade} painel={painel} dados={dados} />}
@@ -799,11 +927,12 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
               {atividade.concluida_em && (
                 <p className="text-[13px] text-ink-soft">
                   Concluída em {formatarDataHora(atividade.concluida_em)}
-                  {atividade.concluida_por ? ` por ${dados.pessoas.find((pessoa) => pessoa.id === atividade.concluida_por)?.nome_completo ?? 'Pessoa removida'}` : ''}
+                  {` por ${atividade.concluida_por ? (dados.pessoas.find((pessoa) => pessoa.id === atividade.concluida_por)?.nome_completo ?? 'Pessoa removida') : 'Sistema'}`}
+                  {atividade.conclusao_nota ? `. ${atividade.conclusao_nota}` : ''}
                 </p>
               )}
-              <Detalhes atividade={atividade} painel={painel} dados={dados} />
-              {atividade.tipo === 'demanda' && <SecaoDemanda atividade={atividade} dados={dados} />}
+              <Detalhes atividade={atividade} painel={painel} dados={dados} editar={editar} escopo={escopo} aoEsquecerEscopo={() => setEscopo(null)} />
+              {atividade.tipo === 'demanda' && <SecaoDemanda atividade={atividade} dados={dados} editar={editar} />}
               {atividade.tipo !== 'lembrete' && <SecaoChecklist atividade={atividade} painel={painel} dados={dados} />}
               <SecaoVinculos atividade={atividade} painel={painel} dados={dados} />
               <SecaoArquivos atividade={atividade} painel={painel} />
@@ -812,6 +941,21 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(pergunta)} onOpenChange={(aberto) => !aberto && responderEscopo(null)}>
+      <DialogContent semFechar comDescricao>
+        <DialogTitle>Esta atividade faz parte de uma rotina</DialogTitle>
+        <DialogDescription className="mt-3">A mudança vale só para esta ocorrência, ou também para as próximas? As anteriores não mudam.</DialogDescription>
+        <div className="acoes-dialogo">
+          <Button variante="secundario" onClick={() => responderEscopo(null)}>
+            Voltar
+          </Button>
+          <Button variante="secundario" onClick={() => responderEscopo('esta')}>
+            Somente esta
+          </Button>
+          <Button onClick={() => responderEscopo('proximas')}>Esta e as próximas</Button>
+        </div>
       </DialogContent>
     </Dialog>
     <Confirmacao

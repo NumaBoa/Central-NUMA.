@@ -6,12 +6,13 @@ import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-ativid
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
+import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EstadoCarregando, EstadoErro, EstadoVazio, EstadoVazioFiltro } from '@/componentes/padroes/estados';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Button } from '@/componentes/ui/button';
 import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
 import { useConsulta } from '@/dados/use-consulta';
-import { AlarmClock, CheckSquare, ChevronDown, Inbox, Plus, Sun } from 'lucide-react';
+import { AlarmClock, CheckSquare, ChevronDown, History, Inbox, Plus, Repeat, Sun } from 'lucide-react';
 import {
   atividadesDaBase,
   atividadesVisiveis,
@@ -97,13 +98,34 @@ function BotaoAdicionar() {
   );
 }
 
+/** Histórico (T03.04) e Rotinas (T03.05). */
+function LinksDoDia() {
+  return (
+    <>
+      <Button asChild variante="terciario" className="max-md:px-2.5 max-md:[&_svg]:hidden">
+        <LinkCentral href="/meu-dia/historico">
+          <History aria-hidden />
+          Histórico
+        </LinkCentral>
+      </Button>
+      <Button asChild variante="terciario" className="max-md:px-2.5 max-md:[&_svg]:hidden">
+        <LinkCentral href="/meu-dia/rotinas">
+          <Repeat aria-hidden />
+          Rotinas
+        </LinkCentral>
+      </Button>
+    </>
+  );
+}
+
 /** Saudação, data por extenso e a frase-resumo, com o marca-texto em um só trecho (18 §2.2). */
 function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia }) {
   const frase = fraseDoResumo(resumo);
   return (
     <header className="relative">
       <LinhasDoCabecalho />
-      <div className="relative float-right ml-3 hidden md:block">
+      <div className="relative float-right ml-3 hidden items-center gap-1 md:flex">
+        <LinksDoDia />
         <BotaoAdicionar />
       </div>
       <p className="relative text-[13px] leading-[18px] font-medium text-ink-soft first-letter:uppercase">{dataPorExtenso()}</p>
@@ -121,8 +143,9 @@ function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia })
           'Nada para hoje por enquanto.'
         )}
       </p>
-      <div className="relative mt-3 md:hidden">
+      <div className="relative mt-3 flex items-center gap-0.5 md:hidden">
         <BotaoAdicionar />
+        <LinksDoDia />
       </div>
     </header>
   );

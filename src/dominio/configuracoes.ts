@@ -1,4 +1,5 @@
 /** Regras de T02.01 (04-M02): formulário em seções, fase ativa e o que a tela precisa carregar. */
+import { alinharRotinaDoBackup } from './recorrencias';
 import { z } from 'zod';
 import { ErroDeDados } from '@/dados/erros';
 import { FUSOS } from '@/dados/fuso';
@@ -91,6 +92,7 @@ export function valoresDoFormulario(formulario: FormularioGeral): Partial<Valore
 export async function salvarFormularioGeral(formulario: FormularioGeral): Promise<number> {
   if (!responsavelDisponivel(formulario.responsavel_backup_id, await repositorios.pessoa.listar())) throw new ErroDeDados('validacao');
   const alteradas = await repositorios.configuracao.salvar(valoresDoFormulario(formulario));
+  await alinharRotinaDoBackup(formulario.responsavel_backup_id);
   return alteradas.length;
 }
 

@@ -1,5 +1,6 @@
 /** Regras de T03.03 (05-M03): adicionar Tarefa, Demanda ou Lembrete. */
 import { z } from 'zod';
+import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import { emTransacao } from '@/dados/transacao';
 import type { Area } from '@/dados/tipos/area';
@@ -8,11 +9,13 @@ import type { Atividade } from '@/dados/tipos/atividade';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
-import { instanteNoFuso } from '@/lib/datas';
+import { hojeISO, instanteNoFuso } from '@/lib/datas';
 import { MAXIMO_NO_TITULO } from './atividades';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { pessoasDoSeletor } from './pessoa-atual';
+import { criarRotina, modeloVazio } from './recorrencias';
+import { errosDaRepeticao, esquemaCamposRepeticao, regraDoFormulario, repeticaoPadrao } from './repeticao';
 import { AVISO_CREDENCIAL, pareceCredencial } from './segredos';
 
 export type TipoNovo = 'tarefa' | 'demanda' | 'lembrete';
@@ -42,9 +45,21 @@ export const esquemaFormularioAtividade = z
     /** `tipo:id` do registro escolhido. */
     vinculo: z.string(),
     arquivo: z.string().trim(),
+    /** Repetição (T03.03): a atividade nasce como a primeira ocorrência de uma rotina. */
+    repetir: z.boolean(),
+    repeticao: esquemaCamposRepeticao,
   })
   .superRefine((dados, contexto) => {
     const falha = (campo: string, message: string) => contexto.addIssue({ code: 'custom', path: [campo], message });
+    if (dados.repetir) {
+      // Quem repete não tem prazo nem aviso próprios: as datas vêm da regra.
+      for (const [campo, mensagem] of Object.entries(errosDaRepeticao(dados.repeticao, { lembrete: dados.tipo === 'lembrete', minimoInicio: hojeISO() }))) contexto.addIssue({ code: 'custom', path: ['repeticao', campo], message: mensagem });
+      if (dados.tipo === 'demanda') {
+        if (!dados.solicitante) falha('solicitante', 'Diga quem pediu.');
+        else if (dados.solicitante === SOLICITANTE_OUTRA && !dados.solicitante_texto) falha('solicitante_texto', 'Escreva quem pediu.');
+      }
+      return finalizarComuns(dados, falha);
+    }
     if (dados.tipo === 'lembrete') {
       // CA-03.06: criar um lembrete sem data e hora é bloqueado, com a mensagem junto ao campo.
       if (!dados.aviso_dia) falha('aviso_dia', 'Informe a data do aviso.');
@@ -95,6 +110,8 @@ export function formularioAtividadeVazio(tipo: TipoNovo, pessoaId: string, conte
     checklist: '',
     vinculo: '',
     arquivo: '',
+    repetir: false,
+    repeticao: repeticaoPadrao(hojeISO()),
   };
 }
 
@@ -189,8 +206,37 @@ export function dadosDaAtividadeNova(formulario: FormularioAtividade) {
   };
 }
 
+/** Com repetição, o que foi preenchido vira o modelo da rotina, e a atividade criada é a primeira ocorrência. */
+async function criarComoRotina(formulario: FormularioAtividade): Promise<Atividade> {
+  const demanda = formulario.tipo === 'demanda';
+  const solicitantePessoa = demanda && formulario.solicitante !== SOLICITANTE_OUTRA ? formulario.solicitante : null;
+  const [tipoDoVinculo, idDoVinculo] = formulario.vinculo.split(':');
+  const { primeira } = await criarRotina({
+    titulo: formulario.titulo,
+    responsavel_id: formulario.responsavel_id,
+    regra: regraDoFormulario(formulario.repeticao),
+    modelo: {
+      ...modeloVazio(formulario.tipo),
+      descricao: formulario.descricao || null,
+      area_id: formulario.area_id || null,
+      prioridade: formulario.prioridade,
+      produtos: formulario.contextos.filter((id) => id !== ID_INSTITUCIONAL),
+      participantes: formulario.participantes.filter((id) => id !== formulario.responsavel_id),
+      solicitante_pessoa_id: solicitantePessoa || null,
+      solicitante_texto: demanda && !solicitantePessoa ? formulario.solicitante_texto || null : null,
+      resultado_esperado: demanda ? formulario.resultado_esperado || null : null,
+      checklist: formulario.tipo === 'lembrete' ? [] : itensDoChecklist(formulario.checklist),
+      vinculos: tipoDoVinculo && idDoVinculo ? [{ tipo: tipoDoVinculo, id: idDoVinculo }] : [],
+      arquivos: formulario.arquivo ? [formulario.arquivo] : [],
+    },
+  });
+  if (!primeira) throw new ErroDeRegra('Com esse fim, a rotina não teria nenhuma ocorrência.');
+  return primeira;
+}
+
 /** Grava a atividade e tudo o que vem com ela de uma vez, ou nada (AR-02). */
 export async function criarAtividade(formulario: FormularioAtividade): Promise<Atividade> {
+  if (formulario.repetir) return criarComoRotina(formulario);
   return emTransacao(async () => {
     const atividade = await repositorios.atividade.criar(dadosDaAtividadeNova(formulario));
     for (const produto_id of formulario.contextos.filter((id) => id !== ID_INSTITUCIONAL)) await repositorios.atividade_produto.criar({ atividade_id: atividade.id, produto_id });

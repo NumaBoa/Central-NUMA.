@@ -3,7 +3,7 @@ import { montarCodigo } from '@/lib/ids';
 import { parDoVinculo, type AnexoLink, type ChecklistItem, type Comentario, type Vinculo } from '../tipos/apoio';
 import type { Atividade, AtividadeParticipante, AtividadeProduto } from '../tipos/atividade';
 import { controle } from './controle';
-import { AREAS_INICIAIS, ID_BRUNA, ID_CAMILA, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY, ID_PRODUTO_KIPI, ID_PRODUTO_MIMO, ID_PRODUTO_URBANA, ID_PRODUTO_ZARPA, ID_PRODUTO_ZUPI } from './base';
+import { AREAS_INICIAIS, ID_BRUNA, ID_CAMILA, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY, ID_PRODUTO_KIPI, ID_PRODUTO_MIMO, ID_PRODUTO_URBANA, ID_PRODUTO_ZARPA, ID_PRODUTO_ZUPI, ID_ROTINA_EXEMPLO } from './base';
 
 const idDaArea = (nome: (typeof AREAS_INICIAIS)[number]['nome']) => AREAS_INICIAIS.find((area) => area.nome === nome)?.id ?? null;
 const idDaAtividade = (numero: number) => `b9d7f8eb-e2a6-4b87-9d78-7a8b9c0d1e${String(numero).padStart(2, '0')}`;
@@ -19,7 +19,8 @@ type Exemplo = Pick<Atividade, 'titulo' | 'responsavel_id'> & Partial<Atividade>
 
 /**
  * Atividades fictícias de `17 §6`, com as datas contadas a partir de hoje: em todas as situações,
- * com e sem prazo, atrasadas e bloqueadas. As recorrentes entram com T03.05.
+ * com e sem prazo, atrasadas, bloqueadas e recorrentes. A primeira ocorrência da rotina de exemplo
+ * já está no Histórico; as próximas nascem das rotinas do dia.
  */
 export function atividadesDeExemplo(agora: string) {
   const hoje = hojeISO(new Date(agora));
@@ -42,7 +43,8 @@ export function atividadesDeExemplo(agora: string) {
     { titulo: 'Enviar o logotipo final do Zupi', responsavel_id: ID_BRUNA, produtos: [ID_PRODUTO_ZUPI], area_id: idDaArea('Social media / Marketing'), prazo: hoje, situacao: 'concluida', concluida_em: agora, concluida_por: ID_BRUNA },
     { titulo: 'Conferir as faturas de hospedagem', responsavel_id: ID_KIMBERLY, area_id: idDaArea('Financeiro'), prazo: dia(-1), situacao: 'concluida', concluida_em: agora, concluida_por: ID_KIMBERLY },
     { titulo: 'Atualizar a lista de fornecedores', responsavel_id: ID_CAMILA, area_id: idDaArea('Financeiro'), prazo: dia(-1), situacao: 'concluida', concluida_em: instanteHa(1), concluida_por: ID_CAMILA },
-    { titulo: 'Testar outra plataforma de e-mail', responsavel_id: ID_KIMBERLY, area_id: idDaArea('Tecnologia'), situacao: 'cancelada', cancelada_motivo: 'Ficamos com a plataforma atual' },
+    { titulo: 'Testar outra plataforma de e-mail', responsavel_id: ID_KIMBERLY, area_id: idDaArea('Tecnologia'), situacao: 'cancelada', cancelada_motivo: 'Ficamos com a plataforma atual', atualizado_em: instanteHa(3) },
+    { titulo: 'Conferir o extrato do cartão', responsavel_id: ID_KIMBERLY, area_id: idDaArea('Financeiro'), prazo: dia(-20), situacao: 'concluida', concluida_em: instanteHa(19), concluida_por: ID_KIMBERLY, recorrencia_id: ID_ROTINA_EXEMPLO, ocorrencia_numero: 1, ocorrencia_data: dia(-20), chave_idempotencia: `recorrencia:${ID_ROTINA_EXEMPLO}:${dia(-20)}` },
   ];
 
   const ano = hoje.slice(0, 4);

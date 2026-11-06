@@ -1,3 +1,4 @@
+import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
 import type { Repositorio, RepositorioConfiguracao } from './repositorio';
 import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-local';
 import { criarRepositorioLocal } from './repositorio-local';
@@ -38,6 +39,7 @@ export const repositorios: {
   comentario: Repositorio<Comentario>;
   vinculo: Repositorio<Vinculo>;
   anexo_link: Repositorio<AnexoLink>;
+  recorrencia: Repositorio<Recorrencia>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -62,4 +64,5 @@ export const repositorios: {
   comentario: criarRepositorioLocal({ tabela: 'comentario', esquema: esquemaComentario }),
   vinculo: criarRepositorioLocal({ tabela: 'vinculo', esquema: esquemaVinculo }),
   anexo_link: criarRepositorioLocal({ tabela: 'anexo_link', esquema: esquemaAnexoLink }),
+  recorrencia: criarRepositorioLocal({ tabela: 'recorrencia', esquema: esquemaRecorrencia }),
 };

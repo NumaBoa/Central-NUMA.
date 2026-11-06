@@ -10,6 +10,19 @@ export function pessoaAtual(): Pessoa | null {
   return resolverPessoaAtual(lerTabela<Pessoa>('pessoa'), lerMeta().pessoa_atual_id);
 }
 
+let emNomeDoSistema = 0;
+
+/** O que nasce das rotinas do dia aparece como "Sistema" no histórico, e não como quem abriu a Central. */
+export async function comoSistema<R>(corpo: () => Promise<R>): Promise<R> {
+  emNomeDoSistema += 1;
+  try {
+    return await corpo();
+  } finally {
+    emNomeDoSistema -= 1;
+  }
+}
+
 export function idDaPessoaAtual(): string | null {
+  if (emNomeDoSistema) return null;
   return pessoaAtual()?.id ?? null;
 }

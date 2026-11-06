@@ -18,8 +18,10 @@ import type { AnexoLink, ChecklistItem, Comentario, Vinculo } from '@/dados/tipo
 import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import type { ModeloDaRecorrencia, Recorrencia } from '@/dados/tipos/recorrencia';
 import { hojeISO } from '@/lib/datas';
 import { gerarUuid } from '@/lib/ids';
+import { sincronizarAlertasDeBackup } from './alertas';
 import { nomeDaCopiaAntesDeImportar, nomeDoArquivoDeBackup } from './backup';
 
 export const FORMATO_ARQUIVO = 'central-numa';
@@ -123,6 +125,8 @@ export async function exportarTudo(): Promise<{ nome: string; conteudo: string }
     backup_registro: [...lerTabela<BackupRegistro>('backup_registro'), registro],
     auditoria: [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: autor, acao: 'exportou', depois: { tabelas: NOMES_TABELAS.length } })],
   });
+  // RN-03.12: fazer a ação no módulo de origem conclui o alerta, já dentro da cópia.
+  await sincronizarAlertasDeBackup();
   return { nome: nomeDoArquivoDeBackup(hojeISO()), conteudo: JSON.stringify(montarArquivo(agora), null, 2) };
 }
 
@@ -254,7 +258,8 @@ export async function aplicarImportacao(arquivo: ArquivoDeDados, comCopia = fals
     ...Object.fromEntries(TABELAS_COM_VALORES_INICIAIS.filter((tabela) => !arquivo.tabelas[tabela]).map((tabela) => [tabela, valoresIniciais(tabela, new Date().toISOString())])),
     auditoria: [...historicoDoArquivo, evento],
   });
-  gravarMeta({ versao_dados: VERSAO_DADOS, contadores: juntarContadores(lerMeta().contadores, arquivo.contadores) });
+  // As rotinas do dia voltam a olhar os dados novos na próxima abertura.
+  gravarMeta({ versao_dados: VERSAO_DADOS, contadores: juntarContadores(lerMeta().contadores, arquivo.contadores), ultima_rotina_em: null });
   return registros;
 }
 
@@ -270,7 +275,7 @@ export async function restaurarExemplos(): Promise<void> {
     ...tabelasIniciais(new Date().toISOString()),
     auditoria: [novoEvento({ usuarioId: autor, acao: 'executou_acao', depois: { funcao: 'restaurar_exemplos' } })],
   });
-  gravarMeta({ versao_dados: VERSAO_DADOS, contadores: {} });
+  gravarMeta({ versao_dados: VERSAO_DADOS, contadores: {}, ultima_rotina_em: null });
 }
 
 /** Remove só o que tem `exemplo: true` (02 §0.3). O histórico continua. */
@@ -297,14 +302,29 @@ export async function limparExemplos(): Promise<number> {
   // Atividade de verdade continua: quem saiu deixa de participar, e o nome fica escrito onde ele servia de referência.
   const nomeDe = (id: string) => (lerTabela<Pessoa>('pessoa').find((pessoa) => pessoa.id === id)?.nome_completo ?? 'Pessoa removida');
   novasLinhas.atividade_participante = (novasLinhas.atividade_participante as AtividadeParticipante[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
+  // Quem saiu respondia por alguma coisa de verdade: passa para uma pessoa que fica (RN-03.02).
+  const substituta = autor && pessoasQueFicam.has(autor) ? autor : ([...pessoasQueFicam][0] ?? null);
+  const quemResponde = (id: string) => (pessoasQueFicam.has(id) || !substituta ? id : substituta);
   novasLinhas.atividade = (novasLinhas.atividade as Atividade[]).map((atividade) => {
     const saiuAguardando = atividade.aguardando_de_pessoa_id && !pessoasQueFicam.has(atividade.aguardando_de_pessoa_id);
     const saiuSolicitante = atividade.solicitante_pessoa_id && !pessoasQueFicam.has(atividade.solicitante_pessoa_id);
     return {
       ...atividade,
+      responsavel_id: quemResponde(atividade.responsavel_id),
       ...(saiuAguardando ? { aguardando_de_pessoa_id: null, aguardando_de_texto: nomeDe(atividade.aguardando_de_pessoa_id as string) } : {}),
       ...(saiuSolicitante ? { solicitante_pessoa_id: null, solicitante_texto: nomeDe(atividade.solicitante_pessoa_id as string) } : {}),
     };
+  });
+  novasLinhas.recorrencia = (novasLinhas.recorrencia as Recorrencia[]).map((rotina) => {
+    const { modelo } = rotina;
+    const saiuSolicitante = modelo.solicitante_pessoa_id && !pessoasQueFicam.has(modelo.solicitante_pessoa_id);
+    const novoModelo: ModeloDaRecorrencia = {
+      ...modelo,
+      participantes: modelo.participantes.filter((id) => pessoasQueFicam.has(id)),
+      vinculos: modelo.vinculos.filter((destino) => !idsRemovidos.has(destino.id)),
+      ...(saiuSolicitante ? { solicitante_pessoa_id: null, solicitante_texto: nomeDe(modelo.solicitante_pessoa_id as string) } : {}),
+    };
+    return { ...rotina, responsavel_id: quemResponde(rotina.responsavel_id), modelo: novoModelo };
   });
   // O que era de um registro fictício sai com ele, mesmo que tenha sido feito por alguém de verdade.
   novasLinhas.checklist_item = (novasLinhas.checklist_item as ChecklistItem[]).filter((item) => !idsRemovidos.has(item.registro_id)).map((item) => (item.responsavel_id && !pessoasQueFicam.has(item.responsavel_id) ? { ...item, responsavel_id: null } : item));

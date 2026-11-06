@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { AlarmClock, BellRing, CalendarDays, Check, CheckSquare, Ellipsis, Inbox, ListChecks, MessageSquare, OctagonX, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { AlarmClock, BellRing, CalendarDays, Check, CheckSquare, Ellipsis, Inbox, ListChecks, MessageSquare, OctagonX, Repeat, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EtiquetaContexto, EtiquetaPrioridade, EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
@@ -17,6 +17,16 @@ import type { AcoesDaAtividade } from './acoes-atividade';
 export const ICONES_DO_TIPO: Readonly<Record<Atividade['tipo'], LucideIcon>> = { tarefa: CheckSquare, demanda: Inbox, lembrete: AlarmClock, alerta: BellRing };
 
 const nomeDaPessoa = (id: string | null, { pessoas }: Pick<DadosMeuDia, 'pessoas'>) => pessoas.find((pessoa) => pessoa.id === id)?.nome_completo ?? 'Pessoa removida';
+
+/** Esta atividade é uma ocorrência de uma rotina (T03.05). */
+export function MarcaDeRotina() {
+  return (
+    <span className="inline-flex items-center [&_svg]:size-[14px]" title="Faz parte de uma rotina">
+      <Repeat aria-hidden />
+      <span className="sr-only">Faz parte de uma rotina</span>
+    </span>
+  );
+}
 
 export function TipoDaAtividade({ tipo }: { tipo: Atividade['tipo'] }) {
   const Icone = ICONES_DO_TIPO[tipo];
@@ -167,6 +177,7 @@ export function ConteudoDoCartao({ atividade, dados, hoje, acoes }: { atividade:
         <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pr-8 text-xs leading-4 text-ink-soft">
           <TipoDaAtividade tipo={atividade.tipo} />
           <span className="tabular-nums">{atividade.codigo}</span>
+          {atividade.recorrencia_id && <MarcaDeRotina />}
           {(atividade.prioridade === 'urgente' || atividade.prioridade === 'alta') && <EtiquetaPrioridade prioridade={atividade.prioridade} />}
         </p>
         <h3 className={cn('font-body text-[15px] leading-[21px] font-semibold tracking-normal break-words [text-wrap:pretty]', concluida && 'text-ink-soft line-through')}>
