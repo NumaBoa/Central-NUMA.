@@ -175,6 +175,8 @@ export async function salvarConta(formulario: FormularioConta, id?: string): Pro
 export async function arquivarConta(id: string): Promise<void> {
   const vinculos = await vinculosDeFerramentaDaConta(id);
   if (vinculos.length) throw new ErroDeRegra(`Esta conta está em uso: ${vinculos.join(', ')}. Troque a conta antes.`);
+  // Conta com baixas só encerra: o extrato precisa continuar existindo.
+  if ((await repositorios.baixa.listar({ onde: { conta_financeira_id: id } })).length) throw new ErroDeRegra('Esta conta tem pagamentos registrados. Em vez de arquivar, encerre a conta.');
   await repositorios.conta_financeira.arquivar(id);
 }
 

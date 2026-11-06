@@ -22,6 +22,7 @@ import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { lerValor } from '@/dominio/dinheiro';
 import { CAMPOS_DA_ETAPA, cobrancasPrevistas, conferirFerramenta, criarFerramenta, esquemaFormularioFerramenta, ETAPAS_DA_FERRAMENTA, formularioDaFerramenta, formularioFerramentaVazio, responsaveisPadrao, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_TITULAR, salvarFerramenta, situacaoParaModalidade, valorMudou, type DadosDasFerramentas, type FormularioFerramenta as Formulario } from '@/dominio/ferramentas';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
+import { titulosAfetadosPeloReajuste } from '@/dominio/titulos';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
 import { cn } from '@/lib/utils';
 
@@ -66,7 +67,8 @@ const CAMPOS_COM_ERRO = Object.keys(ID_DO_CAMPO) as (keyof Formulario)[];
 
 const etapaDoCampo = (campo: keyof Formulario) => CAMPOS_DA_ETAPA.findIndex((campos) => campos.includes(campo));
 
-type Fila = { formulario: Formulario; avisos: readonly string[]; motivo: string; previa: ReadonlyArray<readonly string[]> };
+type PreviaDosTitulos = { titulo: string; texto: string; colunas: readonly string[]; linhas: ReadonlyArray<readonly string[]>; rotulo: string };
+type Fila = { formulario: Formulario; avisos: readonly string[]; motivo: string; previa: PreviaDosTitulos | null };
 
 type FormularioDeFerramentaProps = {
   aberto: boolean;
@@ -171,14 +173,14 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
   function seguir(atual: Fila, depoisDe: 'avisos' | 'motivo' | 'previa' | null) {
     if (depoisDe === null && atual.avisos.length) return setPasso('avisos');
     if ((depoisDe === null || depoisDe === 'avisos') && valorMudou(atual.formulario, trocandoPlano ? null : assinatura)) return setPasso('motivo');
-    if (depoisDe !== 'previa' && atual.previa.length) return setPasso('previa');
+    if (depoisDe !== 'previa' && atual.previa) return setPasso('previa');
     setPasso(null);
     setFila(null);
     void gravar(atual);
   }
 
   const enviar = handleSubmit(
-    (formulario) => {
+    async (formulario) => {
       if (trocandoPlano && !formulario.modalidade) {
         setError('modalidade', { message: 'Escolha a modalidade do novo plano.' });
         return;
@@ -189,11 +191,16 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
         setError('nome', { message: 'Já existe uma ferramenta ativa com esse nome.' });
         return;
       }
-      // A prévia só aparece quando esta gravação passa a gerar cobranças novas (P6).
-      const jaGerava = !trocandoPlano && assinatura?.gerar_titulos;
-      const datas = paga && !jaGerava ? cobrancasPrevistas({ modalidade: 'paga', valor: lerValor(formulario.valor), periodicidade: (formulario.periodicidade || null) as AssinaturaFerramenta['periodicidade'], proxima_cobranca: formulario.proxima_cobranca || null, gerar_titulos: formulario.gerar_titulos }) : [];
+      // P6: o que muda nos títulos. Reajuste só mexe nos futuros sem pagamento (RN-04.17); gerar de novo não duplica (RN-04.03).
       const valor = lerValor(formulario.valor);
-      const previa = datas.map((dia) => [formatarDiaISO(dia), valor === null ? 'A confirmar' : formatarDinheiro(valor, formulario.moeda)]);
+      let previa: PreviaDosTitulos | null = null;
+      if (assinatura && !trocandoPlano && valor !== null && valorMudou(formulario, assinatura)) {
+        const titulos = await titulosAfetadosPeloReajuste(assinatura.id);
+        if (titulos.length) previa = { titulo: 'Títulos que mudam de valor', texto: 'Só os títulos futuros e sem pagamento mudam. Os já pagos e os ajustados à mão continuam como estão.', colunas: ['Vencimento', 'De', 'Para'], linhas: titulos.map((titulo) => [formatarDiaISO(titulo.vencimento), formatarDinheiro(titulo.valor, titulo.moeda), formatarDinheiro(valor, titulo.moeda)]), rotulo: 'Salvar' };
+      } else if (formulario.modalidade === 'paga' && valor !== null && (trocandoPlano || !assinatura?.gerar_titulos)) {
+        const datas = cobrancasPrevistas({ modalidade: 'paga', valor, periodicidade: (formulario.periodicidade || null) as AssinaturaFerramenta['periodicidade'], proxima_cobranca: formulario.proxima_cobranca || null, gerar_titulos: formulario.gerar_titulos });
+        if (datas.length) previa = { titulo: 'Títulos a pagar que serão criados', texto: 'Um para cada cobrança prevista, como previstos. Salvar de novo não duplica.', colunas: ['Vencimento', 'Valor'], linhas: datas.map((dia) => [formatarDiaISO(dia), formatarDinheiro(valor, formulario.moeda)]), rotulo: 'Salvar ferramenta' };
+      }
       const proxima: Fila = { formulario, avisos, motivo: '', previa };
       setFila(proxima);
       seguir(proxima, null);
@@ -545,7 +552,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
           setFila(null);
         }}
         titulo="Por que o valor mudou?"
-        texto="O valor anterior e o motivo ficam no histórico de valores. Só os próximos títulos mudam (RN-04.17)."
+        texto="O valor anterior e o motivo ficam no histórico de valores. Só os próximos títulos mudam."
         pedirMotivo
         mensagemSemMotivo="Informe o motivo da mudança de valor."
         rotuloConfirmar="Continuar"
@@ -562,11 +569,11 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
           setPasso(null);
           setFila(null);
         }}
-        titulo="Cobranças previstas"
-        texto="Estas cobranças viram títulos a pagar quando o Financeiro entrar. Salvar de novo não duplica."
-        colunas={['Vencimento', 'Valor']}
-        linhas={fila?.previa ?? []}
-        rotuloConfirmar="Salvar ferramenta"
+        titulo={fila?.previa?.titulo ?? ''}
+        texto={fila?.previa?.texto ?? ''}
+        colunas={fila?.previa?.colunas ?? []}
+        linhas={fila?.previa?.linhas ?? []}
+        rotuloConfirmar={fila?.previa?.rotulo ?? 'Salvar'}
         aoConfirmar={() => fila && seguir(fila, 'previa')}
       />
       <FormularioContraparte

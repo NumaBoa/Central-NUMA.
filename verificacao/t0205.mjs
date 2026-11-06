@@ -43,7 +43,7 @@ const restaurarExemplos = async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros136')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
 };
 const mudarTabela = (nome, corpo) => c.avaliar(`(()=>{const k='numa-central:v1:${nome}';const l=JSON.parse(localStorage.getItem(k));${corpo};localStorage.setItem(k,JSON.stringify(l))})()`);
 
@@ -408,6 +408,7 @@ await passo('ficha da contraparte', async () => {
 
   // arquivar sem vínculo: a Nuvem Clara fornece uma ferramenta de exemplo, e deixa de fornecer aqui
   await mudarTabela('ferramenta', `l.forEach(x=>{if(x.fornecedor_id==='${ID_NUVEM}')x.fornecedor_id=null})`);
+  await mudarTabela('titulo', `l.forEach(x=>{if(x.contraparte_id==='${ID_NUVEM}')x.contraparte_id=null})`);
   await irFicha(ID_NUVEM, 'Nuvem Clara Inc.');
   await clicarBotaoPrincipal('Arquivar');
   await dialogoAberto();
@@ -737,7 +738,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await irContrapartes();
   ok('as contrapartes entram', (await tabela('contraparte')).length === 3);
   ok('a entidade planejada entra', (await tabela('entidade')).length === 1 && (await tabela('entidade'))[0].id === ID_PLANEJADA);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 12);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 13);
   const r = (await tabela('pessoa')).find((x) => x.id === ID_RAFAEL);
   ok('o que existia continua como estava', r.funcao === 'Dado que precisa continuar' && r.contraparte_id === null, JSON.stringify(r));
   await restaurarExemplos();

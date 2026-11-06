@@ -87,7 +87,7 @@ const restaurarExemplos = async () => {
   await dialogoAberto();
   await c.espera(120);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros136')&&!document.querySelector('.dialogo')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros151')&&!document.querySelector('.dialogo')`);
 };
 
 await c.tamanho(1440, 900);
@@ -434,7 +434,7 @@ await passo('T04.03: paga, com prévia', async () => {
   const previa = await c.avaliar(`[...document.querySelectorAll('.dialogo tbody tr')].map(tr=>tr.textContent)`);
   ok('P6: mensal mostra as cobranças de até 3 meses', previa.length === 3 || previa.length === 4, js(previa));
   ok('com a data e o valor', previa[0].startsWith(dataBr(diaISO(10))) && previa[0].includes('US$') && previa[0].includes('50,00'), previa[0]);
-  ok('diz quando viram títulos', (await texto('.dialogo')).includes('quando o Financeiro entrar'));
+  ok('diz que salvar de novo não duplica', (await texto('.dialogo')).includes('Salvar de novo não duplica'));
   await c.foto('e-previa');
   await clicarNoDialogo('Voltar');
   await dialogoFechado();
@@ -449,6 +449,8 @@ await passo('T04.03: paga, com prévia', async () => {
   const f = await ferramenta('Paga de teste');
   const a = await ativa(f.id);
   ok('grava a assinatura', a.modalidade === 'paga' && a.valor === 50 && a.moeda === 'USD' && a.periodicidade === 'mensal' && a.proxima_cobranca === diaISO(10) && a.dia_cobranca === Number(diaISO(10).slice(8, 10)) && a.gerar_titulos === true, js(a));
+  const titulos = (await tabela('titulo')).filter((x) => x.assinatura_id === a.id);
+  ok('RN-04.03: gera os títulos da prévia, como previstos', titulos.length === previa.length && titulos.every((x) => x.situacao === 'previsto' && x.origem === 'assinatura' && x.valor === 50 && x.moeda === 'USD'), titulos.length);
 });
 
 await passo('T04.03: paga sem valor, e teste', async () => {
@@ -637,7 +639,7 @@ await passo('T04.02: ficha, resumo e abas', async () => {
   ok('assinatura: plano, valor, estimativa e dia', custos.includes('Pro') && custos.includes('US$') && custos.includes('Dia de cobrança') && custos.includes('Automática'), custos.slice(0, 400));
   ok('sem câmbio, não inventa estimativa', !custos.includes('(estimado)'));
   ok('paga não mostra o que é de teste', !custos.includes('Fim do teste'));
-  ok('avisa onde os títulos vão aparecer', custos.includes('quando o Financeiro entrar'));
+  ok('mostra os títulos vinculados', custos.includes('Títulos vinculados') && custos.includes('Previsto'), custos.slice(-300));
   await aba('Produtos e rateio');
   const campos = await c.avaliar(`[...document.querySelectorAll('main input[aria-label^="Percentual de"]')].map(i=>i.getAttribute('aria-label')+'='+i.value)`);
   ok('mostra os percentuais', js(campos) === js(['Percentual de Kipi=60,00', 'Percentual de Zupi=40,00']) || js(campos) === js(['Percentual de Kipi=60', 'Percentual de Zupi=40']), js(campos));
@@ -732,8 +734,14 @@ await passo('RN-04.17: reajuste, e trocar plano', async () => {
   await c.avaliar(`(()=>{const e=document.querySelector('.dialogo textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Reajuste anual');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
   await c.espera(60);
   await clicarNoDialogo('Continuar');
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Títulos que mudam de valor')`);
+  await c.espera(200);
+  const reajuste = await c.avaliar(`[...document.querySelectorAll('.dialogo tbody tr')].map(tr=>tr.textContent)`);
+  ok('RN-04.17: mostra os títulos futuros que mudam, de quanto para quanto', reajuste.length >= 1 && reajuste[0].includes('89,90') && reajuste[0].includes('99,90'), js(reajuste));
+  await clicarNoDialogo('Salvar');
   await esperarAviso('Ferramenta atualizada.');
   await painelFechado();
+  ok('o título futuro fica com o novo valor', (await tabela('titulo')).filter((x) => x.ferramenta_id === f.id && x.situacao === 'previsto').every((x) => x.valor === 99.9));
   await aba('Assinatura e custos');
   await c.ate(`document.querySelector('main').textContent.includes('Histórico de valores')`);
   const custos = await texto('main');
@@ -941,7 +949,7 @@ await passo('busca global e "+ Novo"', async () => {
   };
   await abrirNovo();
   const menu = await c.avaliar(`[...document.querySelectorAll('.menu-suspenso li')].map(l=>l.textContent)`);
-  ok('"+ Novo" na ordem da especificação', js(menu) === js(['Tarefa', 'Demanda', 'Lembrete', 'DespesaEm breve', 'Ferramenta', 'ArquivoEm breve', 'Contraparte']), js(menu));
+  ok('"+ Novo" na ordem da especificação', js(menu) === js(['Tarefa', 'Demanda', 'Lembrete', 'Despesa', 'Ferramenta', 'ArquivoEm breve', 'Contraparte']), js(menu));
   await clicarBotao('Ferramenta', '.menu-suspenso');
   await painelAberto();
   await c.espera(320);
@@ -1077,7 +1085,7 @@ await passo('Limpar exemplos, e o estado vazio', async () => {
   await clicarBotao('Limpar exemplos');
   await dialogoAberto();
   await c.espera(120);
-  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('36 registros de exemplo serão removidos'), await texto('.dialogo'));
+  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('51 registros de exemplo serão removidos'), await texto('.dialogo'));
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
   await c.ate(`document.querySelector('main').textContent.includes('Registros100')`);
   ok('as categorias ficam', (await tabela('categoria_ferramenta')).length === 15);
@@ -1109,7 +1117,7 @@ await passo('migração da versão anterior', async () => {
   await irLista();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('quem vem da versão anterior recebe a tela pronta', (await nomes()).length === 6, js(await nomes()));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 12);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 13);
   ok('as categorias entram', (await tabela('categoria_ferramenta')).length === 15);
 });
 

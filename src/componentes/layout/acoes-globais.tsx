@@ -5,6 +5,7 @@ import { CheckSquare, FileText, Inbox, AlarmClock, Receipt, Users, Wrench } from
 import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
 import { useNovaContraparte } from '@/componentes/contrapartes/nova-contraparte';
 import { useNovaFerramenta } from '@/componentes/ferramentas/nova-ferramenta';
+import { useNovaDespesa } from '@/componentes/financeiro/nova-despesa';
 import { CLASSE_LINHA_MENU, LinhaEmBreve, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { cn } from '@/lib/utils';
 
@@ -23,8 +24,9 @@ export function MenuNovo({ gatilho, alinhar = 'end' }: { gatilho: ReactElement; 
   const { abrirAdicionar } = useAdicionarAtividade();
   const { abrirNovaFerramenta } = useNovaFerramenta();
   const { abrirNovaContraparte } = useNovaContraparte();
+  const { abrirNovaDespesa } = useNovaDespesa();
   const itens: readonly { rotulo: string; icone: ReactElement; abrir?: () => void }[] = [
-    { rotulo: 'Despesa', icone: <Receipt aria-hidden /> },
+    { rotulo: 'Despesa', icone: <Receipt aria-hidden />, abrir: abrirNovaDespesa },
     { rotulo: 'Ferramenta', icone: <Wrench aria-hidden />, abrir: abrirNovaFerramenta },
     { rotulo: 'Arquivo', icone: <FileText aria-hidden /> },
     { rotulo: 'Contraparte', icone: <Users aria-hidden />, abrir: abrirNovaContraparte },

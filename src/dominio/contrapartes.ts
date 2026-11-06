@@ -189,7 +189,8 @@ export async function salvarContraparte(formulario: FormularioContraparte, id?: 
 
 /** O que depende da contraparte. Cada módulo novo que apontar para ela acrescenta aqui (T04, T05…). */
 export async function vinculosDaContraparte(id: string): Promise<string[]> {
-  const deFerramentas = await vinculosDeFerramentaDaContraparte(id);
+  const titulos = (await repositorios.titulo.listar({ onde: { contraparte_id: id } })).length;
+  const deFerramentas = [...(await vinculosDeFerramentaDaContraparte(id)), ...(titulos ? [titulos === 1 ? '1 lançamento' : `${titulos} lançamentos`] : [])];
   const [contatos, entidades, atividades] = await Promise.all([repositorios.pessoa.listar({ onde: { contraparte_id: id } }), repositorios.entidade.listar({ onde: { contador_id: id } }), quantasAtividadesAbertasVinculadas('contraparte', id)]);
   return [...contatos.map((pessoa) => `Contato: ${pessoa.nome_completo}`), ...entidades.map((entidade) => `Contador de ${entidade.nome}`), ...(atividades ? [atividades === 1 ? '1 atividade aberta' : `${atividades} atividades abertas`] : []), ...deFerramentas];
 }

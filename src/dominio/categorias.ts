@@ -91,10 +91,11 @@ export async function salvarCategoria(formulario: FormularioCategoria, id?: stri
 
 // ---------- Vínculos e arquivo (RN-02.04) ----------
 
-/** O que depende da categoria. Lançamentos acrescentam aqui na T05. */
+/** O que depende da categoria. */
 export async function vinculosDaCategoria(id: string): Promise<string[]> {
   const filhas = await repositorios.categoria_financeira.listar({ onde: { pai_id: id } });
-  return [...filhas.map((categoria) => `Categoria ${categoria.nome}`), ...(await vinculosDeFerramentaDaCategoria(id))];
+  const titulos = (await repositorios.titulo.listar({ onde: { categoria_id: id } })).length;
+  return [...filhas.map((categoria) => `Categoria ${categoria.nome}`), ...(await vinculosDeFerramentaDaCategoria(id)), ...(titulos ? [titulos === 1 ? '1 lançamento' : `${titulos} lançamentos`] : [])];
 }
 
 export async function arquivarCategoria(id: string): Promise<void> {

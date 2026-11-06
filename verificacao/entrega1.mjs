@@ -138,7 +138,7 @@ await passo('menu', async () => {
   await c.ir(BASE + '/configuracoes');
   await c.espera(400);
   const m = await c.avaliar(`(()=>{const links=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));const emBreve=[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')];return {links,emBreve:emBreve.length,textos:emBreve.every(e=>e.textContent.includes('Em breve')),semLink:emBreve.every(e=>!e.closest('a')),ativo:document.querySelector('[data-menu-lateral] a[aria-current=page]')?.textContent}})()`);
-  ok('9 módulos "Em breve", sem link', m.emBreve === 9 && m.textos && m.semLink);
+  ok('8 módulos "Em breve", sem link', m.emBreve === 8 && m.textos && m.semLink);
   ok('Configurações marcada como atual', m.ativo === 'Configurações', m.ativo);
   ok('nenhum link vazio', !m.links.some((h) => h === '#' || !h));
   const respostas = await c.avaliar(`Promise.all([...new Set([...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>h.startsWith('/')))].map(h=>fetch(h).then(r=>h+':'+r.status)))`);
@@ -192,7 +192,7 @@ await passo('+ Novo', async () => {
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.foto('o-novo');
   const r = await c.avaliar(`[...document.querySelectorAll('.menu-suspenso li')].map(l=>l.textContent)`);
-  ok('as 5 opções ativas e 2 "Em breve"', r.length === 7 && r.filter((t) => t.includes('Em breve')).length === 2 && ['Tarefa', 'Demanda', 'Lembrete', 'Ferramenta', 'Contraparte'].every((t) => r.includes(t)), r.join('|'));
+  ok('as 6 opções ativas e 1 "Em breve"', r.length === 7 && r.filter((t) => t.includes('Em breve')).length === 1 && ['Tarefa', 'Demanda', 'Lembrete', 'Despesa', 'Ferramenta', 'Contraparte'].every((t) => r.includes(t)), r.join('|'));
   await c.tecla('Escape');
   await c.ate(`!document.querySelector('.menu-suspenso')`);
 });

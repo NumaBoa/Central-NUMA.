@@ -46,8 +46,10 @@ await passo('T04.04: lista', async () => {
   await pularAbertura();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('Ferramentas leva a Ativos pelas abas da página', await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Seções de ferramentas e ativos"] a[href="/ferramentas/ativos"]'))`));
-  await c.espera(300);
-  await c.clicar('nav[aria-label="Seções de ferramentas e ativos"] a[href="/ferramentas/ativos"]');
+  for (let tentativa = 0; tentativa < 5 && (await c.avaliar(`location.pathname`)) === '/ferramentas'; tentativa += 1) {
+    await c.clicar('nav[aria-label="Seções de ferramentas e ativos"] a[href="/ferramentas/ativos"]');
+    await c.espera(1500);
+  }
   await c.ate(`document.querySelector('main h1')?.textContent==='Ativos digitais'`);
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('5 ativos de exemplo', (await nomes()).length === 5, js(await nomes()));
@@ -340,7 +342,7 @@ await passo('Limpar exemplos e migração', async () => {
   await c.recarregar();
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum ativo ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', true);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 12);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 13);
 });
 
 await terminar();

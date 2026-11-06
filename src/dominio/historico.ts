@@ -17,6 +17,7 @@ import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
 import { ROTULOS_TIPO_ATIVO, ROTULOS_TRANSFERENCIA } from './ativos';
+import { rotuloDaCompetencia, ROTULOS_SITUACAO_TITULO } from './titulos';
 import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
@@ -245,6 +246,19 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     cancelamento_motivo: { rotulo: 'Motivo do cancelamento' },
     observacoes: { rotulo: 'Observações', semValores: true },
   },
+  titulo: {
+    descricao: { rotulo: 'Descrição' },
+    contraparte_id: { rotulo: 'Contraparte', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'contraparte removida' },
+    categoria_id: { rotulo: 'Categoria', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'categoria removida' },
+    competencia: { rotulo: 'Competência', valor: (valor) => rotuloDaCompetencia(String(valor)) },
+    vencimento: { rotulo: 'Vencimento', valor: (valor) => formatarDiaISO(String(valor)) },
+    valor: { rotulo: 'Valor', valor: (valor) => String(valor).replace('.', ',') },
+    moeda: { rotulo: 'Moeda' },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_TITULO[valor as keyof typeof ROTULOS_SITUACAO_TITULO] },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    cancelado_motivo: { rotulo: 'Motivo do cancelamento' },
+    observacao: { rotulo: 'Observação', semValores: true },
+  },
   ativo_digital: {
     tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ATIVO[valor as keyof typeof ROTULOS_TIPO_ATIVO] },
     identificador: { rotulo: 'Identificador' },
@@ -325,6 +339,19 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
     const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
     return titulo && `a rotina ${titulo}`;
   }
+  if (evento.tabela === 'titulo') {
+    const descricao = textoDe(evento.depois?.descricao) ?? textoDe(evento.antes?.descricao) ?? nomes.get(id);
+    return descricao && `o lançamento ${descricao}`;
+  }
+  if (evento.tabela === 'baixa') {
+    const titulo = nomes.get(String(evento.depois?.titulo_id ?? evento.antes?.titulo_id ?? ''));
+    return `uma baixa${titulo ? ` de ${titulo}` : ''}`;
+  }
+  if (evento.tabela === 'titulo_rateio') {
+    const titulo = nomes.get(String(evento.depois?.titulo_id ?? evento.antes?.titulo_id ?? ''));
+    return `o rateio${titulo ? ` de ${titulo}` : ''}`;
+  }
+  if (evento.tabela === 'movimento_societario') return 'um movimento societário';
   if (evento.tabela === 'ativo_digital') {
     const identificador = textoDe(evento.depois?.identificador) ?? textoDe(evento.antes?.identificador) ?? nomes.get(id);
     return identificador && `o ativo ${identificador}`;
@@ -447,7 +474,7 @@ export type LinhaHistorico = { id: string; texto: string; em: string; quem: stri
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas, ferramentas, categoriasDeFerramenta, ativos] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas, ferramentas, categoriasDeFerramenta, ativos, titulos] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -464,8 +491,9 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.ferramenta.listar({ incluirArquivados: true }),
     repositorios.categoria_ferramenta.listar({ incluirArquivados: true }),
     repositorios.ativo_digital.listar({ incluirArquivados: true }),
+    repositorios.titulo.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...ativos.map((ativo): [string, string] => [ativo.id, ativo.identificador]), ...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
+  return new Map([...titulos.map((titulo): [string, string] => [titulo.id, titulo.descricao]), ...ativos.map((ativo): [string, string] => [ativo.id, ativo.identificador]), ...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {

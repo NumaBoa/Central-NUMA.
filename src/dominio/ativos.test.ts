@@ -334,6 +334,7 @@ describe('T04.04 e T04.05: ativos digitais', () => {
     it('produto com ativo não arquiva', async () => {
       armazenamento.setItem(chaveDaTabela('atividade'), '[]');
       armazenamento.setItem(chaveDaTabela('ferramenta_contexto'), '[]');
+      armazenamento.setItem(chaveDaTabela('titulo_rateio'), '[]');
       await expect(arquivarProduto(ID_PRODUTO_KIPI)).rejects.toThrow('2 ativos');
     });
 

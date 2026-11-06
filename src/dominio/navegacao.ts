@@ -40,7 +40,7 @@ export const MODULOS_EMPRESA: readonly Modulo[] = [
   { id: 'produtos', nome: 'Produtos', fase: 'f0b' },
   { id: 'comercial', nome: 'Comercial', fase: 'f1' },
   { id: 'contratos', nome: 'Contratos', fase: 'f1' },
-  { id: 'financeiro', nome: 'Financeiro', fase: 'f0a' },
+  { id: 'financeiro', nome: 'Financeiro', fase: 'f0a', href: '/financeiro' },
   { id: 'operacao', nome: 'Operação', fase: 'f2' },
   { id: 'ferramentas', nome: 'Ferramentas e ativos', curto: 'Ferramentas', fase: 'f0a', href: '/ferramentas' },
   { id: 'legal', nome: 'Legal e privacidade', fase: 'f0b' },

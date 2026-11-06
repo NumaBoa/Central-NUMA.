@@ -11,15 +11,18 @@ import { TIPOS_DE_DADOS, type AssinaturaFerramenta, type AssinaturaValorHistoric
 import type { CategoriaFinanceira, ContaFinanceira } from '@/dados/tipos/financeiro';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import type { Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { AREAS_INICIAIS } from '@/dados/exemplos/base';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { ativosDaFerramenta } from './ativos';
+import { cobrancasPrevistas, MESES_DA_PERIODICIDADE, somarMeses } from './cobrancas';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { lerValor, valorParaCampo } from './dinheiro';
 import { nomesParecidos, normalizarTexto } from './duplicidade';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { AVISO_CREDENCIAL, pareceCredencial } from './segredos';
+import { aplicarReajuste, cancelarPrevistosDaAssinatura, cancelarTitulosFuturos, sincronizarTitulosDaAssinatura } from './titulos';
 
 // ---------- Rótulos ----------
 
@@ -36,8 +39,6 @@ const ID_TECNOLOGIA = AREAS_INICIAIS.find((area) => area.nome === 'Tecnologia')?
 const ID_FINANCEIRO = AREAS_INICIAIS.find((area) => area.nome === 'Financeiro')?.id ?? '';
 
 // ---------- Custos (RN-04.07 e RN-04.08) ----------
-
-const MESES_DA_PERIODICIDADE: Partial<Record<NonNullable<AssinaturaFerramenta['periodicidade']>, number>> = { mensal: 1, trimestral: 3, semestral: 6, anual: 12 };
 
 /** O câmbio de referência mais recente de cada moeda (T02.01). */
 export function ultimoCambio(moeda: string, cambios: readonly Pick<CambioReferencia, 'moeda' | 'valor_brl' | 'data_referencia'>[]): number | null {
@@ -56,28 +57,7 @@ export function equivalenteMensalBrl(assinatura: Pick<AssinaturaFerramenta, 'mod
   return cambio === null ? null : mensal * cambio;
 }
 
-// ---------- Cobranças previstas (RN-04.03) ----------
-
-/** `diaAlvo` é o dia de cobrança: depois de um fevereiro curto, a cobrança do dia 31 volta para o 31. */
-function somarMeses(dia: string, meses: number, diaAlvo?: number | null): string {
-  const [ano, mes, data] = dia.split('-').map(Number) as [number, number, number];
-  const alvo = new Date(Date.UTC(ano, mes - 1 + meses, 1));
-  const ultimo = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate();
-  alvo.setUTCDate(Math.min(diaAlvo ?? data, ultimo));
-  return alvo.toISOString().slice(0, 10);
-}
-
-/** Até 3 meses à frente para mensais; a próxima para as demais. Gratuita e sem geração não têm cobrança (RN-04.02). */
-export function cobrancasPrevistas(assinatura: Pick<AssinaturaFerramenta, 'modalidade' | 'valor' | 'periodicidade' | 'proxima_cobranca' | 'gerar_titulos'>, hoje: string = hojeISO()): string[] {
-  if (assinatura.modalidade !== 'paga' || !assinatura.gerar_titulos || !assinatura.proxima_cobranca || !assinatura.periodicidade) return [];
-  const meses = MESES_DA_PERIODICIDADE[assinatura.periodicidade];
-  if (!meses) return [assinatura.proxima_cobranca];
-  if (assinatura.periodicidade !== 'mensal') return [assinatura.proxima_cobranca];
-  const limite = somarMeses(hoje, 3);
-  const datas: string[] = [];
-  for (let dia = assinatura.proxima_cobranca, volta = 0; dia <= limite && volta < 12; volta += 1, dia = somarMeses(assinatura.proxima_cobranca, volta)) datas.push(dia);
-  return datas.length ? datas : [assinatura.proxima_cobranca];
-}
+export { cobrancasPrevistas };
 
 // ---------- Formulário de T04.03 ----------
 
@@ -368,7 +348,7 @@ export async function criarFerramenta(formulario: FormularioFerramenta, hoje: st
   return emTransacao(async () => {
     const ferramenta = await repositorios.ferramenta.criar({ ...dadosDaFerramenta(formulario), recuperacao_verificada_em: null, trata_dados_pessoais: false, tipos_dados: [], regiao_dados: null, acordo_dados_situacao: null, acordo_dados_url: null, dados_revisado_em: null, cancelada_em: null, cancelamento_motivo: null });
     await sincronizarContextos(ferramenta.id, formulario.contextos, hoje);
-    if (formulario.modalidade) await repositorios.assinatura_ferramenta.criar({ ...dadosDaAssinatura(formulario), ferramenta_id: ferramenta.id, inicio: hoje, fim: null, situacao: 'ativa' });
+    if (formulario.modalidade) await sincronizarTitulosDaAssinatura(ferramenta, await repositorios.assinatura_ferramenta.criar({ ...dadosDaAssinatura(formulario), ferramenta_id: ferramenta.id, inicio: hoje, fim: null, situacao: 'ativa' }), hoje);
     return ferramenta;
   });
 }
@@ -406,13 +386,14 @@ export async function salvarFerramenta(id: string, formulario: FormularioFerrame
     if (!formulario.modalidade) return ferramenta;
     const novos = dadosDaAssinatura(formulario);
     if (!atual) {
-      await repositorios.assinatura_ferramenta.criar({ ...novos, ferramenta_id: id, inicio: hoje, fim: null, situacao: 'ativa' });
+      await sincronizarTitulosDaAssinatura(ferramenta, await repositorios.assinatura_ferramenta.criar({ ...novos, ferramenta_id: id, inicio: hoje, fim: null, situacao: 'ativa' }), hoje);
       return ferramenta;
     }
     // "Só uma ativa por vez" (M04 §2): outro plano, ou outra modalidade, encerra a atual e guarda o que havia.
     if (trocarPlano || atual.modalidade !== novos.modalidade) {
       await repositorios.assinatura_ferramenta.atualizar(atual.id, { situacao: 'encerrada', fim: hoje });
-      await repositorios.assinatura_ferramenta.criar({ ...novos, ferramenta_id: id, inicio: hoje, fim: null, situacao: 'ativa' });
+      await cancelarPrevistosDaAssinatura(atual.id, hoje, 'O plano mudou.');
+      await sincronizarTitulosDaAssinatura(ferramenta, await repositorios.assinatura_ferramenta.criar({ ...novos, ferramenta_id: id, inicio: hoje, fim: null, situacao: 'ativa' }), hoje);
       return ferramenta;
     }
     // O histórico de valores guarda uma moeda só: trocar de moeda é trocar de plano.
@@ -420,15 +401,16 @@ export async function salvarFerramenta(id: string, formulario: FormularioFerrame
     if (valorMudou(formulario, atual) && novos.valor !== null) {
       if (!motivoDoValor.trim()) throw new ErroDeRegra('Informe o motivo da mudança de valor.');
       await repositorios.assinatura_valor_historico.criar({ assinatura_id: atual.id, valor_anterior: atual.valor, valor_novo: novos.valor, moeda: novos.moeda, efeito_em: hoje, motivo: motivoDoValor.trim() });
+      await aplicarReajuste(atual.id, novos.valor, motivoDoValor.trim(), hoje);
     }
-    await repositorios.assinatura_ferramenta.atualizar(atual.id, novos);
+    await sincronizarTitulosDaAssinatura(ferramenta, await repositorios.assinatura_ferramenta.atualizar(atual.id, novos), hoje);
     return ferramenta;
   });
 }
 
 // ---------- Ações da ficha ----------
 
-/** RN-04.10: exige data efetiva e motivo. Os títulos futuros entram com o Financeiro (etapa 12), e os acessos, na F2. */
+/** RN-04.10: exige data efetiva e motivo, e cancela os títulos futuros não pagos. Os acessos entram na F2. */
 export async function cancelarFerramenta(id: string, { data, motivo }: { data: string; motivo: string }): Promise<void> {
   const limpo = motivo.trim();
   if (!data) throw new ErroDeRegra('Informe a data efetiva do cancelamento.');
@@ -436,13 +418,19 @@ export async function cancelarFerramenta(id: string, { data, motivo }: { data: s
   await emTransacao(async () => {
     await repositorios.ferramenta.atualizar(id, { situacao: 'cancelada', cancelada_em: data, cancelamento_motivo: limpo }, { motivo: limpo });
     for (const assinatura of await repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: id, situacao: 'ativa' } })) await repositorios.assinatura_ferramenta.atualizar(assinatura.id, { situacao: 'encerrada', fim: data });
+    await cancelarTitulosFuturos(id, data, `Ferramenta cancelada: ${limpo}`);
   });
 }
 
-/** Cada módulo novo que apontar para a ferramenta bloqueia aqui (títulos…). */
+/** Cada módulo novo que apontar para a ferramenta bloqueia aqui. */
 export async function vinculosDaFerramenta(id: string): Promise<string[]> {
-  const [abertas, ativos] = await Promise.all([quantasAtividadesAbertasVinculadas('ferramenta', id), ativosDaFerramenta(id)]);
-  return [...(abertas ? [abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`] : []), ...(ativos.length ? [ativos.length === 1 ? '1 ativo hospedado' : `${ativos.length} ativos hospedados`] : [])];
+  const [abertas, ativos, titulos] = await Promise.all([quantasAtividadesAbertasVinculadas('ferramenta', id), ativosDaFerramenta(id), repositorios.titulo.listar({ onde: { ferramenta_id: id } })]);
+  const lancamentos = titulos.filter((titulo) => titulo.situacao !== 'cancelado').length;
+  return [
+    ...(abertas ? [abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`] : []),
+    ...(ativos.length ? [ativos.length === 1 ? '1 ativo hospedado' : `${ativos.length} ativos hospedados`] : []),
+    ...(lancamentos ? [lancamentos === 1 ? '1 lançamento' : `${lancamentos} lançamentos`] : []),
+  ];
 }
 
 export async function arquivarFerramenta(id: string): Promise<void> {
@@ -636,12 +624,12 @@ export async function carregarFerramentas(): Promise<DadosDasFerramentas> {
   };
 }
 
-export type FichaDaFerramenta = { assinaturas: AssinaturaFerramenta[]; valores: AssinaturaValorHistorico[]; vinculos: string[] };
+export type FichaDaFerramenta = { assinaturas: AssinaturaFerramenta[]; valores: AssinaturaValorHistorico[]; vinculos: string[]; titulos: Titulo[] };
 
 export async function carregarFichaDaFerramenta(id: string): Promise<FichaDaFerramenta> {
-  const [assinaturas, valores, vinculos] = await Promise.all([repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: id } }), repositorios.assinatura_valor_historico.listar(), vinculosDaFerramenta(id)]);
+  const [assinaturas, valores, vinculos, titulos] = await Promise.all([repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: id } }), repositorios.assinatura_valor_historico.listar(), vinculosDaFerramenta(id), repositorios.titulo.listar({ onde: { ferramenta_id: id } })]);
   const ids = new Set(assinaturas.map((assinatura) => assinatura.id));
-  return { assinaturas: assinaturas.sort((a, b) => b.inicio.localeCompare(a.inicio)), valores: valores.filter((valor) => ids.has(valor.assinatura_id)).sort((a, b) => b.efeito_em.localeCompare(a.efeito_em) || b.criado_em.localeCompare(a.criado_em)), vinculos };
+  return { assinaturas: assinaturas.sort((a, b) => b.inicio.localeCompare(a.inicio)), valores: valores.filter((valor) => ids.has(valor.assinatura_id)).sort((a, b) => b.efeito_em.localeCompare(a.efeito_em) || b.criado_em.localeCompare(a.criado_em)), vinculos, titulos: titulos.sort((a, b) => b.vencimento.localeCompare(a.vencimento)) };
 }
 
 // ---------- Lista (T04.01) ----------

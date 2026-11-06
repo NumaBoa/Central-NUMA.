@@ -4,6 +4,7 @@ import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
 import { gerarAlertas } from './alertas';
 import { atualizarSituacoesDasFerramentas } from './ferramentas';
+import { atualizarSituacoesDosTitulos, estenderProgramacao } from './titulos';
 import { notificarFalhasDasRotinas } from './notificacoes';
 import { gerarOcorrencias } from './recorrencias';
 
@@ -17,17 +18,15 @@ export type Rotina = {
   executar: () => Promise<number>;
 };
 
-const nadaAFazerAinda = async () => 0;
 
 /**
- * Rotinas do dia, nesta ordem (02 §0.5). Situações dos títulos e programação ganham conteúdo junto
- * com o Financeiro (etapa 12).
+ * Rotinas do dia, nesta ordem (02 §0.5).
  */
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
   { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: () => gerarAlertas() },
   { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: () => gerarOcorrencias() },
-  { nome: 'Atualizar situações', executar: () => atualizarSituacoesDasFerramentas() },
-  { nome: 'Estender programação', soNoDiaPrimeiro: true, executar: nadaAFazerAinda },
+  { nome: 'Atualizar situações', executar: async () => (await atualizarSituacoesDasFerramentas()) + (await atualizarSituacoesDosTitulos()) },
+  { nome: 'Estender programação', soNoDiaPrimeiro: true, novidade: ['lançamento previsto', 'lançamentos previstos'], executar: () => estenderProgramacao() },
 ];
 
 export type ResultadoRotinas = { executou: boolean; novos: number; falhas: string[]; novidades: string[] };
@@ -64,7 +63,9 @@ async function rodarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA }: Opcoes
   const hoje = hojeISO(agora);
   if (!manual && jaRodouHoje(lerMeta().ultima_rotina_em, hoje)) return { executou: false, novos: 0, falhas: [], novidades: [] };
 
-  const diaPrimeiro = hoje.endsWith('-01');
+  // Sem servidor, ninguém garante abrir a Central no dia 1: quem abre depois, no mês seguinte, não perde a extensão.
+  const ultimaEm = lerMeta().ultima_rotina_em;
+  const diaPrimeiro = hoje.endsWith('-01') || (Boolean(ultimaEm) && hojeISO(new Date(ultimaEm as string)).slice(0, 7) !== hoje.slice(0, 7));
   let novos = 0;
   const falhas: string[] = [];
   const novidades: string[] = [];

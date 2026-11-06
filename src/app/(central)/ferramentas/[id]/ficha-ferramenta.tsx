@@ -61,6 +61,7 @@ import {
   type LinhaDaFerramenta,
 } from '@/dominio/ferramentas';
 import { historicoDaFerramenta } from '@/dominio/historico';
+import { ROTULOS_SITUACAO_TITULO, titulosFuturosDaFerramenta } from '@/dominio/titulos';
 import { valorParaCampo } from '@/dominio/dinheiro';
 import { textoDoTitular } from '@/dominio/titularidade';
 import { hojeISO } from '@/lib/datas';
@@ -195,7 +196,24 @@ function AbaAssinatura({ ferramenta, id, dados }: { ferramenta: LinhaDaFerrament
           </ul>
         </section>
       )}
-      <p className="text-xs text-ink-soft">Os títulos vinculados aparecem aqui quando o Financeiro entrar.</p>
+      <section aria-label="Títulos vinculados">
+        <h3 className="mb-2 text-[15px]">Títulos vinculados</h3>
+        {consulta.dados.titulos.length ? (
+          <ul className="grid gap-2 text-[13px]">
+            {consulta.dados.titulos.map((titulo) => (
+              <li key={titulo.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-line bg-paper px-3.5 py-2.5">
+                <span className="min-w-0">
+                  <span className="font-medium tabular-nums">{formatarDiaISO(titulo.vencimento)}</span>
+                  <span className="text-ink-soft"> · {titulo.codigo} · {ROTULOS_SITUACAO_TITULO[titulo.situacao]}</span>
+                </span>
+                <span className="font-medium tabular-nums">{formatarDinheiro(titulo.valor, titulo.moeda)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-ink-soft">Nenhum título por enquanto.</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -468,6 +486,8 @@ function DialogoDeCancelar({ ferramenta, aoFechar }: { ferramenta: LinhaDaFerram
   const [data, setData] = useState(hojeISO());
   const [motivo, setMotivo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  const futuros = useConsulta(() => titulosFuturosDaFerramenta(ferramenta.id, data), [ferramenta.id, data]);
+  const quantos = futuros.dados?.length ?? 0;
 
   async function confirmar() {
     try {
@@ -491,6 +511,21 @@ function DialogoDeCancelar({ ferramenta, aoFechar }: { ferramenta: LinhaDaFerram
           <Campo id="cancelar-motivo" rotulo="Motivo" obrigatorio erro={erro ?? undefined}>
             {(controle) => <Textarea {...controle} value={motivo} onChange={(evento) => setMotivo(evento.target.value)} />}
           </Campo>
+          {quantos > 0 && (
+            <section aria-label="Títulos que serão cancelados" className="rounded-md border border-line bg-paper p-3 text-[13px]">
+              <p className="font-semibold">{quantos === 1 ? '1 título futuro não pago será cancelado:' : `${quantos} títulos futuros não pagos serão cancelados:`}</p>
+              <ul className="mt-1.5 grid gap-1">
+                {futuros.dados?.map((titulo) => (
+                  <li key={titulo.id} className="flex justify-between gap-3 tabular-nums">
+                    <span>
+                      {formatarDiaISO(titulo.vencimento)} · {titulo.codigo}
+                    </span>
+                    <span>{formatarDinheiro(titulo.valor, titulo.moeda)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
         <div className="acoes-dialogo">
           <Button variante="secundario" onClick={aoFechar}>

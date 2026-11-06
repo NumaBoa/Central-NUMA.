@@ -57,7 +57,7 @@ export function CentralProvider({ children }: { children: ReactNode }) {
     };
     executarRotinas()
       .then((resultado) => {
-        if (resultado.novos > 0 || resultado.falhas.length > 0) aviso(mensagemDasRotinas(resultado));
+        if (resultado.novidades.length > 0 || resultado.falhas.length > 0) aviso(mensagemDasRotinas(resultado));
       })
       .catch(() => {
         // dados danificados: a tela de Dados mostra o problema e o caminho de saída

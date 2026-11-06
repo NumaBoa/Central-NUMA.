@@ -17,7 +17,9 @@ import type { Controle } from '@/dados/tipos/controle';
 import type { AnexoLink, ChecklistItem, Comentario, Vinculo } from '@/dados/tipos/apoio';
 import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
+import type { ContaFinanceira } from '@/dados/tipos/financeiro';
 import type { AtivoDigital } from '@/dados/tipos/ativo';
+import type { Baixa, Titulo, TituloRateio } from '@/dados/tipos/titulo';
 import type { AssinaturaFerramenta, AssinaturaValorHistorico, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
 import type { Notificacao } from '@/dados/tipos/notificacao';
 import type { Pessoa } from '@/dados/tipos/pessoa';
@@ -47,7 +49,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico', 'titulo_rateio', 'baixa'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -334,6 +336,9 @@ export async function limparExemplos(): Promise<number> {
   novasLinhas.comentario = (novasLinhas.comentario as Comentario[]).filter((comentario) => !idsRemovidos.has(comentario.registro_id));
   novasLinhas.anexo_link = (novasLinhas.anexo_link as AnexoLink[]).filter((anexo) => !idsRemovidos.has(anexo.registro_id));
   novasLinhas.vinculo = (novasLinhas.vinculo as Vinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.origem_id) && !idsRemovidos.has(vinculo.destino_id));
+  // Conta de exemplo com pagamento de verdade fica, e deixa de ser exemplo: uma baixa não existe sem a conta.
+  const contasComBaixaReal = new Set((novasLinhas.baixa as Baixa[]).map((baixa) => baixa.conta_financeira_id));
+  novasLinhas.conta_financeira = [...(novasLinhas.conta_financeira as ContaFinanceira[]), ...lerTabela<ContaFinanceira>('conta_financeira').filter((conta) => conta.exemplo && contasComBaixaReal.has(conta.id)).map((conta) => ({ ...conta, exemplo: false }))];
   // Ferramenta de verdade continua: o que era fictício sai dela (fornecedor, conta), e quem saiu passa a responsabilidade.
   const contrapartesDasFerramentas = new Set((novasLinhas.contraparte as Controle[]).map((contraparte) => contraparte.id));
   const contasQueFicam = new Set((novasLinhas.conta_financeira as Controle[]).map((conta) => conta.id));
@@ -363,6 +368,16 @@ export async function limparExemplos(): Promise<number> {
       ...(saiuTitular ? { titular_atual_tipo: 'terceiro' as const, titular_atual_pessoa_id: null, titular_atual_texto: nomeDe(ativo.titular_atual_pessoa_id as string) } : {}),
     };
   });
+  // Lançamento de verdade continua: perde o que era fictício, e quem saiu passa a responsabilidade.
+  novasLinhas.titulo = (novasLinhas.titulo as Titulo[]).map((titulo) => ({
+    ...titulo,
+    contraparte_id: titulo.contraparte_id && contrapartesDasFerramentas.has(titulo.contraparte_id) ? titulo.contraparte_id : null,
+    ferramenta_id: titulo.ferramenta_id && ferramentasQueFicam.has(titulo.ferramenta_id) ? titulo.ferramenta_id : null,
+    assinatura_id: titulo.assinatura_id && assinaturasQueFicam.has(titulo.assinatura_id) ? titulo.assinatura_id : null,
+    responsavel_id: quemResponde(titulo.responsavel_id),
+  }));
+  novasLinhas.titulo_rateio = (novasLinhas.titulo_rateio as TituloRateio[]).filter((linha) => !idsRemovidos.has(linha.titulo_id));
+  novasLinhas.baixa = (novasLinhas.baixa as Baixa[]).filter((baixa) => !idsRemovidos.has(baixa.titulo_id));
   // Notificação é de uma pessoa, sobre um registro: sai junto com qualquer um dos dois.
   novasLinhas.notificacao = (novasLinhas.notificacao as Notificacao[]).filter((notificacao) => pessoasQueFicam.has(notificacao.usuario_id) && !idsRemovidos.has(notificacao.registro_id ?? ''));
   // Etiqueta é de quem a usa: o registro fictício sai, e a etiqueta fica sem esse vínculo.

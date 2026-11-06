@@ -1,4 +1,5 @@
 import { esquemaAtivoDigital, type AtivoDigital } from './tipos/ativo';
+import { esquemaBaixa, esquemaMovimentoSocietario, esquemaTitulo, esquemaTituloRateio, type Baixa, type MovimentoSocietario, type Titulo, type TituloRateio } from './tipos/titulo';
 import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto, type AssinaturaFerramenta, type AssinaturaValorHistorico, type CategoriaFerramenta, type Ferramenta, type FerramentaContexto } from './tipos/ferramenta';
 import { esquemaNotificacao, type Notificacao } from './tipos/notificacao';
 import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
@@ -50,6 +51,10 @@ export const repositorios: {
   assinatura_ferramenta: Repositorio<AssinaturaFerramenta>;
   assinatura_valor_historico: Repositorio<AssinaturaValorHistorico>;
   ativo_digital: Repositorio<AtivoDigital>;
+  titulo: Repositorio<Titulo>;
+  titulo_rateio: Repositorio<TituloRateio>;
+  baixa: Repositorio<Baixa>;
+  movimento_societario: Repositorio<MovimentoSocietario>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -82,4 +87,8 @@ export const repositorios: {
   assinatura_ferramenta: criarRepositorioLocal({ tabela: 'assinatura_ferramenta', esquema: esquemaAssinaturaFerramenta }),
   assinatura_valor_historico: criarRepositorioLocal({ tabela: 'assinatura_valor_historico', esquema: esquemaAssinaturaValorHistorico }),
   ativo_digital: criarRepositorioLocal({ tabela: 'ativo_digital', esquema: esquemaAtivoDigital, prefixoCodigo: 'ATI' }),
+  titulo: criarRepositorioLocal({ tabela: 'titulo', esquema: esquemaTitulo, prefixoCodigo: 'TIT' }),
+  titulo_rateio: criarRepositorioLocal({ tabela: 'titulo_rateio', esquema: esquemaTituloRateio }),
+  baixa: criarRepositorioLocal({ tabela: 'baixa', esquema: esquemaBaixa }),
+  movimento_societario: criarRepositorioLocal({ tabela: 'movimento_societario', esquema: esquemaMovimentoSocietario, prefixoCodigo: 'MOV' }),
 };
