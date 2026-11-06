@@ -227,9 +227,19 @@ export type OpcoesDasFerramentas = { hoje: string; diasRenovacao: number; diasTe
 const renova = (assinatura: AssinaturaFerramenta) => assinatura.modalidade === 'paga' && Boolean(assinatura.proxima_cobranca) && assinatura.periodicidade !== 'unica' && assinatura.periodicidade !== 'por_uso';
 
 /**
- * Renovação: N dias antes da próxima cobrança, e fica até a data mudar. Prazo para cancelar: renovação −
- * aviso − 3 dias, só na renovação automática com aviso informado. Fim do teste: N dias antes, e fica até a
- * ferramenta sair do teste, mesmo expirado (RN-04.09).
+ * Decisão de Kimberly em 06/11/2026: renovação só nas trimestrais, semestrais e anuais, e nas de renovação
+ * manual. A mensal automática fica só com o alerta de vencimento do lançamento, que já cobre o pagamento.
+ */
+const PERIODOS_LONGOS: readonly string[] = ['trimestral', 'semestral', 'anual'];
+const periodoLongo = (assinatura: AssinaturaFerramenta) => PERIODOS_LONGOS.includes(assinatura.periodicidade ?? '');
+export const avisaRenovacao = (assinatura: AssinaturaFerramenta) => renova(assinatura) && (assinatura.renovacao === 'manual' || periodoLongo(assinatura));
+/** Só na renovação automática, que é a que acontece sem ninguém agir, com o aviso informado. */
+export const avisaPrazoParaCancelar = (assinatura: AssinaturaFerramenta) => renova(assinatura) && assinatura.renovacao === 'automatica' && periodoLongo(assinatura) && assinatura.aviso_cancelamento_dias !== null;
+
+/**
+ * Renovação: N dias antes da próxima cobrança, nas trimestrais, semestrais, anuais e manuais, e fica até a
+ * data mudar. Prazo para cancelar: renovação − aviso − 3 dias, nas automáticas desses períodos com aviso
+ * informado. Fim do teste: N dias antes, e fica até a ferramenta sair do teste, mesmo expirado (RN-04.09).
  */
 export function alertasDasFerramentas(ferramentas: readonly Ferramenta[], assinaturas: readonly AssinaturaFerramenta[], abertos: readonly Atividade[], { hoje, diasRenovacao, diasTeste }: OpcoesDasFerramentas): AlertaDesejado[] {
   const desejados: AlertaDesejado[] = [];
@@ -241,9 +251,9 @@ export function alertasDasFerramentas(ferramentas: readonly Ferramenta[], assina
     const financeira = { responsavel_id: ferramenta.responsavel_financeiro_id ?? ferramenta.responsavel_tecnico_id, area_id: AREA_FINANCEIRO };
     if (renova(assinatura)) {
       const renovacao = assinatura.proxima_cobranca as string;
-      if (somarDias(renovacao, -diasRenovacao) <= hoje) desejados.push({ ...base, ...financeira, motivo: MOTIVOS_DE_ALERTA.renovacao, data_referencia: renovacao, titulo: limitar(`Renovação de ${ferramenta.nome}`), acao: 'revisar_renovacao' });
-      if (assinatura.renovacao === 'automatica' && assinatura.aviso_cancelamento_dias !== null) {
-        const limite = somarDias(renovacao, -assinatura.aviso_cancelamento_dias);
+      if (avisaRenovacao(assinatura) && somarDias(renovacao, -diasRenovacao) <= hoje) desejados.push({ ...base, ...financeira, motivo: MOTIVOS_DE_ALERTA.renovacao, data_referencia: renovacao, titulo: limitar(`Renovação de ${ferramenta.nome}`), acao: 'revisar_renovacao' });
+      if (avisaPrazoParaCancelar(assinatura)) {
+        const limite = somarDias(renovacao, -(assinatura.aviso_cancelamento_dias as number));
         if (somarDias(limite, -3) <= hoje) desejados.push({ ...base, ...financeira, motivo: MOTIVOS_DE_ALERTA.prazoParaCancelar, data_referencia: limite, titulo: limitar(`Prazo para cancelar ${ferramenta.nome}`), acao: 'cancelar_ou_manter' });
       }
     }
@@ -263,6 +273,8 @@ function notaDaFerramenta(ferramentas: readonly Ferramenta[], assinaturas: reado
     if (alerta.alerta_motivo === MOTIVOS_DE_ALERTA.fimDoTeste) return 'Concluído: a ferramenta saiu do teste.';
     const assinatura = assinaturas.find((item) => item.ferramenta_id === ferramenta.id && item.situacao === 'ativa' && !item.arquivado_em);
     if (!assinatura || !renova(assinatura)) return 'Concluído: a assinatura não tem mais renovação.';
+    const continua = alerta.alerta_motivo === MOTIVOS_DE_ALERTA.renovacao ? avisaRenovacao(assinatura) : avisaPrazoParaCancelar(assinatura);
+    if (!continua) return 'Concluído: assinatura mensal com renovação automática fica só com o alerta de vencimento do lançamento.';
     return 'Concluído: a data de renovação foi atualizada.';
   };
 }

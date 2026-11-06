@@ -937,7 +937,7 @@ await passo('busca global e "+ Novo"', async () => {
   await c.ate(`document.querySelectorAll('.busca-global [role=option]').length>0`);
   ok('a busca global acha, no grupo Ferramentas', (await texto('.busca-global')).includes('Ferramentas') && (await texto('.busca-global')).includes('Traço Editor'), (await texto('.busca-global')).slice(0, 200));
   const daFerramenta = await c.avaliar(`[...document.querySelectorAll('.busca-global [role=option]')].findIndex(o=>{const h=o.getAttribute('href');return h.startsWith('/ferramentas/')&&!h.startsWith('/ferramentas/ativos')})`);
-  ok('os alertas da ferramenta também aparecem, em Atividades', (await texto('.busca-global')).includes('Renovação de Traço Editor') || daFerramenta === 0, (await texto('.busca-global')).slice(0, 200));
+  ok('a ficha da ferramenta está entre os resultados', daFerramenta >= 0, (await texto('.busca-global')).slice(0, 200));
   for (let i = 0; i < daFerramenta; i += 1) await c.tecla('ArrowDown');
   await c.tecla('Enter');
   await c.ate(`location.pathname.startsWith('/ferramentas/')`);

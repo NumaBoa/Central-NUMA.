@@ -56,14 +56,14 @@ await passo('as rotinas do dia geram os alertas da F0a', async () => {
   await pularAbertura();
   ok('sem rodar as rotinas, nenhum alerta gerado', (await alertas()).length === 0);
   const aviso = await rodarRotinas();
-  ok('o aviso conta os alertas novos (02 §0.5)', aviso.includes('5 alertas novos'), aviso);
+  ok('o aviso conta os alertas novos (02 §0.5)', aviso.includes('3 alertas novos'), aviso);
   const lista = await alertas();
-  ok('cinco alertas, todos de exemplo, como os registros de onde vieram', lista.length === 5 && lista.every((a) => a.exemplo), lista.map((a) => a.titulo).join(' | '));
+  ok('três alertas, todos de exemplo, como os registros de onde vieram', lista.length === 3 && lista.every((a) => a.exemplo), lista.map((a) => a.titulo).join(' | '));
   ok('dois pagamentos vencidos, com Registrar baixa', ['Pagamento vencido: Certificado digital', 'Pagamento vencido: Honorários de contabilidade'].every((t) => lista.some((a) => a.titulo === t && a.alerta_motivo === 'Vencido' && a.alerta_acao === 'registrar_baixa')));
-  ok('duas renovações, para a responsável financeira', ['Renovação de Traço Editor', 'Renovação de Nuvem Clara Hosting'].every((t) => lista.some((a) => a.titulo === t && a.alerta_motivo === 'Renovação' && a.responsavel_id === ID_KIMBERLY)));
+  ok('mensal automática não tem alerta de renovação (decisão de 06/11)', !lista.some((a) => a.alerta_motivo === 'Renovação'), lista.map((a) => a.titulo).join(' | '));
   ok('o domínio, 45 dias antes, para a responsável dele', lista.some((a) => a.titulo === 'Renovar o domínio kipi-exemplo.com.br' && a.responsavel_id === ID_CAMILA));
   const outra = await rodarRotinas();
-  ok('rodar de novo não duplica (RT-09)', outra.includes('nada novo') && (await alertas()).length === 5, outra);
+  ok('rodar de novo não duplica (RT-09)', outra.includes('nada novo') && (await alertas()).length === 3, outra);
 });
 
 await passo('no Meu dia, a origem e o botão da ação (RN-03.12)', async () => {
@@ -73,8 +73,6 @@ await passo('no Meu dia, a origem e o botão da ação (RN-03.12)', async () => 
   ok('vencido aparece como atrasado (RN-03.04)', /Atrasad/.test(vencido), vencido);
   const certificado = (await tabela('titulo')).find((t) => t.descricao === 'Certificado digital');
   ok('"Registrar baixa" leva à baixa do título', js(await acaoDoCartao('Pagamento vencido: Certificado digital')) === js({ texto: 'Registrar baixa', href: `/financeiro/${certificado.id}?acao=baixa` }));
-  const traco = (await tabela('ferramenta')).find((f) => f.nome === 'Traço Editor');
-  ok('"Revisar renovação" leva à ferramenta', js(await acaoDoCartao('Renovação de Traço Editor')) === js({ texto: 'Revisar renovação', href: `/ferramentas/${traco.id}` }) && (await textoDoCartao('Renovação de Traço Editor')).includes('Origem: Ferramentas · Renovação'));
   const dominio = (await tabela('ativo_digital')).find((a) => a.identificador === 'kipi-exemplo.com.br');
   ok('"Renovar" leva ao ativo', js(await acaoDoCartao('Renovar o domínio kipi-exemplo.com.br')) === js({ texto: 'Renovar', href: `/ferramentas/ativos/${dominio.id}` }) && (await textoDoCartao('Renovar o domínio kipi-exemplo.com.br')).includes('Origem: Ativos digitais · Vencimento'));
   await c.foto('a-meu-dia', { inteira: true });
@@ -198,15 +196,27 @@ await passo('fim do teste da ferramenta, e o cancelamento conclui o alerta', asy
   ok('o alerta é concluído na hora, com a nota de Ferramentas', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota === 'Concluído por Cancelar ferramenta em Ferramentas.', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota);
 });
 
-await passo('prazo para cancelar: renovação − aviso − 3 dias', async () => {
-  const nuvem = (await tabela('ferramenta')).find((f) => f.nome === 'Nuvem Clara Hosting');
-  const proxima = (await tabela('assinatura_ferramenta')).find((a) => a.ferramenta_id === nuvem.id && a.situacao === 'ativa').proxima_cobranca;
-  await mudarTabela('assinatura_ferramenta', `l.forEach(x=>{if(x.ferramenta_id===${js(nuvem.id)}&&x.situacao==='ativa')x.aviso_cancelamento_dias=10})`);
+await passo('renovação: só as de período longo e as manuais (decisão de 06/11)', async () => {
+  await configurar('alerta_renovacao_ferramenta_dias', 30);
   await rodarRotinas();
-  const alerta = await alertaDe('Prazo para cancelar Nuvem Clara Hosting');
+  const estudio = (await tabela('ferramenta')).find((f) => f.nome === 'Estúdio Verde Registro');
+  const renovacoes = (await alertas()).filter((a) => a.alerta_motivo === 'Renovação').map((a) => a.titulo).sort();
+  ok('a anual e a mensal manual têm; as mensais automáticas, não', js(renovacoes) === js(['Renovação de Estúdio Verde Registro', 'Renovação de Quadro Fácil']), js(renovacoes));
+  await irMeuDia();
+  ok('"Revisar renovação" leva à ferramenta', js(await acaoDoCartao('Renovação de Estúdio Verde Registro')) === js({ texto: 'Revisar renovação', href: `/ferramentas/${estudio.id}` }) && (await textoDoCartao('Renovação de Estúdio Verde Registro')).includes('Origem: Ferramentas · Renovação'));
+});
+
+await passo('prazo para cancelar: renovação − aviso − 3 dias', async () => {
+  const estudio = (await tabela('ferramenta')).find((f) => f.nome === 'Estúdio Verde Registro');
+  const nuvem = (await tabela('ferramenta')).find((f) => f.nome === 'Nuvem Clara Hosting');
+  const proxima = (await tabela('assinatura_ferramenta')).find((a) => a.ferramenta_id === estudio.id && a.situacao === 'ativa').proxima_cobranca;
+  await mudarTabela('assinatura_ferramenta', `l.forEach(x=>{if(x.situacao!=='ativa')return;if(x.ferramenta_id===${js(estudio.id)}){x.renovacao='automatica';x.aviso_cancelamento_dias=30}if(x.ferramenta_id===${js(nuvem.id)})x.aviso_cancelamento_dias=10})`);
+  await rodarRotinas();
+  const alerta = await alertaDe('Prazo para cancelar Estúdio Verde Registro');
   const limite = new Date(`${proxima}T00:00:00Z`);
-  limite.setUTCDate(limite.getUTCDate() - 10);
+  limite.setUTCDate(limite.getUTCDate() - 30);
   ok('o prazo é a renovação menos o aviso, e nasce 3 dias antes dele', alerta?.alerta_motivo === 'Prazo para cancelar' && alerta.prazo === limite.toISOString().slice(0, 10) && alerta.alerta_acao === 'cancelar_ou_manter' && alerta.responsavel_id === ID_KIMBERLY, js(alerta && [alerta.prazo, proxima]));
+  ok('a mensal automática não tem prazo para cancelar, mesmo com aviso', !(await alertaDe('Prazo para cancelar Nuvem Clara Hosting')));
 });
 
 await passo('o domínio renovado conclui o alerta', async () => {

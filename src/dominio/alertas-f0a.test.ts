@@ -27,7 +27,7 @@ const categoria = (nome: string) => CATEGORIAS_INICIAIS.find((item) => item.nome
 const titulo = (alteracoes: Partial<Titulo> = {}) => ({ id: 't1', natureza: 'pagar', descricao: 'Hospedagem', situacao: 'aberto', valor: 100, vencimento: '2026-11-08', origem: 'manual', responsavel_id: ID_CAMILA, beneficiario_pessoa_id: null, criado_em: '2026-11-01T12:00:00.000Z', arquivado_em: null, exemplo: false, ...alteracoes }) as Titulo;
 const opcoes = { hoje: HOJE, dias: 3, responsavelDoReembolso: ID_KIMBERLY, nomeDaPessoa: () => 'Camila Lima' };
 const ferramenta = (alteracoes: Partial<Ferramenta> = {}) => ({ id: 'f1', nome: 'Hospedagem', situacao: 'ativa', responsavel_tecnico_id: ID_CAMILA, responsavel_financeiro_id: ID_KIMBERLY, arquivado_em: null, exemplo: false, ...alteracoes }) as Ferramenta;
-const assinatura = (alteracoes: Partial<AssinaturaFerramenta> = {}) => ({ id: 'a1', ferramenta_id: 'f1', modalidade: 'paga', periodicidade: 'mensal', proxima_cobranca: '2026-11-16', renovacao: 'automatica', aviso_cancelamento_dias: null, fim_teste: null, situacao: 'ativa', arquivado_em: null, ...alteracoes }) as AssinaturaFerramenta;
+const assinatura = (alteracoes: Partial<AssinaturaFerramenta> = {}) => ({ id: 'a1', ferramenta_id: 'f1', modalidade: 'paga', periodicidade: 'anual', proxima_cobranca: '2026-11-16', renovacao: 'automatica', aviso_cancelamento_dias: null, fim_teste: null, situacao: 'ativa', arquivado_em: null, ...alteracoes }) as AssinaturaFerramenta;
 const opcoesDasFerramentas = { hoje: HOJE, diasRenovacao: 15, diasTeste: 3 };
 const motivos = (alertas: readonly { motivo: string }[]) => alertas.map((alerta) => alerta.motivo);
 
@@ -114,6 +114,16 @@ describe('alertas da F0a (05-M03 §5)', () => {
       expect(alertasDasFerramentas([ferramenta()], [assinatura({ proxima_cobranca: '2026-11-22' })], [], opcoesDasFerramentas)).toEqual([]);
     });
 
+    it('mensal automática fica só com o alerta do lançamento; manual e períodos longos têm renovação (decisão de 06/11)', () => {
+      const motivosDa = (alteracoes: Partial<AssinaturaFerramenta>) => motivos(alertasDasFerramentas([ferramenta()], [assinatura({ aviso_cancelamento_dias: 20, ...alteracoes })], [], opcoesDasFerramentas));
+      expect(motivosDa({ periodicidade: 'mensal' })).toEqual([]);
+      expect(motivosDa({ periodicidade: 'mensal', renovacao: 'manual' })).toEqual(['Renovação']);
+      expect(motivosDa({ periodicidade: 'trimestral' })).toEqual(['Renovação', 'Prazo para cancelar']);
+      expect(motivosDa({ periodicidade: 'semestral' })).toEqual(['Renovação', 'Prazo para cancelar']);
+      expect(motivosDa({ periodicidade: 'anual' })).toEqual(['Renovação', 'Prazo para cancelar']);
+      expect(motivosDa({ periodicidade: null })).toEqual([]);
+    });
+
     it('sem responsável financeira, a técnica', () => {
       expect(alertasDasFerramentas([ferramenta({ responsavel_financeiro_id: null })], [assinatura()], [], opcoesDasFerramentas)[0]?.responsavel_id).toBe(ID_CAMILA);
     });
@@ -137,6 +147,7 @@ describe('alertas da F0a (05-M03 §5)', () => {
       expect(alertasDasFerramentas([ferramenta()], [{ ...comAviso, aviso_cancelamento_dias: 21 }], [], opcoesDasFerramentas)).toEqual([]);
       expect(alertasDasFerramentas([ferramenta()], [{ ...comAviso, renovacao: 'manual' }], [], opcoesDasFerramentas)).toEqual([]);
       expect(alertasDasFerramentas([ferramenta()], [{ ...comAviso, aviso_cancelamento_dias: null }], [], opcoesDasFerramentas)).toEqual([]);
+      expect(alertasDasFerramentas([ferramenta()], [{ ...comAviso, periodicidade: 'mensal' }], [], opcoesDasFerramentas)).toEqual([]);
     });
 
     it('fim do teste: N dias antes, para a responsável técnica; expirado continua (RN-04.09)', () => {
@@ -258,8 +269,21 @@ describe('alertas da F0a (05-M03 §5)', () => {
       expect(await alertasDe(luma.id)).toMatchObject([{ situacao: 'concluida', conclusao_nota: 'Concluído por Cancelar ferramenta em Ferramentas.' }]);
     });
 
+    it('a mensal automática que já tinha alerta de renovação perde o alerta, com a nota', async () => {
+      const traco = (await repositorios.ferramenta.listar()).find((item) => item.nome === 'Traço Editor')!;
+      const [doTraco] = await repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: traco.id, situacao: 'ativa' } });
+      await repositorios.assinatura_ferramenta.atualizar(doTraco!.id, { periodicidade: 'trimestral' });
+      await sincronizarAlertasDasFerramentas([traco.id], HOJE);
+      expect(await abertosDe(traco.id)).toMatchObject([{ alerta_motivo: 'Renovação' }]);
+      await repositorios.assinatura_ferramenta.atualizar(doTraco!.id, { periodicidade: 'mensal' });
+      await sincronizarAlertasDasFerramentas([traco.id], HOJE);
+      expect((await alertasDe(traco.id))[0]).toMatchObject({ situacao: 'concluida', conclusao_nota: 'Concluído: assinatura mensal com renovação automática fica só com o alerta de vencimento do lançamento.' });
+    });
+
     it('a renovação que passou: a data anda, e o alerta se resolve no mesmo dia', async () => {
       const traco = (await repositorios.ferramenta.listar()).find((item) => item.nome === 'Traço Editor')!;
+      const [doTraco] = await repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: traco.id, situacao: 'ativa' } });
+      await repositorios.assinatura_ferramenta.atualizar(doTraco!.id, { periodicidade: 'trimestral' });
       await sincronizarAlertasDasFerramentas([traco.id], HOJE);
       const [aberto] = await abertosDe(traco.id);
       expect(aberto).toMatchObject({ alerta_motivo: 'Renovação' });
@@ -282,10 +306,11 @@ describe('alertas da F0a (05-M03 §5)', () => {
 
     it('os exemplos geram alertas de exemplo, que saem ao limpar os exemplos', async () => {
       const novos = await gerarAlertas();
-      expect(novos).toBeGreaterThanOrEqual(5);
+      // Dois pagamentos vencidos e o domínio. As renovações dos exemplos são mensais automáticas, ou estão longe.
+      expect(novos).toBe(3);
       const gerados = (await repositorios.atividade.listar({ onde: { tipo: 'alerta' } })).filter((atividade) => atividade.chave_idempotencia);
       expect(gerados.every((atividade) => atividade.exemplo)).toBe(true);
-      expect(new Set(gerados.map((atividade) => atividade.alerta_motivo))).toEqual(new Set([MOTIVOS_DE_ALERTA.vencido, MOTIVOS_DE_ALERTA.renovacao, MOTIVOS_DE_ALERTA.dominio]));
+      expect(new Set(gerados.map((atividade) => atividade.alerta_motivo))).toEqual(new Set([MOTIVOS_DE_ALERTA.vencido, MOTIVOS_DE_ALERTA.dominio]));
       expect(await gerarAlertas()).toBe(0);
       await limparExemplos();
       expect(await repositorios.atividade.listar({ onde: { tipo: 'alerta' } })).toEqual([]);
