@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentProps } from 'react';
+import { useRef, type ComponentProps } from 'react';
 import { X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
@@ -26,16 +26,28 @@ type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   comDescricao?: boolean;
 };
 
-export function DialogContent({ className, children, variante = 'dialogo', semFechar = false, comDescricao = false, ...props }: DialogContentProps) {
+export function DialogContent({ className, children, variante = 'dialogo', semFechar = false, comDescricao = false, onOpenAutoFocus, ...props }: DialogContentProps) {
   const descricao = comDescricao ? {} : { 'aria-describedby': undefined };
+  const origemDoFoco = useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fundo-sobreposicao" />
       <DialogPrimitive.Content
         className={cn(variante === 'painel' ? 'painel-lateral' : 'dialogo', className)}
         onOpenAutoFocus={(evento) => {
+          origemDoFoco.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          if (onOpenAutoFocus) {
+            onOpenAutoFocus(evento);
+          } else {
+            // o foco fica no próprio diálogo, sem acender o anel num campo
+            evento.preventDefault();
+            (evento.currentTarget as HTMLElement).focus();
+          }
+        }}
+        // Diálogo aberto por código não tem gatilho: o foco volta para quem o abriu (RT-19).
+        onCloseAutoFocus={(evento) => {
           evento.preventDefault();
-          (evento.currentTarget as HTMLElement).focus();
+          if (origemDoFoco.current?.isConnected) origemDoFoco.current.focus();
         }}
         {...descricao}
         {...props}

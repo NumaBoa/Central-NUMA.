@@ -3,11 +3,11 @@
 import { ChevronDown } from 'lucide-react';
 import { Selecao } from '@/componentes/campos/selecao';
 import { Avatar } from '@/componentes/padroes/pessoa';
-import { PESSOAS_INTERNAS } from '@/dados/exemplos/base';
 import { useCentral } from './central-provider';
 
 function Opcoes() {
-  return PESSOAS_INTERNAS.map((pessoa) => (
+  const { pessoas } = useCentral();
+  return pessoas.map((pessoa) => (
     <option key={pessoa.id} value={pessoa.id}>
       {pessoa.nome}
     </option>

@@ -1,11 +1,17 @@
 /**
- * Preferências deste navegador (`numa-central:v1:meta`, 02 §0.3).
- * Único ponto da entrega 1 que toca o localStorage; telas nunca acessam o armazenamento direto.
- * A entrega 2 acrescenta aqui a versão dos dados, a última rotina e os contadores de código.
+ * `numa-central:v1:meta` (02 §0.3): versão dos dados, última rotina, pessoa atual, contadores de
+ * código e preferências deste navegador.
  */
-export const CHAVE_META = 'numa-central:v1:meta';
+import { CHAVE_META, driver } from './armazenamento';
+
+export { CHAVE_META };
 
 export type Meta = {
+  /** `null` até a primeira carga dos dados. */
+  versao_dados: number | null;
+  ultima_rotina_em: string | null;
+  /** Último número usado por prefixo e ano: `{ 'ATV-2026': 42 }` (RT-01). */
+  contadores: Readonly<Record<string, number>>;
   pessoa_atual_id: string | null;
   contexto_id: string;
   ultima_abertura: string | null;
@@ -13,6 +19,9 @@ export type Meta = {
 };
 
 export const META_INICIAL: Meta = {
+  versao_dados: null,
+  ultima_rotina_em: null,
+  contadores: {},
   pessoa_atual_id: null,
   contexto_id: 'consolidada',
   ultima_abertura: null,
@@ -22,17 +31,9 @@ export const META_INICIAL: Meta = {
 let atual: Meta | null = null;
 const ouvintes = new Set<() => void>();
 
-function armazenamento(): Storage | null {
-  try {
-    return typeof window === 'undefined' ? null : window.localStorage;
-  } catch {
-    return null; // navegador com o armazenamento bloqueado: segue só em memória
-  }
-}
-
 function carregar(): Meta {
   try {
-    const texto = armazenamento()?.getItem(CHAVE_META);
+    const texto = driver().getItem(CHAVE_META);
     const lido: unknown = texto ? JSON.parse(texto) : null;
     return lido && typeof lido === 'object' ? { ...META_INICIAL, ...(lido as Partial<Meta>) } : META_INICIAL;
   } catch {
@@ -48,12 +49,17 @@ export function lerMeta(): Meta {
 export function gravarMeta(parcial: Partial<Meta>): Meta {
   atual = { ...lerMeta(), ...parcial };
   try {
-    armazenamento()?.setItem(CHAVE_META, JSON.stringify(atual));
+    driver().setItem(CHAVE_META, JSON.stringify(atual));
   } catch {
     // sem espaço ou bloqueado: a preferência vale até fechar a página
   }
   ouvintes.forEach((avisar) => avisar());
   return atual;
+}
+
+/** Só para os testes: esquece o que está em memória e lê de novo do armazenamento. */
+export function esquecerMetaEmMemoria() {
+  atual = null;
 }
 
 /** Avisa sobre mudanças nesta aba e nas outras abas do mesmo navegador. */

@@ -32,6 +32,13 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 - **Regras de negócio:** ficam em `src/dominio`, com testes Vitest, nunca em componentes de tela.
 - **Dados:** não inventar. Registros fictícios levam `exemplo: true`; o que não foi definido fica vazio, nunca zero.
 
+## Como acrescentar uma tabela
+
+1. Tipo e esquema Zod em `src/dados/tipos`, com os nomes de campos de `16`.
+2. Registro em `src/dados/tabelas.ts`: ela entra sozinha em exportar, importar, restaurar e limpar exemplos.
+3. Repositório em `src/dados/repositorios.ts` (`prefixoCodigo` para código legível) e exemplos em `src/dados/exemplos`.
+4. As telas leem com `useConsulta` e gravam pelo repositório. Mudou o formato de uma tabela já publicada: suba `VERSAO_DADOS`.
+
 ## Comandos
 
 - `npm run dev`: o sistema em `http://localhost:3000`
@@ -41,10 +48,12 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 
 Para rever a abertura, que só aparece uma vez por dia: `/configuracoes?abertura=1`, ou `?abertura=manter` para segurá-la na tela. A vitrine dos padrões fica em `/padroes`, fora do menu.
 
+Quando a T02.01 existir: remova o redirecionamento de `/configuracoes` em `next.config.ts` e tire a aba Geral de "Em breve".
+
 ## Git
 
 - Repositório local. A identidade (NumaBoa) está configurada só neste repositório; nunca use `--global`.
-- Commit somente depois que Kimberly validar a tela, um por tela validada. `main` guarda o estado anterior à fundação (`bef6b0e`).
+- Commit somente depois que Kimberly validar a tela, um por tela validada. Cada tela é construída em um ramo próprio e, depois de validada, juntada ao `main`. O estado anterior à fundação fica no commit `bef6b0e`.
 
 ## Dependências
 

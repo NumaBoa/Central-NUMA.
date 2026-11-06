@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { ClipboardList, Component, FileText, FormInput, MessageSquare, MoreHorizontal, Plus, ShieldAlert, Sun, Tags } from 'lucide-react';
@@ -239,6 +239,11 @@ function DemoFormulario() {
   const [aberto, setAberto] = useState(false);
   const { register, handleSubmit, control, reset, setFocus, formState } = useForm<Tarefa>({ resolver: zodResolver(esquemaTarefa), defaultValues: TAREFA_VAZIA });
   const { errors, isDirty } = formState;
+  // O reset limpa o registro dos campos: o foco volta para o título só depois da nova renderização.
+  const [proximaTarefa, setProximaTarefa] = useState(0);
+  useEffect(() => {
+    if (proximaTarefa) setFocus('titulo');
+  }, [proximaTarefa, setFocus]);
   const listaErros: ErroDeCampo[] = errors.titulo?.message ? [{ campoId: 'exemplo-titulo', mensagem: errors.titulo.message }] : [];
 
   function fechar() {
@@ -259,7 +264,7 @@ function DemoFormulario() {
       (dados) => {
         reset({ ...TAREFA_VAZIA, responsavel: dados.responsavel, contexto: dados.contexto });
         aviso('Tarefa salva só neste exemplo. Preencha a próxima.');
-        requestAnimationFrame(() => setFocus('titulo'));
+        setProximaTarefa((atual) => atual + 1);
       },
       () => setFocus('titulo'),
     )();

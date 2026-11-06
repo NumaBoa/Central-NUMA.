@@ -1,13 +1,9 @@
 /**
- * Estrutura real da Numa usada pela moldura: sócias (D18), marcas e produtos (18 §3.2, T02.04).
- * Na entrega 2 e nas telas T02.02 e T02.04, estes dados passam para os repositórios.
+ * Estrutura real da Numa: sócias (D18) e contextos (18 §3.2, CA-02.03).
+ * Os contextos passam para os repositórios junto com a T02.04.
  */
-export type PessoaInterna = { id: string; nome: string; iniciais: string };
-
-export const PESSOAS_INTERNAS: readonly [PessoaInterna, ...PessoaInterna[]] = [
-  { id: 'kimberly-grebe', nome: 'Kimberly Grebe', iniciais: 'KG' },
-  { id: 'camila-lima', nome: 'Camila Lima', iniciais: 'CL' },
-];
+export const ID_KIMBERLY = '0b7f1c52-3f6e-4a1b-9d2c-5e8a7c4f1a01';
+export const ID_CAMILA = '1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02';
 
 export type Contexto = {
   id: string;
@@ -32,8 +28,4 @@ export const CONTEXTOS: readonly [Contexto, ...Contexto[]] = [
 
 export function acharContexto(id: string): Contexto {
   return CONTEXTOS.find((contexto) => contexto.id === id) ?? CONTEXTOS[0];
-}
-
-export function acharPessoaInterna(id: string | null): PessoaInterna {
-  return PESSOAS_INTERNAS.find((pessoa) => pessoa.id === id) ?? PESSOAS_INTERNAS[0];
 }
