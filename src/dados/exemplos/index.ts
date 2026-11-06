@@ -6,7 +6,7 @@ import { ID_CAMILA, ID_KIMBERLY } from './base';
  * Dados de exemplo (02 §0.3 e 17 §6). As sócias são reais; os demais registros são fictícios e
  * levam `exemplo: true`. Cada tela acrescenta aqui os exemplos das suas tabelas.
  */
-function controle(id: string, exemplo: boolean, agora: string): Controle {
+export function controle(id: string, exemplo: boolean, agora: string): Controle {
   return {
     id,
     criado_em: agora,

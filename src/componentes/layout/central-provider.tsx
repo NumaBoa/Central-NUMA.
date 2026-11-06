@@ -6,6 +6,8 @@ import { acharContexto, ID_KIMBERLY, type Contexto } from '@/dados/exemplos/base
 import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { useConsulta } from '@/dados/use-consulta';
+import { VALORES_PADRAO } from '@/dados/tipos/configuracao';
+import { lerConfiguracoes } from '@/dominio/configuracoes';
 import { existemDadosDeExemplo } from '@/dominio/dados';
 import type { Fase } from '@/dominio/navegacao';
 import { pessoasDoSeletor, resolverPessoaAtual } from '@/dominio/pessoa-atual';
@@ -24,7 +26,7 @@ type ValorCentral = {
   escolherPessoa: (id: string) => void;
   contexto: Contexto;
   escolherContexto: (id: string) => void;
-  /** Vem de T02.01 quando a tela existir; até lá, a fase inicial da especificação. */
+  /** De T02.01 (RT-23). Enquanto os dados carregam, ou se estiverem danificados, a fase inicial. */
   faseAtiva: Fase;
   /** A etiqueta discreta fica no cabeçalho enquanto existirem (02 §0.3). */
   temDadosDeExemplo: boolean;
@@ -38,6 +40,7 @@ export function CentralProvider({ children }: { children: ReactNode }) {
   const [menuAbertoNoTablet, setMenuAbertoNoTablet] = useState(false);
   const pessoas = useConsulta(() => repositorios.pessoa.listar());
   const exemplos = useConsulta(existemDadosDeExemplo);
+  const configuracoes = useConsulta(lerConfiguracoes);
 
   // Rotinas do dia ao abrir (02 §0.5): aviso discreto só quando há novidade.
   useEffect(() => {
@@ -71,6 +74,7 @@ export function CentralProvider({ children }: { children: ReactNode }) {
 
   const listaDePessoas = pessoas.dados;
   const temExemplos = exemplos.dados ?? false;
+  const faseAtiva = configuracoes.dados?.fase_ativa ?? VALORES_PADRAO.fase_ativa;
   const valor = useMemo<ValorCentral>(() => {
     const paraSeletor = (pessoa: { id: string; nome_completo: string }): PessoaDoSeletor => ({ id: pessoa.id, nome: pessoa.nome_completo });
     const atual = listaDePessoas ? resolverPessoaAtual(listaDePessoas, meta.pessoa_atual_id) : null;
@@ -80,11 +84,11 @@ export function CentralProvider({ children }: { children: ReactNode }) {
       escolherPessoa: (id) => gravarMeta({ pessoa_atual_id: id }),
       contexto: acharContexto(meta.contexto_id),
       escolherContexto: (id) => gravarMeta({ contexto_id: id }),
-      faseAtiva: 'f0a',
+      faseAtiva,
       temDadosDeExemplo: temExemplos,
       alternarMenu,
     };
-  }, [listaDePessoas, temExemplos, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
+  }, [listaDePessoas, temExemplos, faseAtiva, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
 
   return <ContextoCentral value={valor}>{children}</ContextoCentral>;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode, type Ref } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/componentes/ui/button';
 import { BotaoFechar, Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
@@ -9,10 +9,10 @@ import { Confirmacao } from './confirmacao';
 export type ErroDeCampo = { campoId: string; mensagem: string };
 
 /** Resumo no topo, com links para cada erro (P3). */
-export function ResumoErros({ erros }: { erros: readonly ErroDeCampo[] }) {
+export function ResumoErros({ erros, ref }: { erros: readonly ErroDeCampo[]; ref?: Ref<HTMLDivElement> }) {
   if (!erros.length) return null;
   return (
-    <div role="alert" className="mb-5 rounded-md bg-err-wash p-4 text-[13px] text-err">
+    <div ref={ref} role="alert" tabIndex={-1} className="mb-5 rounded-md bg-err-wash p-4 text-[13px] text-err focus:outline-none">
       <strong className="block font-semibold">{erros.length === 1 ? 'Falta ajustar 1 campo.' : `Faltam ajustar ${erros.length} campos.`}</strong>
       {erros.map((erro) => (
         <a

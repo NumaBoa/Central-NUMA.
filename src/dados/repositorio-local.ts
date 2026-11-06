@@ -128,7 +128,7 @@ export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, pre
       const registro = { ...atual, arquivado_em: agora, arquivado_por: autor, atualizado_em: agora, atualizado_por: autor, versao_registro: atual.versao_registro + 1 };
       gravar(
         lista.map((linha) => (linha.id === id ? registro : linha)),
-        novoEvento({ usuarioId: autor, acao: 'arquivou', tabela, registroId: id, registroCodigo: codigoDe(atual), motivo }),
+        novoEvento({ usuarioId: autor, acao: 'arquivou', tabela, registroId: id, registroCodigo: codigoDe(atual), antes: atual as Record<string, unknown>, motivo: motivo ?? null }),
       );
       return registro;
     },

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PanelLeft } from 'lucide-react';
 import { Logo } from '@/componentes/marca/logo';
@@ -10,6 +9,7 @@ import { MODULO_CONFIGURACOES, moduloAtivo, moduloDisponivel, MODULOS_EMPRESA, M
 import { cn } from '@/lib/utils';
 import { useCentral } from './central-provider';
 import { ICONES_MODULO } from './icones-modulo';
+import { LinkCentral } from './protecao-saida';
 import { SeletorPessoaLateral } from './seletor-pessoa';
 
 function ItemMenu({ modulo }: { modulo: Modulo }) {
@@ -36,7 +36,7 @@ function ItemMenu({ modulo }: { modulo: Modulo }) {
 
   const ativo = moduloAtivo(modulo, caminho);
   return (
-    <Link
+    <LinkCentral
       href={modulo.href}
       aria-current={ativo ? 'page' : undefined}
       title={modulo.nome}
@@ -47,7 +47,7 @@ function ItemMenu({ modulo }: { modulo: Modulo }) {
     >
       <Icone aria-hidden />
       <span className="trilho:hidden">{modulo.nome}</span>
-    </Link>
+    </LinkCentral>
   );
 }
 
@@ -60,10 +60,10 @@ export function MenuLateral() {
       aria-label="Menu da Central"
       className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col overflow-hidden border-r border-line bg-mist px-2.5 pt-6 pb-3 transition-[width] duration-250 ease-suave max-lg:shadow-e2 baixo:pt-3 baixo:pb-1 md:flex trilho:w-[76px] trilho:shadow-none"
     >
-      <Link href={TELA_INICIAL} aria-label="Central Numa" className="block shrink-0 px-2.5 pt-[3px] pb-3.5 baixo:pb-1 trilho:px-2 trilho:pb-5">
+      <LinkCentral href={TELA_INICIAL} aria-label="Central Numa" className="block shrink-0 px-2.5 pt-[3px] pb-3.5 baixo:pb-1 trilho:px-2 trilho:pb-5">
         <Logo compactavel className="text-[28px] trilho:text-[25px]" />
         <p className="mt-2 text-xs tracking-[.08em] text-ink-soft baixo:hidden trilho:hidden">CENTRAL NUMA</p>
-      </Link>
+      </LinkCentral>
 
       <nav aria-label="Módulos" className="menu-rolagem relative z-[1] min-h-0 flex-1">
         <ul className="grid gap-0.5 baixo:gap-0">

@@ -37,7 +37,8 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 1. Tipo e esquema Zod em `src/dados/tipos`, com os nomes de campos de `16`.
 2. Registro em `src/dados/tabelas.ts`: ela entra sozinha em exportar, importar, restaurar e limpar exemplos.
 3. Repositório em `src/dados/repositorios.ts` (`prefixoCodigo` para código legível) e exemplos em `src/dados/exemplos`.
-4. As telas leem com `useConsulta` e gravam pelo repositório. Mudou o formato de uma tabela já publicada: suba `VERSAO_DADOS`.
+4. As telas leem com `useConsulta` e gravam pelo repositório. Mudou o formato de uma tabela já publicada, ou acrescentou uma tabela: suba `VERSAO_DADOS` e escreva a migração em `src/dados/carga.ts`. Quem já usa a Central não pode perder nada, e backups antigos precisam continuar sendo aceitos.
+5. Dentro de `(central)`, links internos usam `LinkCentral`: é ele que pergunta antes de sair com alterações pendentes (P3).
 
 ## Comandos
 
@@ -48,7 +49,7 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 
 Para rever a abertura, que só aparece uma vez por dia: `/configuracoes?abertura=1`, ou `?abertura=manter` para segurá-la na tela. A vitrine dos padrões fica em `/padroes`, fora do menu.
 
-Quando a T02.01 existir: remova o redirecionamento de `/configuracoes` em `next.config.ts` e tire a aba Geral de "Em breve".
+Para atualizar a lista oficial de municípios do IBGE: `node scripts/gerar-municipios.mjs`, e registre a nova data no Mapa.
 
 ## Git
 

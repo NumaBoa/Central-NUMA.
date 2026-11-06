@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { formatarData, formatarDataHora, formatarHora, formatarNumero, formatarTamanho } from './formatacao';
+import { formatarCotacao, formatarData, formatarDataHora, formatarDiaISO, formatarHora, formatarNumero, formatarTamanho } from './formatacao';
 
 describe('datas', () => {
   it('mostra no fuso de São Paulo, em dd/mm/aaaa', () => {
     expect(formatarData('2026-11-06T02:30:00.000Z')).toBe('05/11/2026');
     expect(formatarHora('2026-11-06T02:30:00.000Z')).toBe('23:30');
     expect(formatarDataHora('2026-11-06T02:30:00.000Z')).toBe('05/11/2026 23:30');
+  });
+});
+
+describe('datas de negócio', () => {
+  it('mostram o dia escrito, sem depender do fuso', () => {
+    expect(formatarDiaISO('2026-11-05')).toBe('05/11/2026');
+  });
+});
+
+describe('cotação', () => {
+  it('tem pelo menos 2 casas e guarda até 6, sem arredondar', () => {
+    expect(formatarCotacao(5.4)).toBe('R$ 5,40');
+    expect(formatarCotacao(5.123456)).toBe('R$ 5,123456');
+    expect(formatarCotacao(1234.5)).toBe('R$ 1.234,50');
   });
 });
 

@@ -10,11 +10,6 @@ const ipsLocais = Object.values(networkInterfaces())
 const config: NextConfig = {
   devIndicators: false,
   allowedDevOrigins: ipsLocais,
-  // Até a T02.01 existir, Configurações abre na aba Dados. Aqui o redirecionamento acontece antes de
-  // qualquer renderização: dentro da página, ele recarregaria tudo depois de a tela começar a abrir.
-  async redirects() {
-    return [{ source: '/configuracoes', destination: '/configuracoes/dados', permanent: false }];
-  },
 };
 
 export default config;

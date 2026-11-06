@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
-import Link from 'next/link';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EmBreve } from '@/componentes/padroes/etiquetas';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +48,7 @@ export function AbasPagina({ abas, rotulo, className }: { abas: readonly AbaPagi
     <nav aria-label={rotulo} className={cn('faixa-rolagem mt-6 flex items-center gap-1.5 border-b border-line pb-3.5 md:mt-7', className)}>
       {abas.map(({ rotulo: nome, icone: Icone, href, ativa }) =>
         href ? (
-          <Link
+          <LinkCentral
             key={nome}
             href={href}
             aria-current={ativa ? 'page' : undefined}
@@ -59,7 +59,7 @@ export function AbasPagina({ abas, rotulo, className }: { abas: readonly AbaPagi
           >
             <Icone aria-hidden />
             {nome}
-          </Link>
+          </LinkCentral>
         ) : (
           <div key={nome} className="inline-flex min-h-11 shrink-0 cursor-default items-center gap-[7px] rounded-pill px-[17px] text-[13px] leading-[1.25] font-medium text-ink-soft md:min-h-10 [&_svg]:size-[15px] [&_svg]:text-ink-faint">
             <Icone aria-hidden />

@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { gravarTabelas, lerTabela, usoDoArmazenamento } from '@/dados/armazenamento';
-import { garantirCarga, tabelasIniciais } from '@/dados/carga';
+import { configuracoesIniciais, garantirCarga, tabelasIniciais } from '@/dados/carga';
 import { novoEvento } from '@/dados/historico';
 import { gravarMeta, lerMeta } from '@/dados/meta';
 import { idDaPessoaAtual, pessoaAtual } from '@/dados/sessao';
@@ -33,8 +33,11 @@ function autorMesmoComDadosDanificados(): string | null {
 /** Tabelas com registros de domínio; o histórico (`auditoria`) é só de inserção. */
 const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'auditoria');
 
-/** O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros. */
-const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => tabela !== 'backup_registro');
+/**
+ * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, e as
+ * configurações são sempre as mesmas chaves, não algo que se cadastra.
+ */
+const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => tabela !== 'backup_registro' && tabela !== 'configuracao');
 
 const esquemaArquivo = z.object({
   formato: z.literal(FORMATO_ARQUIVO),
@@ -50,7 +53,7 @@ export type ArquivoDeDados = z.infer<typeof esquemaArquivo>;
 // ---------- Resumo ----------
 
 export type ResumoDosDados = {
-  /** Cadastros, sem contar o histórico nem os registros de backup. */
+  /** Cadastros ativos, sem contar o histórico nem os registros de backup: o que se vê nas telas. */
   registros: number;
   exemplos: number;
   usoEmCaracteres: number;
@@ -59,7 +62,7 @@ export type ResumoDosDados = {
 
 export async function resumoDosDados(): Promise<ResumoDosDados> {
   garantirCarga();
-  const linhas = TABELAS_DE_CADASTRO.flatMap((tabela) => lerTabela<Controle>(tabela));
+  const linhas = TABELAS_DE_CADASTRO.flatMap((tabela) => lerTabela<Controle>(tabela)).filter((linha) => !linha.arquivado_em);
   const pessoas = lerTabela<Pessoa>('pessoa');
   const backups = lerTabela<BackupRegistro>('backup_registro');
   const ultimo = backups.reduce<BackupRegistro | null>((maior, atual) => (!maior || atual.gerado_em > maior.gerado_em ? atual : maior), null);
@@ -186,8 +189,10 @@ export function analisarArquivo(texto: string, atuais: Readonly<Record<Tabela, n
   }
 
   const avisos: string[] = [];
-  const faltando = NOMES_TABELAS.filter((tabela) => !arquivo.tabelas[tabela]).map((tabela) => TABELAS[tabela].rotulo);
-  if (faltando.length) avisos.push(`O arquivo não traz: ${faltando.join(', ')}. Essas partes ficarão vazias.`);
+  const faltando = NOMES_TABELAS.filter((tabela) => !arquivo.tabelas[tabela]);
+  const ficamVazias = faltando.filter((tabela) => tabela !== 'configuracao').map((tabela) => TABELAS[tabela].rotulo);
+  if (ficamVazias.length) avisos.push(`O arquivo não traz: ${ficamVazias.join(', ')}. Essas partes ficarão vazias.`);
+  if (faltando.includes('configuracao')) avisos.push('O arquivo não traz as configurações: elas voltam aos valores padrão.');
   const desconhecidas = Object.keys(arquivo.tabelas).filter((tabela) => !NOMES_TABELAS.includes(tabela as Tabela));
   if (desconhecidas.length) avisos.push(`Partes do arquivo que esta versão não conhece serão ignoradas: ${desconhecidas.join(', ')}.`);
 
@@ -232,11 +237,13 @@ export async function importarComCopia(arquivo: ArquivoDeDados, baixar: (copia: 
 
 /** Substitui tudo o que há neste navegador pelo conteúdo do arquivo já conferido. */
 export async function aplicarImportacao(arquivo: ArquivoDeDados, comCopia = false): Promise<number> {
-  const registros = TABELAS_DE_CADASTRO.reduce((total, tabela) => total + (arquivo.tabelas[tabela]?.length ?? 0), 0);
+  const registros = TABELAS_DE_CADASTRO.flatMap((tabela) => (arquivo.tabelas[tabela] ?? []) as Controle[]).filter((linha) => !linha.arquivado_em).length;
   const evento = novoEvento({ usuarioId: autorMesmoComDadosDanificados(), acao: 'executou_acao', depois: { funcao: 'importar_dados', registros, copia_antes: comCopia } });
   const historicoDoArquivo = (arquivo.tabelas.auditoria ?? []) as EventoAuditoria[];
   gravarTabelas({
     ...Object.fromEntries(TABELAS_DE_REGISTROS.map((tabela) => [tabela, arquivo.tabelas[tabela] ?? []])),
+    // Um backup anterior às configurações não pode deixar a tela sem os padrões.
+    configuracao: arquivo.tabelas.configuracao ?? configuracoesIniciais(new Date().toISOString()),
     auditoria: [...historicoDoArquivo, evento],
   });
   gravarMeta({ versao_dados: VERSAO_DADOS, contadores: juntarContadores(lerMeta().contadores, arquivo.contadores) });

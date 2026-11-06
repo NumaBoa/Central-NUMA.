@@ -1,15 +1,25 @@
 import { formatInTimeZone } from 'date-fns-tz';
-import { FUSO_PADRAO } from './datas';
+import { fusoConfigurado } from './datas';
 
-export function formatarData(iso: string, fuso: string = FUSO_PADRAO): string {
+/** Datas de negócio (`aaaa-mm-dd`) não têm hora nem fuso: o dia é o que está escrito (RT-06). */
+export function formatarDiaISO(dia: string): string {
+  return dia.split('-').reverse().join('/');
+}
+
+/** Câmbio em reais: pelo menos 2 casas e até as 6 de RT-07. */
+export function formatarCotacao(valor: number): string {
+  return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+}
+
+export function formatarData(iso: string, fuso: string = fusoConfigurado()): string {
   return formatInTimeZone(iso, fuso, 'dd/MM/yyyy');
 }
 
-export function formatarHora(iso: string, fuso: string = FUSO_PADRAO): string {
+export function formatarHora(iso: string, fuso: string = fusoConfigurado()): string {
   return formatInTimeZone(iso, fuso, 'HH:mm');
 }
 
-export function formatarDataHora(iso: string, fuso: string = FUSO_PADRAO): string {
+export function formatarDataHora(iso: string, fuso: string = fusoConfigurado()): string {
   return formatInTimeZone(iso, fuso, 'dd/MM/yyyy HH:mm');
 }
 

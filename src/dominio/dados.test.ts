@@ -64,7 +64,7 @@ describe('Configurações › Dados', () => {
       const arquivo = arquivoExportado(conteudo);
       expect(nome).toBe('central-numa-2026-11-05.json');
       expect(arquivo).toMatchObject({ formato: 'central-numa', versao_dados: VERSAO_DADOS, exportado_em: '2026-11-05T15:00:00.000Z', exportado_por: { id: ID_KIMBERLY, nome: 'Kimberly Grebe' } });
-      expect(Object.keys(arquivo.tabelas).sort()).toEqual(['auditoria', 'backup_registro', 'pessoa']);
+      expect(Object.keys(arquivo.tabelas).sort()).toEqual(['auditoria', 'backup_registro', 'cambio_referencia', 'configuracao', 'pessoa']);
       expect(arquivo.tabelas.pessoa).toHaveLength(4);
     });
 

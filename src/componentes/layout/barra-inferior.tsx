@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { LinkCentral } from './protecao-saida';
 import { usePathname } from 'next/navigation';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { EmBreve, EtiquetaDadosExemplo } from '@/componentes/padroes/etiquetas';
@@ -37,10 +37,10 @@ function ItemBarra({ modulo }: { modulo: Modulo }) {
   }
   const ativo = moduloAtivo(modulo, caminho);
   return (
-    <Link href={modulo.href} aria-current={ativo ? 'page' : undefined} className={cn(ITEM, 'font-semibold', ativo ? 'bg-indigo-wash text-indigo-dk' : 'text-ink-soft')}>
+    <LinkCentral href={modulo.href} aria-current={ativo ? 'page' : undefined} className={cn(ITEM, 'font-semibold', ativo ? 'bg-indigo-wash text-indigo-dk' : 'text-ink-soft')}>
       <Icone aria-hidden />
       {nome}
-    </Link>
+    </LinkCentral>
   );
 }
 
@@ -63,10 +63,10 @@ function ItemMais({ modulo, aoEscolher }: { modulo: Modulo; aoEscolher: () => vo
   }
   const ativo = moduloAtivo(modulo, caminho);
   return (
-    <Link href={modulo.href} onClick={aoEscolher} aria-current={ativo ? 'page' : undefined} className={cn(caixa, ativo && 'border-transparent bg-indigo-wash font-semibold')}>
+    <LinkCentral href={modulo.href} onClick={aoEscolher} aria-current={ativo ? 'page' : undefined} className={cn(caixa, ativo && 'border-transparent bg-indigo-wash font-semibold')}>
       <Icone aria-hidden />
       <span>{modulo.nome}</span>
-    </Link>
+    </LinkCentral>
   );
 }
 

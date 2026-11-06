@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { MensagemErro } from '@/componentes/campos/campo';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
@@ -19,12 +19,14 @@ type ConfirmacaoProps = {
   perigo?: boolean;
   /** Motivo obrigatório quando a regra exigir (RT-16). */
   pedirMotivo?: boolean;
+  mensagemSemMotivo?: string;
   aoConfirmar: (motivo: string) => void;
 };
 
 /** Diálogo de confirmação (P5): centralizado no computador e folha inferior no celular. */
-export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, rotuloCancelar = 'Voltar', perigo = false, pedirMotivo = false, aoConfirmar }: ConfirmacaoProps) {
+export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, rotuloCancelar = 'Voltar', perigo = false, pedirMotivo = false, mensagemSemMotivo = 'Informe o motivo.', aoConfirmar }: ConfirmacaoProps) {
   const idMotivo = useId();
+  const campoMotivo = useRef<HTMLTextAreaElement>(null);
   const [motivo, setMotivo] = useState('');
   const [semMotivo, setSemMotivo] = useState(false);
 
@@ -39,6 +41,7 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
     const limpo = motivo.trim();
     if (pedirMotivo && !limpo) {
       setSemMotivo(true);
+      campoMotivo.current?.focus();
       return;
     }
     setMotivo('');
@@ -59,6 +62,7 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
               Motivo *
             </label>
             <Textarea
+              ref={campoMotivo}
               id={idMotivo}
               value={motivo}
               onChange={(evento) => {
@@ -68,7 +72,7 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
               aria-invalid={semMotivo || undefined}
               aria-describedby={semMotivo ? `${idMotivo}-erro` : undefined}
             />
-            {semMotivo && <MensagemErro id={`${idMotivo}-erro`}>Informe o motivo.</MensagemErro>}
+            {semMotivo && <MensagemErro id={`${idMotivo}-erro`}>{mensagemSemMotivo}</MensagemErro>}
           </div>
         )}
         <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
