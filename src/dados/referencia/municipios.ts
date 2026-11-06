@@ -1,4 +1,9 @@
+import listaDeUfs from './ufs-ibge.json';
+
 export type UfComMunicipios = { sigla: string; nome: string; municipios: readonly string[] };
+
+/** Estados, do mesmo arquivo do IBGE: pequeno, pode ficar sempre carregado. */
+export const UFS: readonly { sigla: string; nome: string }[] = listaDeUfs;
 
 export type ReferenciaMunicipios = {
   fonte: string;

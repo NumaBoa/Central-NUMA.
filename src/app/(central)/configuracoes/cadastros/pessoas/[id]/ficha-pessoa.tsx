@@ -14,6 +14,7 @@ import { ListaHistorico } from '@/componentes/padroes/historico';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Button } from '@/componentes/ui/button';
 import { mensagemDoErro } from '@/dados/erros';
+import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { useConsulta } from '@/dados/use-consulta';
 import { historicoDaPessoa } from '@/dominio/historico';
@@ -33,12 +34,21 @@ async function carregarFicha(id: string) {
 
 type AcaoEmConfirmacao = 'inativar' | 'arquivar' | null;
 
-function Resumo({ pessoa, areas }: { pessoa: Pessoa; areas: readonly string[] }) {
+function Resumo({ pessoa, areas, contraparte }: { pessoa: Pessoa; areas: readonly string[]; contraparte?: Contraparte }) {
   return (
     <ListaDeDados>
       <Dado rotulo="Nome de exibição">{pessoa.nome_exibicao ?? nomeDeExibicaoPadrao(pessoa.nome_completo)}</Dado>
       <Dado rotulo="Tipo">{ROTULOS_TIPO[pessoa.tipo]}</Dado>
       {pessoa.tipo === 'interna' ? <Dado rotulo="Áreas em que atua">{areas.length ? areas.join(', ') : null}</Dado> : <Dado rotulo="Papel do contato">{pessoa.papeis_contato.length ? pessoa.papeis_contato.map((papel) => ROTULOS_PAPEL[papel]).join(', ') : null}</Dado>}
+      {pessoa.tipo === 'externa' && (
+        <Dado rotulo="Contraparte">
+          {contraparte && (
+            <LinkCentral className={CLASSE_LINK} href={`/configuracoes/cadastros/contrapartes/${contraparte.id}`}>
+              {contraparte.nome_fantasia || contraparte.nome}
+            </LinkCentral>
+          )}
+        </Dado>
+      )}
       <Dado rotulo="Função / cargo">{pessoa.funcao}</Dado>
       <Dado rotulo="E-mail">{pessoa.email && <a className={CLASSE_LINK} href={`mailto:${pessoa.email}`}>{pessoa.email}</a>}</Dado>
       <Dado rotulo="Telefone / WhatsApp">{pessoa.telefone && <a className={CLASSE_LINK} href={`tel:+55${pessoa.telefone}`}>{formatarTelefone(pessoa.telefone)}</a>}</Dado>
@@ -204,7 +214,7 @@ export function FichaPessoa() {
           )
         }
         abas={[
-          { id: 'resumo', rotulo: 'Resumo', conteudo: <Resumo pessoa={pessoa} areas={areas} /> },
+          { id: 'resumo', rotulo: 'Resumo', conteudo: <Resumo pessoa={pessoa} areas={areas} contraparte={dados.contrapartes.find((item) => item.id === pessoa.contraparte_id)} /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={pessoa.id} /> },
         ]}
       />

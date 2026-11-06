@@ -37,6 +37,12 @@ export const MARCAS_INICIAIS = [
 
 export const ID_PRODUTO_KIPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f03';
 
+/** T02.05: criada na carga inicial, para permitir rascunhos. Dado real, não é exemplo. */
+export const ID_ENTIDADE_PLANEJADA = 'd5f3b4a7-ae62-4d43-9f34-3c4d5e6f7a01';
+
+/** Contraparte fictícia ligada ao contador de exemplo. */
+export const ID_CONTRAPARTE_CONTABILIDADE = 'e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b01';
+
 /**
  * Produtos de T02.04 e M07 §6. O que a especificação não diz fica em "A revisar por Kimberly", no
  * Mapa: responsável (vazio), tipo de Zarpa e Mimo (Outro), usuários reais do Sobrevivência Urbana.

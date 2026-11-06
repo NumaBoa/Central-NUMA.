@@ -5,7 +5,7 @@ import { listarHistorico } from '@/dados/historico';
 import { esquecerMetaEmMemoria, gravarMeta, lerMeta } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { NOMES_TABELAS, VERSAO_DADOS } from '@/dados/tabelas';
-import { REGISTROS_INICIAIS } from './apoio-testes';
+import { EXEMPLOS_INICIAIS, REGISTROS_INICIAIS } from './apoio-testes';
 import {
   aplicarImportacao,
   analisarArquivo,
@@ -48,7 +48,7 @@ describe('Configurações › Dados', () => {
   describe('resumo', () => {
     it('conta registros e exemplos, e ainda não há backup', async () => {
       const resumo = await resumoDosDados();
-      expect(resumo).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2, ultimoBackup: null });
+      expect(resumo).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: EXEMPLOS_INICIAIS, ultimoBackup: null });
       expect(resumo.usoEmCaracteres).toBeGreaterThan(0);
     });
 
@@ -296,7 +296,7 @@ describe('Configurações › Dados', () => {
       await restaurarExemplos();
 
       expect((await repositorios.pessoa.obter(ID_KIMBERLY))?.funcao).toBe('Sócia');
-      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2, ultimoBackup: null });
+      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: EXEMPLOS_INICIAIS, ultimoBackup: null });
       expect(lerMeta().contadores).toEqual({});
       const historico = await listarHistorico();
       expect(historico).toHaveLength(1);
@@ -315,11 +315,11 @@ describe('Configurações › Dados', () => {
   describe('limpar exemplos', () => {
     it('remove só o que tem exemplo: true e mantém as sócias e o histórico', async () => {
       const historicoAntes = (await listarHistorico()).length;
-      expect(await limparExemplos()).toBe(2);
+      expect(await limparExemplos()).toBe(EXEMPLOS_INICIAIS);
       expect((await repositorios.pessoa.listar()).map((p) => p.nome_completo)).toEqual(['Kimberly Grebe', 'Camila Lima']);
       const historico = await listarHistorico();
       expect(historico).toHaveLength(historicoAntes + 1);
-      expect(historico[0]?.depois).toMatchObject({ funcao: 'limpar_exemplos', registros: 2 });
+      expect(historico[0]?.depois).toMatchObject({ funcao: 'limpar_exemplos', registros: EXEMPLOS_INICIAIS });
     });
 
     it('mantém o que foi cadastrado de verdade', async () => {

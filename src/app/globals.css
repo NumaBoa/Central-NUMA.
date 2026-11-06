@@ -278,6 +278,10 @@
   .faixa-rolagem::-webkit-scrollbar {
     display: none;
   }
+  /* A rolagem corta o que passa da fileira: aqui o contorno de foco fica por dentro do item. */
+  .faixa-rolagem :focus-visible {
+    outline-offset: -3px;
+  }
 
   /* Menu lateral: uma sombra suave indica que há mais itens (a barra de rolagem fica oculta). */
   .menu-rolagem {

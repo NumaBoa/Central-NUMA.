@@ -55,7 +55,7 @@ export function FichaProduto() {
     );
   }
 
-  const { marcas, produtos, pessoas } = consulta.dados;
+  const { marcas, produtos, pessoas, entidades } = consulta.dados;
   const produto = produtos.find((item) => item.id === id);
   const marca = marcas.find((item) => item.id === produto?.marca_id);
   if (!produto || !marca) {
@@ -68,6 +68,7 @@ export function FichaProduto() {
   }
 
   const responsavel = pessoas.find((pessoa) => pessoa.id === produto.responsavel_id);
+  const entidadeDoProduto = entidades.find((entidade) => entidade.id === produto.entidade_id);
   const arquivado = Boolean(produto.arquivado_em);
 
   async function executar(acao: () => Promise<void>, mensagem: string) {
@@ -151,7 +152,7 @@ export function FichaProduto() {
                 <Dado rotulo="Estágio">{ROTULOS_ESTAGIO[produto.estagio]}</Dado>
                 {produto.ordem_fila !== null && <Dado rotulo="Ordem na fila">{produto.ordem_fila}</Dado>}
                 <Dado rotulo="Responsável">{responsavelDisponivel(produto, pessoas) ? responsavel?.nome_completo : <span className="text-warn">A definir: edite e escolha uma pessoa</span>}</Dado>
-                <Dado rotulo="Entidade responsável">A definir</Dado>
+                <Dado rotulo="Entidade responsável">{entidadeDoProduto ? entidadeDoProduto.nome_fantasia || entidadeDoProduto.nome : 'A definir'}</Dado>
                 <Dado rotulo="Tem usuários reais">{produto.tem_usuarios_reais ? 'Sim' : 'Não'}</Dado>
                 <Dado rotulo="Data de início">{produto.data_inicio && formatarDiaISO(produto.data_inicio)}</Dado>
               </ListaDeDados>
@@ -161,7 +162,7 @@ export function FichaProduto() {
         ]}
       />
 
-      <FormularioProduto aberto={editando} aoFechar={() => setEditando(false)} produto={produto} marcas={marcas} pessoas={pessoas} />
+      <FormularioProduto aberto={editando} aoFechar={() => setEditando(false)} produto={produto} marcas={marcas} pessoas={pessoas} entidades={entidades} />
       <Confirmacao
         aberto={arquivando}
         aoFechar={() => setArquivando(false)}

@@ -7,7 +7,7 @@ import { repositorios } from '@/dados/repositorios';
 import { VERSAO_DADOS } from '@/dados/tabelas';
 import { VALORES_PADRAO, type Configuracao } from '@/dados/tipos/configuracao';
 import { hojeISO } from '@/lib/datas';
-import { REGISTROS_INICIAIS } from './apoio-testes';
+import { EXEMPLOS_INICIAIS, REGISTROS_INICIAIS } from './apoio-testes';
 import {
   avancarFase,
   carregarTelaGeral,
@@ -335,7 +335,7 @@ describe('T02.01 Configurações gerais', () => {
 
     it('configurações não contam como registros nem como exemplos', async () => {
       await lerConfiguracoes();
-      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2 });
+      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: EXEMPLOS_INICIAIS });
     });
 
     it('limpar exemplos não mexe nas configurações', async () => {

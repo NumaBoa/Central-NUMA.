@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { carregarMunicipios, municipiosDaUf } from './municipios';
+import { carregarMunicipios, municipiosDaUf, UFS } from './municipios';
 
 describe('municípios do arquivo oficial do IBGE', () => {
   it('RJ contém Rio de Janeiro (D16)', async () => {
@@ -35,6 +35,11 @@ describe('municípios do arquivo oficial do IBGE', () => {
     const emOrdem = (lista: readonly string[]) => [...lista].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     expect(ufs.map((uf) => uf.nome)).toEqual(emOrdem(ufs.map((uf) => uf.nome)));
     for (const uf of ufs) expect(uf.municipios).toEqual(emOrdem(uf.municipios));
+  });
+
+  it('a lista de estados é a mesma do arquivo de municípios', async () => {
+    const { ufs } = await carregarMunicipios();
+    expect(UFS).toEqual(ufs.map(({ sigla, nome }) => ({ sigla, nome })));
   });
 
   it('UF desconhecida não tem municípios', async () => {

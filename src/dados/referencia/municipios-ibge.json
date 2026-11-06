@@ -1,7 +1,7 @@
 {
   "fonte": "IBGE, API de Localidades",
   "endereco": "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado",
-  "consultado_em": "2026-11-05",
+  "consultado_em": "2026-11-06",
   "total": 5571,
   "ufs": [
     {"sigla":"AC","nome":"Acre","municipios":["Acrelândia","Assis Brasil","Brasiléia","Bujari","Capixaba","Cruzeiro do Sul","Epitaciolândia","Feijó","Jordão","Mâncio Lima","Manoel Urbano","Marechal Thaumaturgo","Plácido de Castro","Porto Acre","Porto Walter","Rio Branco","Rodrigues Alves","Santa Rosa do Purus","Sena Madureira","Senador Guiomard","Tarauacá","Xapuri"]},

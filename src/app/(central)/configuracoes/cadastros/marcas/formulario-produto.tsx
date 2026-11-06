@@ -13,6 +13,7 @@ import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
+import type { Entidade } from '@/dados/tipos/contraparte';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import {
@@ -31,6 +32,7 @@ import {
   type FormularioProduto as Formulario,
   type FormularioProdutoValidado,
 } from '@/dominio/produtos';
+import { entidadesParaVincular } from '@/dominio/entidades';
 
 const SIM_NAO = [
   { valor: 'sim', rotulo: 'Sim' },
@@ -57,10 +59,11 @@ type FormularioProdutoProps = {
   marcaId?: string;
   marcas: readonly Marca[];
   pessoas: readonly Pessoa[];
+  entidades: readonly Entidade[];
 };
 
-/** Cadastro básico de T02.04, em painel lateral (P3). A entidade responsável entra com a T02.05. */
-export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, pessoas }: FormularioProdutoProps) {
+/** Cadastro básico de T02.04, em painel lateral (P3). */
+export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, pessoas, entidades }: FormularioProdutoProps) {
   const { register, handleSubmit, control, reset, watch, setError, formState } = useForm<Formulario, unknown, FormularioProdutoValidado>({
     resolver: zodResolver(esquemaFormularioProduto),
     defaultValues: formularioProdutoVazio(marcaId ?? ''),
@@ -70,6 +73,7 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
   const [aConfirmar, setAConfirmar] = useState<{ formulario: FormularioProdutoValidado; avisos: readonly string[] } | null>(null);
   const opcoesDePessoa = useMemo(() => pessoasParaProduto(pessoas), [pessoas]);
   const opcoesDeMarca = useMemo(() => marcas.filter((marca) => !marca.arquivado_em), [marcas]);
+  const opcoesDeEntidade = useMemo(() => entidadesParaVincular(entidades), [entidades]);
 
   // O formulário começa do que está salvo a cada vez que abre, e não enquanto alguém digita.
   useEffect(() => {
@@ -203,6 +207,24 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
                     {opcoesDePessoa.map((pessoa) => (
                       <option key={pessoa.id} value={pessoa.id}>
                         {pessoa.nome_completo}
+                      </option>
+                    ))}
+                  </Selecao>
+                )}
+              </Campo>
+            )}
+          />
+          <Controller
+            control={control}
+            name="entidade_id"
+            render={({ field }) => (
+              <Campo rotulo="Entidade responsável" ajuda="Pode ficar a definir (RN-02.06).">
+                {(controle) => (
+                  <Selecao {...controle} {...field}>
+                    <option value="">A definir</option>
+                    {opcoesDeEntidade.map((entidade) => (
+                      <option key={entidade.id} value={entidade.id}>
+                        {entidade.nome_fantasia || entidade.nome}
                       </option>
                     ))}
                   </Selecao>

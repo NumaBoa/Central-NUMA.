@@ -10,6 +10,7 @@ import { gravarMeta, lerMeta } from '@/dados/meta';
 import { idDaPessoaAtual, pessoaAtual } from '@/dados/sessao';
 import { NOMES_TABELAS, TABELAS, VERSAO_DADOS, type Tabela } from '@/dados/tabelas';
 import type { PessoaArea } from '@/dados/tipos/area';
+import type { Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import type { BackupRegistro } from '@/dados/tipos/backup-registro';
 import type { Controle } from '@/dados/tipos/controle';
@@ -38,7 +39,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -286,6 +287,11 @@ export async function limparExemplos(): Promise<number> {
   // Pessoa que saiu não continua nas áreas, mesmo que a ligação tenha sido feita por alguém de verdade.
   const pessoasQueFicam = new Set((novasLinhas.pessoa as Controle[]).map((pessoa) => pessoa.id));
   novasLinhas.pessoa_area = (novasLinhas.pessoa_area as PessoaArea[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
+  novasLinhas.entidade_representante = (novasLinhas.entidade_representante as EntidadeRepresentante[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
+  // Contraparte fictícia que saiu não fica pendurada em registro de verdade.
+  const contrapartesQueFicam = new Set((novasLinhas.contraparte as Controle[]).map((contraparte) => contraparte.id));
+  novasLinhas.pessoa = (novasLinhas.pessoa as Pessoa[]).map((pessoa) => (pessoa.contraparte_id && !contrapartesQueFicam.has(pessoa.contraparte_id) ? { ...pessoa, contraparte_id: null } : pessoa));
+  novasLinhas.entidade = (novasLinhas.entidade as Entidade[]).map((entidade) => (entidade.contador_id && !contrapartesQueFicam.has(entidade.contador_id) ? { ...entidade, contador_id: null } : entidade));
   gravarTabelas({
     ...novasLinhas,
     auditoria: [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: autor, acao: 'executou_acao', depois: { funcao: 'limpar_exemplos', registros: removidos } })],

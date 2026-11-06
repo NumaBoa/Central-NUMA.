@@ -39,16 +39,19 @@ export function Pilulas({ rotulo, obrigatorio = false, opcoes, valor, aoMudar, c
   );
 }
 
-type PilulasMultiplasProps = Omit<PilulasProps, 'valor' | 'aoMudar' | 'obrigatorio'> & {
+type PilulasMultiplasProps = Omit<PilulasProps, 'valor' | 'aoMudar'> & {
   valores: readonly string[];
   aoMudar: (valores: string[]) => void;
 };
 
 /** Várias escolhas com poucas opções: caixas de marcar de verdade, com a mesma aparência. */
-export function PilulasMultiplas({ rotulo, opcoes, valores, aoMudar, className }: PilulasMultiplasProps) {
+export function PilulasMultiplas({ rotulo, obrigatorio = false, opcoes, valores, aoMudar, className }: PilulasMultiplasProps) {
   return (
     <fieldset className={className}>
-      <legend className="mb-[7px] texto-rotulo">{rotulo}</legend>
+      <legend className="mb-[7px] texto-rotulo">
+        {rotulo}
+        {obrigatorio && ' *'}
+      </legend>
       <div className="flex flex-wrap gap-1.5">
         {opcoes.map((opcao) => (
           <label key={opcao.valor} className={CLASSE_PILULA}>

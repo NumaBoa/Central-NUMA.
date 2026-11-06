@@ -25,6 +25,7 @@ export const esquemaFormularioProduto = z.object({
   estagio: z.enum(['ideia', 'validacao', 'mvp', 'em_uso', 'crescimento', 'pausado', 'descontinuado']),
   ordem_fila: z.string().trim().regex(/^\d{0,4}$/, 'Use só números, como 1.'),
   responsavel_id: z.string().min(1, 'Escolha a pessoa responsável pelo produto.'),
+  entidade_id: z.string(),
   tem_usuarios_reais: z.boolean(),
   data_inicio: z.string(),
   situacao: z.enum(['ativo', 'pausado', 'descontinuado']),
@@ -35,7 +36,7 @@ export type FormularioProduto = z.input<typeof esquemaFormularioProduto>;
 export type FormularioProdutoValidado = z.output<typeof esquemaFormularioProduto>;
 
 export function formularioProdutoVazio(marcaId: string): FormularioProduto {
-  return { marca_id: marcaId, nome: '', codigo_curto: '', tipo: 'app_mobile', descricao_curta: '', estagio: 'ideia', ordem_fila: '', responsavel_id: '', tem_usuarios_reais: false, data_inicio: '', situacao: 'ativo', motivo: '' };
+  return { marca_id: marcaId, nome: '', codigo_curto: '', tipo: 'app_mobile', descricao_curta: '', estagio: 'ideia', ordem_fila: '', responsavel_id: '', entidade_id: '', tem_usuarios_reais: false, data_inicio: '', situacao: 'ativo', motivo: '' };
 }
 
 export function formularioDoProduto(produto: Produto, pessoas: readonly Pessoa[]): FormularioProduto {
@@ -48,6 +49,7 @@ export function formularioDoProduto(produto: Produto, pessoas: readonly Pessoa[]
     estagio: produto.estagio,
     ordem_fila: produto.ordem_fila === null ? '' : String(produto.ordem_fila),
     responsavel_id: responsavelDisponivel(produto, pessoas) ? (produto.responsavel_id ?? '') : '',
+    entidade_id: produto.entidade_id ?? '',
     tem_usuarios_reais: produto.tem_usuarios_reais,
     data_inicio: produto.data_inicio ?? '',
     situacao: produto.situacao,
@@ -82,7 +84,7 @@ export function dadosDoProduto(formulario: FormularioProdutoValidado) {
     estagio: formulario.estagio,
     ordem_fila: usaFila(formulario.estagio) && formulario.ordem_fila ? Number(formulario.ordem_fila) : null,
     responsavel_id: formulario.responsavel_id,
-    entidade_id: null,
+    entidade_id: formulario.entidade_id || null,
     tem_usuarios_reais: formulario.tem_usuarios_reais,
     data_inicio: formulario.data_inicio || null,
     situacao: formulario.situacao,

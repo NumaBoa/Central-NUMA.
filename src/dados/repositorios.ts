@@ -4,6 +4,7 @@ import { criarRepositorioLocal } from './repositorio-local';
 import { esquemaArea, esquemaPessoaArea, type Area, type PessoaArea } from './tipos/area';
 import { esquemaBackupRegistro, type BackupRegistro } from './tipos/backup-registro';
 import { esquemaCambioReferencia, type CambioReferencia } from './tipos/cambio-referencia';
+import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante, type Contraparte, type Entidade, type EntidadeRepresentante } from './tipos/contraparte';
 import { esquemaMarca, esquemaProduto, type Marca, type Produto } from './tipos/marca';
 import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
 
@@ -17,6 +18,9 @@ export const repositorios: {
   pessoa_area: Repositorio<PessoaArea>;
   marca: Repositorio<Marca>;
   produto: Repositorio<Produto>;
+  contraparte: Repositorio<Contraparte>;
+  entidade: Repositorio<Entidade>;
+  entidade_representante: Repositorio<EntidadeRepresentante>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -26,4 +30,7 @@ export const repositorios: {
   pessoa_area: criarRepositorioLocal({ tabela: 'pessoa_area', esquema: esquemaPessoaArea }),
   marca: criarRepositorioLocal({ tabela: 'marca', esquema: esquemaMarca }),
   produto: criarRepositorioLocal({ tabela: 'produto', esquema: esquemaProduto }),
+  contraparte: criarRepositorioLocal({ tabela: 'contraparte', esquema: esquemaContraparte }),
+  entidade: criarRepositorioLocal({ tabela: 'entidade', esquema: esquemaEntidade }),
+  entidade_representante: criarRepositorioLocal({ tabela: 'entidade_representante', esquema: esquemaEntidadeRepresentante }),
 };

@@ -1,7 +1,7 @@
 /**
- * Gera src/dados/referencia/municipios-ibge.json a partir do arquivo oficial do IBGE (API de
- * Localidades). Nada aqui é digitado à mão: para atualizar a lista, rode de novo e registre a data
- * no Mapa.
+ * Gera src/dados/referencia/municipios-ibge.json e ufs-ibge.json a partir do arquivo oficial do IBGE
+ * (API de Localidades). Nada aqui é digitado à mão: para atualizar a lista, rode de novo e registre
+ * a data no Mapa.
  *
  *   node scripts/gerar-municipios.mjs
  */
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ENDERECO = 'https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado';
 const DESTINO = fileURLToPath(new URL('../src/dados/referencia/municipios-ibge.json', import.meta.url));
+const DESTINO_UFS = fileURLToPath(new URL('../src/dados/referencia/ufs-ibge.json', import.meta.url));
 const TOTAL_DE_UFS = 27;
 
 const resposta = await fetch(ENDERECO);
@@ -46,4 +47,5 @@ const texto = `{\n${Object.entries(cabecalho)
 
 mkdirSync(dirname(DESTINO), { recursive: true });
 writeFileSync(DESTINO, texto);
+writeFileSync(DESTINO_UFS, `${JSON.stringify(ufs.map(({ sigla, nome }) => ({ sigla, nome })))}\n`);
 console.log(`${linhas.length} municípios em ${ufs.length} UFs, consultados em ${hoje}.`);

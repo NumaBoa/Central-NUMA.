@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, Plus, Users } from 'lucide-react';
+import { Campo } from '@/componentes/campos/campo';
 import { Pilulas } from '@/componentes/campos/pilulas';
+import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
@@ -27,7 +29,7 @@ export function EtiquetaDaSituacao({ situacao }: { situacao: Pessoa['situacao'] 
 
 const emOrdem = (a: string, b: string) => a.localeCompare(b, 'pt-BR');
 
-const COLUNAS: readonly Coluna<Pessoa>[] = [
+const colunasDePessoas = (nomeDoVinculo: (pessoa: Pessoa) => string): readonly Coluna<Pessoa>[] => [
   {
     id: 'nome',
     titulo: 'Nome',
@@ -41,6 +43,7 @@ const COLUNAS: readonly Coluna<Pessoa>[] = [
     ),
   },
   { id: 'tipo', titulo: 'Tipo', essencial: true, ordenar: (a, b) => emOrdem(a.tipo, b.tipo), celula: (pessoa) => ROTULOS_TIPO[pessoa.tipo] },
+  { id: 'vinculo', titulo: 'Vínculo', celula: (pessoa) => nomeDoVinculo(pessoa) || '—' },
   { id: 'funcao', titulo: 'Função', ordenar: (a, b) => emOrdem(a.funcao ?? '', b.funcao ?? ''), celula: (pessoa) => pessoa.funcao ?? '—' },
   { id: 'email', titulo: 'E-mail', celula: (pessoa) => pessoa.email ?? '—' },
   { id: 'telefone', titulo: 'Telefone', celula: (pessoa) => (pessoa.telefone ? formatarTelefone(pessoa.telefone) : '—') },
@@ -51,7 +54,7 @@ function plural(quantidade: number): string {
   return `${formatarNumero(quantidade)} ${quantidade === 1 ? 'pessoa' : 'pessoas'}`;
 }
 
-/** T02.02: lista de pessoas (P1). O vínculo com contraparte entra com a T02.06; "usuária", com o login. */
+/** T02.02: lista de pessoas (P1). "Usuária" entra com o login, na etapa com servidor. */
 export function TelaPessoas() {
   const roteador = useRouter();
   const consulta = useConsulta(carregarPessoas);
@@ -69,7 +72,13 @@ export function TelaPessoas() {
 
   const mudar = (parcial: Partial<FiltrosPessoas>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
   const limpar = () => setFiltros((atuais) => ({ ...FILTROS_PESSOAS_INICIAIS, arquivadas: atuais.arquivadas }));
-  const filtrando = Boolean(filtros.busca.trim()) || filtros.tipo !== 'todas' || filtros.situacao !== 'todas';
+  const filtrando = Boolean(filtros.busca.trim()) || filtros.tipo !== 'todas' || filtros.situacao !== 'todas' || Boolean(filtros.contraparte);
+  const contrapartes = consulta.dados?.contrapartes;
+  const nomeDaContraparte = (id: string | null) => {
+    const contraparte = contrapartes?.find((item) => item.id === id);
+    return contraparte ? contraparte.nome_fantasia || contraparte.nome : '';
+  };
+  const colunas = useMemo(() => colunasDePessoas((pessoa) => nomeDaContraparte(pessoa.contraparte_id)), [contrapartes]); // eslint-disable-line react-hooks/exhaustive-deps -- a função só depende das contrapartes
   const abrir = (pessoa: Pessoa) => roteador.push(`${CAMINHO}/${pessoa.id}`);
 
   return (
@@ -105,11 +114,11 @@ export function TelaPessoas() {
               ]}
               rapidoAtivo={filtros.tipo}
               aoEscolherRapido={(tipo) => mudar({ tipo: tipo as FiltrosPessoas['tipo'] })}
-              ativos={filtros.situacao === 'todas' ? [] : [{ id: 'situacao', rotulo: `Situação: ${ROTULOS_SITUACAO[filtros.situacao]}` }]}
-              aoRemoverAtivo={() => mudar({ situacao: 'todas' })}
+              ativos={[...(filtros.situacao === 'todas' ? [] : [{ id: 'situacao', rotulo: `Situação: ${ROTULOS_SITUACAO[filtros.situacao]}` }]), ...(filtros.contraparte ? [{ id: 'contraparte', rotulo: `Contraparte: ${nomeDaContraparte(filtros.contraparte)}` }] : [])]}
+              aoRemoverAtivo={(id) => mudar(id === 'situacao' ? { situacao: 'todas' } : { contraparte: '' })}
               aoLimpar={limpar}
               filtrosDetalhados={
-                <div className="px-1 pb-2 md:px-3">
+                <div className="grid gap-4 px-1 pb-2 md:px-3">
                   <Pilulas
                     rotulo="Situação"
                     valor={filtros.situacao}
@@ -120,6 +129,18 @@ export function TelaPessoas() {
                       { valor: 'inativa', rotulo: 'Inativas' },
                     ]}
                   />
+                  <Campo rotulo="Contraparte" id="filtro-contraparte">
+                    {(controle) => (
+                      <Selecao {...controle} value={filtros.contraparte} onChange={(evento) => mudar({ contraparte: evento.target.value })}>
+                        <option value="">Todas</option>
+                        {(contrapartes ?? []).map((contraparte) => (
+                          <option key={contraparte.id} value={contraparte.id}>
+                            {contraparte.nome_fantasia || contraparte.nome}
+                          </option>
+                        ))}
+                      </Selecao>
+                    )}
+                  </Campo>
                 </div>
               }
             />
@@ -132,7 +153,7 @@ export function TelaPessoas() {
             <Lista
               rotulo={filtros.arquivadas ? 'Pessoas arquivadas' : 'Pessoas'}
               linhas={visiveis}
-              colunas={COLUNAS}
+              colunas={colunas}
               chave={(pessoa) => pessoa.id}
               aoAbrir={abrir}
               filtrando={filtrando}

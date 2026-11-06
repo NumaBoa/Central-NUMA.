@@ -1,6 +1,7 @@
+import type { Contraparte } from '../tipos/contraparte';
 import type { Controle } from '../tipos/controle';
 import type { Pessoa } from '../tipos/pessoa';
-import { ID_CAMILA, ID_KIMBERLY } from './base';
+import { ID_CAMILA, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY } from './base';
 
 /**
  * Dados de exemplo (02 §0.3 e 17 §6). As sócias são reais; os demais registros são fictícios e
@@ -36,7 +37,34 @@ function pessoa(id: string, exemplo: boolean, agora: string, dados: Pick<Pessoa,
   };
 }
 
-export type DadosDeExemplo = { pessoa: Pessoa[] };
+function contraparte(id: string, agora: string, dados: Pick<Contraparte, 'tipo_pessoa' | 'nome' | 'papeis' | 'responsavel_id' | 'pais'> & Partial<Contraparte>): Contraparte {
+  return {
+    ...controle(id, true, agora),
+    nome_fantasia: null,
+    documento: null,
+    documento_normalizado: null,
+    site: null,
+    email: null,
+    telefone: null,
+    endereco: null,
+    origem: null,
+    classe: 'int',
+    observacoes: null,
+    situacao: 'ativa',
+    ...dados,
+  };
+}
+
+/** Fornecedores fictícios (17 §6): um de cada tipo que a F0a usa, nenhum com documento inventado. */
+export function contrapartesDeExemplo(agora: string): Contraparte[] {
+  return [
+    contraparte(ID_CONTRAPARTE_CONTABILIDADE, agora, { tipo_pessoa: 'pj', nome: 'Souza Contabilidade Ltda', nome_fantasia: 'Souza Contabilidade', papeis: ['fornecedor'], responsavel_id: ID_KIMBERLY, pais: 'BR', email: 'contato@exemplo.com.br', endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: 'Rio de Janeiro', uf: 'RJ' } }),
+    contraparte('e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b02', agora, { tipo_pessoa: 'pj', nome: 'Estúdio Verde Hospedagem Ltda', papeis: ['fornecedor', 'parceiro'], responsavel_id: ID_CAMILA, pais: 'BR', site: 'https://exemplo.com.br' }),
+    contraparte('e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b03', agora, { tipo_pessoa: 'estrangeira', nome: 'Nuvem Clara Inc.', papeis: ['fornecedor'], responsavel_id: ID_CAMILA, pais: 'US' }),
+  ];
+}
+
+export type DadosDeExemplo = { pessoa: Pessoa[]; contraparte: Contraparte[] };
 
 export function gerarExemplos(agora: string): DadosDeExemplo {
   return {
@@ -44,7 +72,8 @@ export function gerarExemplos(agora: string): DadosDeExemplo {
       pessoa(ID_KIMBERLY, false, agora, { nome_completo: 'Kimberly Grebe', tipo: 'interna', eh_socia: true, funcao: 'Sócia' }),
       pessoa(ID_CAMILA, false, agora, { nome_completo: 'Camila Lima', tipo: 'interna', eh_socia: true, funcao: 'Sócia' }),
       pessoa('2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03', true, agora, { nome_completo: 'Bruna Alves', tipo: 'interna', eh_socia: false, funcao: 'Freelancer de design', email: 'bruna@exemplo.com.br' }),
-      pessoa('3ea04f85-6c9b-4d4e-8a5f-8b1d0f7c4d04', true, agora, { nome_completo: 'Rafael Souza', tipo: 'externa', eh_socia: false, funcao: 'Contador', email: 'rafael@exemplo.com.br' }),
+      pessoa('3ea04f85-6c9b-4d4e-8a5f-8b1d0f7c4d04', true, agora, { nome_completo: 'Rafael Souza', tipo: 'externa', eh_socia: false, funcao: 'Contador', email: 'rafael@exemplo.com.br', contraparte_id: ID_CONTRAPARTE_CONTABILIDADE, papeis_contato: ['principal', 'financeiro'] }),
     ],
+    contraparte: contrapartesDeExemplo(agora),
   };
 }

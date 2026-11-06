@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Campo } from '@/componentes/campos/campo';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
+import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
@@ -53,10 +54,12 @@ type FormularioPessoaProps = {
   pessoa?: Pessoa | null;
   dados: DadosPessoas;
   aoCadastrar?: (pessoa: Pessoa) => void;
+  /** Ao cadastrar um contato a partir da ficha da contraparte. */
+  contraparteInicial?: string;
 };
 
 /** Formulário de T02.02, em painel lateral (P3). Interna e Externa mostram campos diferentes. */
-export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar }: FormularioPessoaProps) {
+export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar, contraparteInicial }: FormularioPessoaProps) {
   const { register, handleSubmit, control, reset, watch, setError, setFocus, formState } = useForm<Formulario>({
     resolver: zodResolver(esquemaFormularioPessoa),
     defaultValues: FORMULARIO_PESSOA_VAZIO,
@@ -67,7 +70,8 @@ export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar 
   const [aConfirmar, setAConfirmar] = useState<{ formulario: Formulario; avisos: readonly string[]; outra: boolean } | null>(null);
   const [proximaPessoa, setProximaPessoa] = useState(0);
 
-  const valoresIniciais = useMemo(() => (pessoa ? formularioDaPessoa(pessoa, areasDaPessoa(pessoa.id, dados).map((area) => area.id)) : FORMULARIO_PESSOA_VAZIO), [pessoa, dados]);
+  const vazio = useMemo<Formulario>(() => (contraparteInicial ? { ...FORMULARIO_PESSOA_VAZIO, tipo: 'externa', contraparte_id: contraparteInicial } : FORMULARIO_PESSOA_VAZIO), [contraparteInicial]);
+  const valoresIniciais = useMemo(() => (pessoa ? formularioDaPessoa(pessoa, areasDaPessoa(pessoa.id, dados).map((area) => area.id)) : vazio), [pessoa, dados, vazio]);
 
   // O formulário começa do que está salvo a cada vez que abre, e não enquanto alguém digita.
   useEffect(() => {
@@ -101,7 +105,7 @@ export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar 
       } else {
         aoCadastrar?.(salva);
         if (outra) {
-          reset(FORMULARIO_PESSOA_VAZIO);
+          reset(vazio);
           setProximaPessoa((atual) => atual + 1);
         } else {
           aoFechar();
@@ -167,11 +171,33 @@ export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar 
               />
             </>
           ) : (
-            <Controller
-              control={control}
-              name="papeis_contato"
-              render={({ field }) => <PilulasMultiplas rotulo="Papel do contato" valores={field.value} aoMudar={(valores) => field.onChange(valores as PapelContato[])} opcoes={paraOpcoes(ROTULOS_PAPEL)} />}
-            />
+            <>
+              <Controller
+                control={control}
+                name="contraparte_id"
+                render={({ field }) => (
+                  <Campo rotulo="Contraparte" ajuda="A empresa a que o contato pertence. Opcional para quem é autônomo.">
+                    {(controle) => (
+                      <Selecao {...controle} {...field}>
+                        <option value="">Nenhuma</option>
+                        {dados.contrapartes
+                          .filter((contraparte) => !contraparte.arquivado_em && (contraparte.situacao === 'ativa' || contraparte.id === field.value))
+                          .map((contraparte) => (
+                            <option key={contraparte.id} value={contraparte.id}>
+                              {contraparte.nome_fantasia || contraparte.nome}
+                            </option>
+                          ))}
+                      </Selecao>
+                    )}
+                  </Campo>
+                )}
+              />
+              <Controller
+                control={control}
+                name="papeis_contato"
+                render={({ field }) => <PilulasMultiplas rotulo="Papel do contato" valores={field.value} aoMudar={(valores) => field.onChange(valores as PapelContato[])} opcoes={paraOpcoes(ROTULOS_PAPEL)} />}
+              />
+            </>
           )}
           <Campo rotulo="Função / cargo">{(controle) => <Input autoComplete="off" {...controle} {...register('funcao')} />}</Campo>
           <Campo id={ID_DO_CAMPO.email} rotulo="E-mail" erro={errors.email?.message}>

@@ -5,6 +5,8 @@ import { TABELAS, type Tabela } from '@/dados/tabelas';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import { CATALOGO_CONFIGURACAO, chaveConhecida } from '@/dados/tipos/configuracao';
 import { formatarDiaISO } from '@/lib/formatacao';
+import { ROTULOS_ORIGEM, ROTULOS_PAPEL_CONTRAPARTE, ROTULOS_TIPO_PESSOA } from './contrapartes';
+import { ROTULOS_SITUACAO_ENTIDADE, ROTULOS_TIPO_ENTIDADE } from './entidades';
 import { avancouDeFase, rotuloDaFase } from './fases';
 import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
@@ -95,6 +97,7 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     nome_exibicao: { rotulo: 'Nome de exibição' },
     tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO[valor as keyof typeof ROTULOS_TIPO] },
     eh_socia: { rotulo: 'É sócia', valor: simNao },
+    contraparte_id: { rotulo: 'Contraparte', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'contraparte removida' },
     papeis_contato: { rotulo: 'Papel do contato', valor: (valor) => (valor as PapelContato[]).map((papel) => ROTULOS_PAPEL[papel]).join(', ') },
     funcao: { rotulo: 'Função' },
     email: { rotulo: 'E-mail' },
@@ -124,9 +127,41 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     estagio: { rotulo: 'Estágio', valor: (valor) => ROTULOS_ESTAGIO[valor as keyof typeof ROTULOS_ESTAGIO] },
     ordem_fila: { rotulo: 'Ordem na fila' },
     responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    entidade_id: { rotulo: 'Entidade responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'entidade removida' },
     tem_usuarios_reais: { rotulo: 'Tem usuários reais', valor: simNao },
     data_inicio: { rotulo: 'Data de início', valor: (valor) => formatarDiaISO(String(valor)) },
     situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_PRODUTO[valor as keyof typeof ROTULOS_SITUACAO_PRODUTO] },
+  },
+  contraparte: {
+    tipo_pessoa: { rotulo: 'Tipo de pessoa', valor: (valor) => ROTULOS_TIPO_PESSOA[valor as keyof typeof ROTULOS_TIPO_PESSOA] },
+    nome: { rotulo: 'Nome' },
+    nome_fantasia: { rotulo: 'Nome fantasia' },
+    documento: { rotulo: 'Documento', semValores: true },
+    papeis: { rotulo: 'Papéis', valor: (valor) => (valor as (keyof typeof ROTULOS_PAPEL_CONTRAPARTE)[]).map((papel) => ROTULOS_PAPEL_CONTRAPARTE[papel]).join(', ') },
+    site: { rotulo: 'Site' },
+    email: { rotulo: 'E-mail' },
+    telefone: { rotulo: 'Telefone' },
+    endereco: { rotulo: 'Endereço', semValores: true },
+    pais: { rotulo: 'País' },
+    origem: { rotulo: 'Origem', valor: (valor) => ROTULOS_ORIGEM[valor as keyof typeof ROTULOS_ORIGEM] },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    observacoes: { rotulo: 'Observações', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO[valor as keyof typeof ROTULOS_SITUACAO] },
+  },
+  entidade: {
+    tipo_pessoa: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ENTIDADE[valor as keyof typeof ROTULOS_TIPO_ENTIDADE] },
+    nome: { rotulo: 'Nome' },
+    nome_fantasia: { rotulo: 'Nome fantasia' },
+    documento: { rotulo: 'Documento', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_ENTIDADE[valor as keyof typeof ROTULOS_SITUACAO_ENTIDADE] },
+    natureza_juridica: { rotulo: 'Natureza jurídica' },
+    regime_tributario: { rotulo: 'Regime tributário' },
+    inscricao_municipal: { rotulo: 'Inscrição municipal' },
+    inscricao_estadual: { rotulo: 'Inscrição estadual' },
+    endereco: { rotulo: 'Endereço', semValores: true },
+    data_abertura: { rotulo: 'Data de abertura', valor: (valor) => formatarDiaISO(String(valor)) },
+    entidade_padrao: { rotulo: 'Entidade padrão', valor: simNao },
+    contador_id: { rotulo: 'Contador', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'contraparte removida' },
   },
 };
 
@@ -156,9 +191,11 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
     return nome && `a área ${nome}`;
   }
-  if (evento.tabela === 'marca' || evento.tabela === 'produto') {
+  const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade' };
+  const artigo = artigos[evento.tabela ?? ''];
+  if (artigo) {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
-    return nome && `${evento.tabela === 'marca' ? 'a marca' : 'o produto'} ${nome}`;
+    return nome && `${artigo} ${nome}`;
   }
   return undefined;
 }
@@ -174,6 +211,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const registro = evento.registro_codigo ? ` ${evento.registro_codigo}` : '';
   const ehCambio = evento.tabela === 'cambio_referencia';
   const ehLigacao = evento.tabela === 'pessoa_area';
+  const ehRepresentante = evento.tabela === 'entidade_representante';
   const porExtenso = registroPorExtenso(evento, nomes);
   const motivo = evento.motivo ? `. Motivo: ${evento.motivo}` : '';
   switch (evento.acao) {
@@ -187,6 +225,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
         const { pessoa, area } = pessoaEArea(evento.depois, nomes);
         return `${quem} colocou ${pessoa} na área ${area}`;
       }
+      if (ehRepresentante) return `${quem} colocou ${nomes.get(String(evento.depois?.pessoa_id)) ?? 'Pessoa removida'} como representante de ${nomes.get(String(evento.depois?.entidade_id)) ?? 'entidade removida'}`;
       if (evento.tabela === 'pessoa' && porExtenso) return `${quem} cadastrou ${porExtenso}`;
       if (porExtenso) return `${quem} criou ${porExtenso}`;
       return `${quem} criou um registro em ${onde}${registro}`;
@@ -205,6 +244,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
         const { pessoa, area } = pessoaEArea(evento.antes, nomes);
         return `${quem} tirou ${pessoa} da área ${area}`;
       }
+      if (ehRepresentante) return `${quem} tirou ${nomes.get(String(evento.antes?.pessoa_id)) ?? 'Pessoa removida'} como representante de ${nomes.get(String(evento.antes?.entidade_id)) ?? 'entidade removida'}`;
       if (porExtenso) return `${quem} arquivou ${porExtenso}${motivo}`;
       return `${quem} arquivou um registro em ${onde}${registro}${motivo}`;
     case 'restaurou':
@@ -219,13 +259,15 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
     repositorios.produto.listar({ incluirArquivados: true }),
+    repositorios.contraparte.listar({ incluirArquivados: true }),
+    repositorios.entidade.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos].map((registro): [string, string] => [registro.id, registro.nome])]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades].map((registro): [string, string] => [registro.id, registro.nome])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {

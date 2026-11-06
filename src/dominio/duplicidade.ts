@@ -48,6 +48,41 @@ export function cpfValido(cpf: string): boolean {
   return verificador(9) === Number(digitos[9]) && verificador(10) === Number(digitos[10]);
 }
 
+/** Letras maiúsculas e dígitos: o CNPJ pode ter letras desde julho de 2026 (Receita Federal). */
+export function normalizarCnpj(texto: string): string {
+  return texto.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * Dígitos verificadores (RN-02.03), no formato numérico e no alfanumérico: cada caractere vale o
+ * código dele menos 48, então os dígitos continuam valendo o mesmo. Os dois últimos são sempre números.
+ */
+export function cnpjValido(cnpj: string): boolean {
+  const limpo = normalizarCnpj(cnpj);
+  if (!/^[A-Z0-9]{12}\d{2}$/.test(limpo) || /^(.)\1{13}$/.test(limpo)) return false;
+  const verificador = (tamanho: number) => {
+    let soma = 0;
+    let peso = tamanho - 7;
+    for (let i = 0; i < tamanho; i++) {
+      soma += (limpo.charCodeAt(i) - 48) * peso;
+      peso = peso === 2 ? 9 : peso - 1;
+    }
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  return verificador(12) === Number(limpo[12]) && verificador(13) === Number(limpo[13]);
+}
+
+/** 00.000.000/0000-00, enquanto se digita. */
+export function formatarCnpj(texto: string): string {
+  const limpo = normalizarCnpj(texto).slice(0, 14);
+  return limpo
+    .replace(/^(.{2})(.)/, '$1.$2')
+    .replace(/^(.{2})\.(.{3})(.)/, '$1.$2.$3')
+    .replace(/^(.{2})\.(.{3})\.(.{3})(.)/, '$1.$2.$3/$4')
+    .replace(/^(.{2})\.(.{3})\.(.{3})\/(.{4})(.)/, '$1.$2.$3/$4-$5');
+}
+
 /** Telefone BR com DDD: fixo tem 10 dígitos, celular tem 11 e começa com 9 depois do DDD. */
 export function telefoneValido(telefone: string): boolean {
   const digitos = soDigitos(telefone);

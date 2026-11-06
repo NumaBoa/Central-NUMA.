@@ -5,9 +5,12 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { AREAS_INICIAIS, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
+import { contrapartesDeExemplo } from './exemplos';
+import { AREAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
 import type { Area, PessoaArea } from './tipos/area';
+import type { Entidade } from './tipos/contraparte';
 import type { Marca, Produto } from './tipos/marca';
+import type { Pessoa } from './tipos/pessoa';
 import { CATALOGO_CONFIGURACAO, CHAVES_CONFIGURACAO, VALORES_PADRAO, type Configuracao } from './tipos/configuracao';
 
 /** Os padrões de T02.01, uma linha por chave. Não são exemplos: "Limpar exemplos" não mexe neles. */
@@ -56,6 +59,28 @@ function produtosIniciais(agora: string): Produto[] {
   }));
 }
 
+/** T02.05: "Uma entidade 'Planejada — Numa' é criada na carga inicial para permitir rascunhos." */
+function entidadesIniciais(agora: string): Entidade[] {
+  return [
+    {
+      ...controle(ID_ENTIDADE_PLANEJADA, false, agora),
+      tipo_pessoa: 'pj',
+      nome: 'Planejada — Numa',
+      nome_fantasia: null,
+      documento: null,
+      situacao: 'planejada',
+      natureza_juridica: null,
+      regime_tributario: null,
+      inscricao_municipal: null,
+      inscricao_estadual: null,
+      endereco: null,
+      data_abertura: null,
+      entidade_padrao: true,
+      contador_id: null,
+    },
+  ];
+}
+
 /**
  * Tabelas que não podem começar vazias: valores da especificação, não exemplos. Se um backup antigo
  * não as trouxer, voltam a estes valores.
@@ -66,6 +91,7 @@ const VALORES_INICIAIS = {
   pessoa_area: ligacoesIniciais,
   marca: marcasIniciais,
   produto: produtosIniciais,
+  entidade: entidadesIniciais,
 } as const;
 
 export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
@@ -76,7 +102,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), cambio_referencia: [], backup_registro: [] };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], cambio_referencia: [], backup_registro: [] };
 }
 
 /**
@@ -101,6 +127,12 @@ function migrar(versao: number) {
     const produtoEscolhido = PRODUTOS_INICIAIS.find((produto) => produto.contextoAntigo === lerMeta().contexto_id);
     if (produtoEscolhido) gravarMeta({ contexto_id: produtoEscolhido.id });
   }
+  if (versao < 5) {
+    if (driver().getItem(chaveDaTabela('entidade')) === null) alteracoes.entidade = entidadesIniciais(agora);
+    if (driver().getItem(chaveDaTabela('entidade_representante')) === null) alteracoes.entidade_representante = [];
+    // Quem já limpou os exemplos não recebe exemplos novos.
+    if (driver().getItem(chaveDaTabela('contraparte')) === null) alteracoes.contraparte = aindaHaExemplos() ? contrapartesDeExemplo(agora) : [];
+  }
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];
   } catch {
@@ -108,6 +140,14 @@ function migrar(versao: number) {
   }
   gravarTabelas(alteracoes);
   gravarMeta({ versao_dados: VERSAO_DADOS });
+}
+
+function aindaHaExemplos(): boolean {
+  try {
+    return lerTabela<Pessoa>('pessoa').some((pessoa) => pessoa.exemplo);
+  } catch {
+    return false;
+  }
 }
 
 /** Dados de exemplo carregados na primeira abertura; depois, só a migração de versões antigas (02 §0.3). */

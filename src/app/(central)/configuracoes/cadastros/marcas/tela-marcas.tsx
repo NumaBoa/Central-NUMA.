@@ -275,7 +275,7 @@ export function TelaMarcas() {
             )}
 
             <FormularioMarca aberto={painelMarca.aberto} aoFechar={() => setPainelMarca((atualNoPainel) => ({ ...atualNoPainel, aberto: false }))} marca={painelMarca.marca} aoCriar={(marca) => escolherMarca(marca.id)} />
-            <FormularioProduto aberto={painelProduto} aoFechar={() => setPainelProduto(false)} produto={null} marcaId={atual?.id} marcas={dados.marcas} pessoas={dados.pessoas} />
+            <FormularioProduto aberto={painelProduto} aoFechar={() => setPainelProduto(false)} produto={null} marcaId={atual?.id} marcas={dados.marcas} pessoas={dados.pessoas} entidades={dados.entidades} />
           </>
         )}
       </div>

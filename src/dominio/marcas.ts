@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
+import type { Entidade } from '@/dados/tipos/contraparte';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { corVisivel } from './cores';
@@ -75,9 +76,10 @@ export type DadosMarcas = {
   marcas: Marca[];
   produtos: Produto[];
   pessoas: Pessoa[];
+  entidades: Entidade[];
 };
 
 export async function carregarMarcas(): Promise<DadosMarcas> {
-  const [marcas, produtos, pessoas] = await Promise.all([repositorios.marca.listar({ incluirArquivados: true }), repositorios.produto.listar({ incluirArquivados: true }), repositorios.pessoa.listar({ incluirArquivados: true })]);
-  return { marcas, produtos, pessoas };
+  const [marcas, produtos, pessoas, entidades] = await Promise.all([repositorios.marca.listar({ incluirArquivados: true }), repositorios.produto.listar({ incluirArquivados: true }), repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.entidade.listar({ incluirArquivados: true })]);
+  return { marcas, produtos, pessoas, entidades };
 }

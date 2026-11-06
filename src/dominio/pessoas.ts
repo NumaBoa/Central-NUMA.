@@ -4,6 +4,7 @@ import { ErroDeDados, ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import { emTransacao } from '@/dados/transacao';
 import type { Area, PessoaArea } from '@/dados/tipos/area';
+import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { cpfValido, nomesParecidos, normalizarTexto, soDigitos, telefoneValido } from './duplicidade';
 import { pessoasDoSeletor } from './pessoa-atual';
@@ -26,6 +27,7 @@ export const esquemaFormularioPessoa = z.object({
   nome_exibicao: z.string().trim(),
   tipo: z.enum(['interna', 'externa']),
   eh_socia: z.boolean(),
+  contraparte_id: z.string(),
   papeis_contato: z.array(z.enum(['principal', 'financeiro', 'tecnico', 'juridico', 'outro'])),
   funcao: z.string().trim(),
   email: opcional((valor) => z.email().safeParse(valor).success, 'Informe um e-mail válido.'),
@@ -43,6 +45,7 @@ export const FORMULARIO_PESSOA_VAZIO: FormularioPessoa = {
   nome_exibicao: '',
   tipo: 'interna',
   eh_socia: false,
+  contraparte_id: '',
   papeis_contato: [],
   funcao: '',
   email: '',
@@ -85,6 +88,7 @@ export function formularioDaPessoa(pessoa: Pessoa, areasDaPessoa: readonly strin
     nome_exibicao: pessoa.nome_exibicao ?? '',
     tipo: pessoa.tipo,
     eh_socia: pessoa.eh_socia,
+    contraparte_id: pessoa.contraparte_id ?? '',
     papeis_contato: pessoa.papeis_contato,
     funcao: pessoa.funcao ?? '',
     email: pessoa.email ?? '',
@@ -104,7 +108,7 @@ export function dadosDoFormulario(formulario: FormularioPessoa) {
     nome_exibicao: formulario.nome_exibicao || nomeDeExibicaoPadrao(formulario.nome_completo),
     tipo: formulario.tipo,
     eh_socia: interna && formulario.eh_socia,
-    contraparte_id: null,
+    contraparte_id: interna ? null : formulario.contraparte_id || null,
     papeis_contato: interna ? [] : formulario.papeis_contato,
     funcao: formulario.funcao || null,
     email: formulario.email || null,
@@ -184,7 +188,15 @@ export async function salvarPessoa(formulario: FormularioPessoa, id?: string): P
 
 /** O que depende da pessoa. Cada módulo novo que apontar para ela acrescenta a sua linha aqui. */
 export async function vinculosDaPessoa(id: string): Promise<string[]> {
-  const [areas, ligacoes, configuracoes, produtos] = await Promise.all([repositorios.area.listar(), repositorios.pessoa_area.listar({ onde: { pessoa_id: id } }), repositorios.configuracao.ler(), repositorios.produto.listar({ onde: { responsavel_id: id } })]);
+  const [areas, ligacoes, configuracoes, produtos, contrapartes, entidades, representacoes] = await Promise.all([
+    repositorios.area.listar(),
+    repositorios.pessoa_area.listar({ onde: { pessoa_id: id } }),
+    repositorios.configuracao.ler(),
+    repositorios.produto.listar({ onde: { responsavel_id: id } }),
+    repositorios.contraparte.listar({ onde: { responsavel_id: id } }),
+    repositorios.entidade.listar(),
+    repositorios.entidade_representante.listar({ onde: { pessoa_id: id } }),
+  ]);
   const nomeDaArea = new Map(areas.map((area) => [area.id, area.nome]));
   return [
     ...areas.filter((area) => area.responsavel_padrao_id === id).map((area) => `Responsável padrão de ${area.nome}`),
@@ -193,6 +205,11 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
       return nome ? [`Atua em ${nome}`] : [];
     }),
     ...produtos.map((produto) => `Responsável pelo produto ${produto.nome}`),
+    ...contrapartes.map((contraparte) => `Responsável por ${contraparte.nome_fantasia || contraparte.nome}`),
+    ...representacoes.flatMap((representacao) => {
+      const entidade = entidades.find((item) => item.id === representacao.entidade_id);
+      return entidade ? [`Representante de ${entidade.nome}`] : [];
+    }),
     ...(configuracoes.responsavel_backup_id === id ? ['Responsável pelo backup semanal'] : []),
   ];
 }
@@ -227,19 +244,21 @@ export type FiltrosPessoas = {
   busca: string;
   tipo: 'todas' | Pessoa['tipo'];
   situacao: 'todas' | Pessoa['situacao'];
+  contraparte: string;
   arquivadas: boolean;
 };
 
-export const FILTROS_PESSOAS_INICIAIS: FiltrosPessoas = { busca: '', tipo: 'todas', situacao: 'todas', arquivadas: false };
+export const FILTROS_PESSOAS_INICIAIS: FiltrosPessoas = { busca: '', tipo: 'todas', situacao: 'todas', contraparte: '', arquivadas: false };
 
 /** Busca por nome, e-mail ou telefone, sem considerar acentos nem pontuação do número. */
-export function filtrarPessoas(pessoas: readonly Pessoa[], { busca, tipo, situacao, arquivadas }: FiltrosPessoas): Pessoa[] {
+export function filtrarPessoas(pessoas: readonly Pessoa[], { busca, tipo, situacao, contraparte, arquivadas }: FiltrosPessoas): Pessoa[] {
   const texto = normalizarTexto(busca);
   const numeros = soDigitos(busca);
   return pessoas
     .filter((pessoa) => Boolean(pessoa.arquivado_em) === arquivadas)
     .filter((pessoa) => tipo === 'todas' || pessoa.tipo === tipo)
     .filter((pessoa) => situacao === 'todas' || pessoa.situacao === situacao)
+    .filter((pessoa) => !contraparte || pessoa.contraparte_id === contraparte)
     .filter((pessoa) => !texto || normalizarTexto(`${pessoa.nome_completo} ${pessoa.email ?? ''}`).includes(texto) || (numeros.length > 0 && (pessoa.telefone ?? '').includes(numeros)))
     .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'));
 }
@@ -250,11 +269,13 @@ export type DadosPessoas = {
   pessoas: Pessoa[];
   areas: Area[];
   ligacoes: PessoaArea[];
+  contrapartes: Contraparte[];
 };
 
 export async function carregarPessoas(): Promise<DadosPessoas> {
-  const [pessoas, areas, ligacoes] = await Promise.all([repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.area.listar(), repositorios.pessoa_area.listar()]);
-  return { pessoas, areas: areas.sort((a, b) => a.ordem - b.ordem), ligacoes };
+  const [pessoas, areas, ligacoes, contrapartes] = await Promise.all([repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.area.listar(), repositorios.pessoa_area.listar(), repositorios.contraparte.listar({ incluirArquivados: true })]);
+  const nomeDe = (contraparte: Contraparte) => contraparte.nome_fantasia || contraparte.nome;
+  return { pessoas, areas: areas.sort((a, b) => a.ordem - b.ordem), ligacoes, contrapartes: contrapartes.sort((a, b) => nomeDe(a).localeCompare(nomeDe(b), 'pt-BR')) };
 }
 
 export function areasDaPessoa(id: string, { areas, ligacoes }: Pick<DadosPessoas, 'areas' | 'ligacoes'>): Area[] {

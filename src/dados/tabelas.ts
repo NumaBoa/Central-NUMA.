@@ -4,6 +4,7 @@ import { esquemaEventoAuditoria } from './tipos/auditoria';
 import { esquemaBackupRegistro } from './tipos/backup-registro';
 import { esquemaCambioReferencia } from './tipos/cambio-referencia';
 import { esquemaConfiguracao } from './tipos/configuracao';
+import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } from './tipos/contraparte';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaPessoa } from './tipos/pessoa';
 
@@ -17,6 +18,9 @@ export const TABELAS = {
   pessoa_area: { rotulo: 'Pessoas nas áreas', esquema: esquemaPessoaArea },
   marca: { rotulo: 'Marcas', esquema: esquemaMarca },
   produto: { rotulo: 'Produtos', esquema: esquemaProduto },
+  contraparte: { rotulo: 'Contrapartes', esquema: esquemaContraparte },
+  entidade: { rotulo: 'Entidades', esquema: esquemaEntidade },
+  entidade_representante: { rotulo: 'Representantes das entidades', esquema: esquemaEntidadeRepresentante },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -32,5 +36,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 2: T02.01 acrescenta `configuracao` e `cambio_referencia`.
  * 3: T02.03 acrescenta `area` e `pessoa_area`.
  * 4: T02.04 acrescenta `marca` e `produto`; o contexto escolhido passa a ser o id do produto.
+ * 5: T02.05 e T02.06 acrescentam `entidade`, `entidade_representante` e `contraparte`.
  */
-export const VERSAO_DADOS = 4;
+export const VERSAO_DADOS = 5;
