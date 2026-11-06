@@ -4,11 +4,12 @@
  */
 import { z } from 'zod';
 import { gravarTabelas, lerTabela, usoDoArmazenamento } from '@/dados/armazenamento';
-import { configuracoesIniciais, garantirCarga, tabelasIniciais } from '@/dados/carga';
+import { garantirCarga, tabelasIniciais, TABELAS_COM_VALORES_INICIAIS, valoresIniciais } from '@/dados/carga';
 import { novoEvento } from '@/dados/historico';
 import { gravarMeta, lerMeta } from '@/dados/meta';
 import { idDaPessoaAtual, pessoaAtual } from '@/dados/sessao';
 import { NOMES_TABELAS, TABELAS, VERSAO_DADOS, type Tabela } from '@/dados/tabelas';
+import type { PessoaArea } from '@/dados/tipos/area';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import type { BackupRegistro } from '@/dados/tipos/backup-registro';
 import type { Controle } from '@/dados/tipos/controle';
@@ -34,10 +35,11 @@ function autorMesmoComDadosDanificados(): string | null {
 const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'auditoria');
 
 /**
- * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, e as
- * configurações são sempre as mesmas chaves, não algo que se cadastra.
+ * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
+ * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => tabela !== 'backup_registro' && tabela !== 'configuracao');
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area'];
+const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
   formato: z.literal(FORMATO_ARQUIVO),
@@ -190,9 +192,11 @@ export function analisarArquivo(texto: string, atuais: Readonly<Record<Tabela, n
 
   const avisos: string[] = [];
   const faltando = NOMES_TABELAS.filter((tabela) => !arquivo.tabelas[tabela]);
-  const ficamVazias = faltando.filter((tabela) => tabela !== 'configuracao').map((tabela) => TABELAS[tabela].rotulo);
+  const voltamAoInicio = (tabela: Tabela) => (TABELAS_COM_VALORES_INICIAIS as readonly Tabela[]).includes(tabela);
+  const ficamVazias = faltando.filter((tabela) => !voltamAoInicio(tabela)).map((tabela) => TABELAS[tabela].rotulo);
   if (ficamVazias.length) avisos.push(`O arquivo não traz: ${ficamVazias.join(', ')}. Essas partes ficarão vazias.`);
-  if (faltando.includes('configuracao')) avisos.push('O arquivo não traz as configurações: elas voltam aos valores padrão.');
+  const comValorInicial = faltando.filter(voltamAoInicio).map((tabela) => TABELAS[tabela].rotulo);
+  if (comValorInicial.length) avisos.push(`O arquivo não traz: ${comValorInicial.join(', ')}. Essas partes voltam aos valores iniciais.`);
   const desconhecidas = Object.keys(arquivo.tabelas).filter((tabela) => !NOMES_TABELAS.includes(tabela as Tabela));
   if (desconhecidas.length) avisos.push(`Partes do arquivo que esta versão não conhece serão ignoradas: ${desconhecidas.join(', ')}.`);
 
@@ -242,8 +246,8 @@ export async function aplicarImportacao(arquivo: ArquivoDeDados, comCopia = fals
   const historicoDoArquivo = (arquivo.tabelas.auditoria ?? []) as EventoAuditoria[];
   gravarTabelas({
     ...Object.fromEntries(TABELAS_DE_REGISTROS.map((tabela) => [tabela, arquivo.tabelas[tabela] ?? []])),
-    // Um backup anterior às configurações não pode deixar a tela sem os padrões.
-    configuracao: arquivo.tabelas.configuracao ?? configuracoesIniciais(new Date().toISOString()),
+    // Um backup antigo não pode deixar as telas sem os valores da especificação.
+    ...Object.fromEntries(TABELAS_COM_VALORES_INICIAIS.filter((tabela) => !arquivo.tabelas[tabela]).map((tabela) => [tabela, valoresIniciais(tabela, new Date().toISOString())])),
     auditoria: [...historicoDoArquivo, evento],
   });
   gravarMeta({ versao_dados: VERSAO_DADOS, contadores: juntarContadores(lerMeta().contadores, arquivo.contadores) });
@@ -279,6 +283,9 @@ export async function limparExemplos(): Promise<number> {
     }),
   );
   if (!removidos) return 0;
+  // Pessoa que saiu não continua nas áreas, mesmo que a ligação tenha sido feita por alguém de verdade.
+  const pessoasQueFicam = new Set((novasLinhas.pessoa as Controle[]).map((pessoa) => pessoa.id));
+  novasLinhas.pessoa_area = (novasLinhas.pessoa_area as PessoaArea[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
   gravarTabelas({
     ...novasLinhas,
     auditoria: [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: autor, acao: 'executou_acao', depois: { funcao: 'limpar_exemplos', registros: removidos } })],

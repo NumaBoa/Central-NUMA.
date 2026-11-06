@@ -72,7 +72,30 @@ export function assinarDados(avisar: () => void): () => void {
   };
 }
 
+// ---------- Transação: quem usa é `emTransacao`, em dados/transacao.ts ----------
+
+let escritasDaTransacao: Map<string, readonly unknown[]> | null = null;
+
+/** Falso se já houver uma aberta: quem chegou depois faz parte dela. */
+export function abrirTransacao(): boolean {
+  if (escritasDaTransacao) return false;
+  escritasDaTransacao = new Map();
+  return true;
+}
+
+export function descartarTransacao() {
+  escritasDaTransacao = null;
+}
+
+export function gravarTransacao() {
+  const escritas = escritasDaTransacao;
+  escritasDaTransacao = null;
+  if (escritas?.size) gravarTabelas(Object.fromEntries(escritas));
+}
+
 export function lerTabela<T>(tabela: string): T[] {
+  const naTransacao = escritasDaTransacao?.get(tabela);
+  if (naTransacao) return naTransacao as T[];
   const texto = driver().getItem(chaveDaTabela(tabela));
   if (!texto) return [];
   try {
@@ -86,6 +109,10 @@ export function lerTabela<T>(tabela: string): T[] {
 
 /** Grava várias tabelas de uma vez: se uma falhar, todas voltam ao que eram (AR-02). */
 export function gravarTabelas(alteracoes: Readonly<Record<string, readonly unknown[]>>) {
+  if (escritasDaTransacao) {
+    for (const [tabela, linhas] of Object.entries(alteracoes)) escritasDaTransacao.set(tabela, linhas);
+    return;
+  }
   const armazenamento = driver();
   const anteriores = new Map<string, string | null>();
   try {

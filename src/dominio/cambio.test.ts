@@ -3,6 +3,7 @@ import { criarArmazenamentoEmMemoria, usarDriverDeTeste } from '@/dados/armazena
 import { listarHistorico } from '@/dados/historico';
 import { esquecerMetaEmMemoria } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
+import { REGISTROS_INICIAIS } from './apoio-testes';
 import { adicionarCambio, CAMPOS_NOVO_CAMBIO, esquemaNovoCambio, lerCotacao, listarCambios, removerCambio, type NovoCambio } from './cambio';
 import { aplicarImportacao, exportarTudo, resumoDosDados, type ArquivoDeDados } from './dados';
 import { historicoRecente } from './historico';
@@ -130,11 +131,11 @@ describe('câmbio de referência', () => {
 
     it('o que foi removido deixa de contar como registro, aqui e ao importar', async () => {
       const { id } = await adicionado();
-      expect((await resumoDosDados()).registros).toBe(5);
+      expect((await resumoDosDados()).registros).toBe(REGISTROS_INICIAIS + 1);
       await removerCambio(id);
-      expect((await resumoDosDados()).registros).toBe(4);
+      expect((await resumoDosDados()).registros).toBe(REGISTROS_INICIAIS);
       const arquivo = JSON.parse((await exportarTudo()).conteudo) as ArquivoDeDados;
-      expect(await aplicarImportacao(arquivo)).toBe(4);
+      expect(await aplicarImportacao(arquivo)).toBe(REGISTROS_INICIAIS);
     });
 
     it('depois de removido, dá para lançar de novo a mesma moeda e data', async () => {

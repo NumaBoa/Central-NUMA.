@@ -5,6 +5,20 @@
 export const ID_KIMBERLY = '0b7f1c52-3f6e-4a1b-9d2c-5e8a7c4f1a01';
 export const ID_CAMILA = '1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02';
 
+/**
+ * Áreas de T02.03 e D11: dados reais, não são exemplo. Quem atua em cada uma vem da mesma tabela;
+ * Produto é compartilhada entre as duas sócias (decisão de 05/11/2026).
+ */
+export const AREAS_INICIAIS = [
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b01', nome: 'Tecnologia', responsavel: ID_CAMILA, compartilhada: false, pessoas: [ID_CAMILA] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b02', nome: 'Financeiro', responsavel: ID_KIMBERLY, compartilhada: false, pessoas: [ID_KIMBERLY] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b03', nome: 'Social media / Marketing', responsavel: ID_KIMBERLY, compartilhada: false, pessoas: [ID_KIMBERLY] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b04', nome: 'Jurídico e privacidade', responsavel: ID_KIMBERLY, compartilhada: false, pessoas: [ID_KIMBERLY] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b05', nome: 'Comercial', responsavel: null, compartilhada: true, pessoas: [ID_KIMBERLY, ID_CAMILA] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b06', nome: 'Gestão geral', responsavel: null, compartilhada: true, pessoas: [ID_KIMBERLY, ID_CAMILA] },
+  { id: 'a2c0e1d4-7b3f-4a10-8c01-0f1e2d3c4b07', nome: 'Produto', responsavel: null, compartilhada: true, pessoas: [ID_KIMBERLY, ID_CAMILA] },
+] as const;
+
 export type Contexto = {
   id: string;
   nome: string;

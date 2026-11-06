@@ -19,8 +19,9 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 
 ## Regras de trabalho
 
-- **Siga o ciclo de `17 §1`, uma tela por vez.** Passo 1: resuma o que vai construir e liste dúvidas e conflitos, sem código. Espere a confirmação de Kimberly antes de programar. Ao terminar a tela, apresente e espere a validação antes da próxima. Nenhuma tela é validada automaticamente.
-- **Dúvida: procure na especificação. Incoerência: pergunte a Kimberly antes de decidir.** Isso vale dentro da especificação e entre ela e os protótipos.
+- **Siga a ordem de `17 §2`, uma etapa por vez, sem parar para confirmação.** Decisão de Kimberly em 05/11/2026, a partir da T02.02: não é preciso pedir confirmação nem validação a cada tela. Em cada etapa: leia a tela, decida, construa, teste, registre, faça o commit e junte ao `main`.
+- **Nada conta como validado por Kimberly sem ela ter visto.** Em `17 §3`, marque "Construída" (com a data e as verificações), nunca "Validada". Ela revisa quando quiser.
+- **Dúvida: procure na especificação. Incoerência:** escolha a opção mais conservadora e coerente com as decisões já tomadas, siga em frente e registre em "A revisar por Kimberly", no Mapa. O que depende de um dado que só ela tem fica vazio, nunca inventado (RT-08). Pare para perguntar só se não houver como seguir sem ela.
 - **Decisões novas** vão para "Pontos decididos" do arquivo do módulo e para o Mapa.
 - **Trabalhe por fases:** F0a → F0b → F1 → F2 → F3 (`01 §3`), na ordem de `17 §2`.
 
@@ -36,9 +37,11 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 
 1. Tipo e esquema Zod em `src/dados/tipos`, com os nomes de campos de `16`.
 2. Registro em `src/dados/tabelas.ts`: ela entra sozinha em exportar, importar, restaurar e limpar exemplos.
-3. Repositório em `src/dados/repositorios.ts` (`prefixoCodigo` para código legível) e exemplos em `src/dados/exemplos`.
+3. Repositório em `src/dados/repositorios.ts` (`prefixoCodigo` para código legível) e exemplos em `src/dados/exemplos`. Dados reais da especificação (ex.: áreas) vão para `VALORES_INICIAIS` em `src/dados/carga.ts`: backups antigos recebem esses valores. Atualize `REGISTROS_INICIAIS` em `src/dominio/apoio-testes.ts`.
 4. As telas leem com `useConsulta` e gravam pelo repositório. Mudou o formato de uma tabela já publicada, ou acrescentou uma tabela: suba `VERSAO_DADOS` e escreva a migração em `src/dados/carga.ts`. Quem já usa a Central não pode perder nada, e backups antigos precisam continuar sendo aceitos.
 5. Dentro de `(central)`, links internos usam `LinkCentral`: é ele que pergunta antes de sair com alterações pendentes (P3).
+6. Gravar em mais de uma tabela de uma vez: `emTransacao`, de `src/dados/transacao.ts`. Regra de negócio que barra uma ação lança `ErroDeRegra`, com a mensagem pronta para a tela.
+7. O histórico por extenso fica em `CAMPOS_LEGIVEIS`, em `src/dominio/historico.ts`. Texto livre passa por `pareceCredencial` (RT-14).
 
 ## Comandos
 
@@ -54,7 +57,7 @@ Para atualizar a lista oficial de municípios do IBGE: `node scripts/gerar-munic
 ## Git
 
 - Repositório local. A identidade (NumaBoa) está configurada só neste repositório; nunca use `--global`.
-- Commit somente depois que Kimberly validar a tela, um por tela validada. Cada tela é construída em um ramo próprio e, depois de validada, juntada ao `main`. O estado anterior à fundação fica no commit `bef6b0e`.
+- Um commit por etapa de `17 §2`, feito depois que todas as verificações passarem. Cada etapa é construída em um ramo próprio e, depois, juntada ao `main`; o ramo já juntado pode ser apagado. O estado anterior à fundação fica no commit `bef6b0e`.
 
 ## Dependências
 

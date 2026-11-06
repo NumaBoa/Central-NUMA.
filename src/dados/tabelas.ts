@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { esquemaArea, esquemaPessoaArea } from './tipos/area';
 import { esquemaEventoAuditoria } from './tipos/auditoria';
 import { esquemaBackupRegistro } from './tipos/backup-registro';
 import { esquemaCambioReferencia } from './tipos/cambio-referencia';
@@ -11,6 +12,8 @@ import { esquemaPessoa } from './tipos/pessoa';
  */
 export const TABELAS = {
   pessoa: { rotulo: 'Pessoas', esquema: esquemaPessoa },
+  area: { rotulo: 'Áreas', esquema: esquemaArea },
+  pessoa_area: { rotulo: 'Pessoas nas áreas', esquema: esquemaPessoaArea },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -24,5 +27,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
 /**
  * Sobe quando o formato das tabelas muda; dados antigos passam pela migração em `carga.ts` (02 §0.3).
  * 2: T02.01 acrescenta `configuracao` e `cambio_referencia`.
+ * 3: T02.03 acrescenta `area` e `pessoa_area`.
  */
-export const VERSAO_DADOS = 2;
+export const VERSAO_DADOS = 3;

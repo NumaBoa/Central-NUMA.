@@ -53,7 +53,7 @@ export function AbasPagina({ abas, rotulo, className }: { abas: readonly AbaPagi
             href={href}
             aria-current={ativa ? 'page' : undefined}
             className={cn(
-              'inline-flex min-h-11 shrink-0 items-center gap-[7px] rounded-pill px-[17px] text-[13px] font-medium md:min-h-10 [&_svg]:size-[15px]',
+              'inline-flex min-h-11 shrink-0 items-center gap-[7px] rounded-pill px-3 text-[13px] font-medium md:min-h-10 md:px-[17px] [&_svg]:size-[15px]',
               ativa ? 'bg-espresso text-linen' : 'text-ink-soft hover:bg-hover',
             )}
           >

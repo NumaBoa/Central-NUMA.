@@ -9,6 +9,8 @@ export type AbaFicha = { id: string; rotulo: string; conteudo: ReactNode };
 type FichaProps = {
   codigo?: string;
   titulo: string;
+  /** A ficha é a página inteira: o título é o `h1` dela. */
+  tituloDePagina?: boolean;
   /** Situação e contexto. */
   etiquetas?: ReactNode;
   responsavel?: ReactNode;
@@ -24,7 +26,8 @@ type FichaProps = {
 };
 
 /** Ficha de um registro (P2). */
-export function Ficha({ codigo, titulo, etiquetas, responsavel, acoes, acoesCelular, abas, lateral, arquivado }: FichaProps) {
+export function Ficha({ codigo, titulo, tituloDePagina = false, etiquetas, responsavel, acoes, acoesCelular, abas, lateral, arquivado }: FichaProps) {
+  const Titulo = tituloDePagina ? 'h1' : 'h2';
   return (
     <article className={acoesCelular ? 'pb-20 md:pb-0' : undefined}>
       {arquivado && (
@@ -35,7 +38,7 @@ export function Ficha({ codigo, titulo, etiquetas, responsavel, acoes, acoesCelu
       <header className="flex flex-wrap items-start justify-between gap-x-5 gap-y-3">
         <div className="min-w-0">
           {codigo && <p className="text-xs font-semibold text-ink-soft tabular-nums">{codigo}</p>}
-          <h2 className="mt-1">{titulo}</h2>
+          <Titulo className="mt-1">{titulo}</Titulo>
           {etiquetas && <div className="mt-2.5 flex flex-wrap items-center gap-1.5">{etiquetas}</div>}
           {responsavel && <div className="mt-2.5 text-[13px] text-ink-soft">{responsavel}</div>}
         </div>

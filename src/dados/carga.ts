@@ -5,6 +5,8 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
+import { AREAS_INICIAIS } from './exemplos/base';
+import type { Area, PessoaArea } from './tipos/area';
 import { CATALOGO_CONFIGURACAO, CHAVES_CONFIGURACAO, VALORES_PADRAO, type Configuracao } from './tipos/configuracao';
 
 /** Os padrões de T02.01, uma linha por chave. Não são exemplos: "Limpar exemplos" não mexe neles. */
@@ -17,9 +19,39 @@ export function configuracoesIniciais(agora: string): Configuracao[] {
   }));
 }
 
+function areasIniciais(agora: string): Area[] {
+  return AREAS_INICIAIS.map(({ id, nome, responsavel, compartilhada }, ordem) => ({
+    ...controle(id, false, agora),
+    nome,
+    responsavel_padrao_id: responsavel,
+    compartilhada,
+    ordem: ordem + 1,
+  }));
+}
+
+function ligacoesIniciais(agora: string): PessoaArea[] {
+  return AREAS_INICIAIS.flatMap(({ id, pessoas }) => pessoas.map((pessoaId) => ({ ...controle(gerarUuid(), false, agora), pessoa_id: pessoaId, area_id: id })));
+}
+
+/**
+ * Tabelas que não podem começar vazias: valores da especificação, não exemplos. Se um backup antigo
+ * não as trouxer, voltam a estes valores.
+ */
+const VALORES_INICIAIS = {
+  configuracao: configuracoesIniciais,
+  area: areasIniciais,
+  pessoa_area: ligacoesIniciais,
+} as const;
+
+export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
+
+export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: string): readonly unknown[] {
+  return VALORES_INICIAIS[tabela](agora);
+}
+
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), cambio_referencia: [], backup_registro: [] };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), cambio_referencia: [], backup_registro: [] };
 }
 
 /**
@@ -32,6 +64,10 @@ function migrar(versao: number) {
   if (versao < 2) {
     if (driver().getItem(chaveDaTabela('configuracao')) === null) alteracoes.configuracao = configuracoesIniciais(agora);
     if (driver().getItem(chaveDaTabela('cambio_referencia')) === null) alteracoes.cambio_referencia = [];
+  }
+  if (versao < 3) {
+    if (driver().getItem(chaveDaTabela('area')) === null) alteracoes.area = areasIniciais(agora);
+    if (driver().getItem(chaveDaTabela('pessoa_area')) === null) alteracoes.pessoa_area = ligacoesIniciais(agora);
   }
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];

@@ -7,6 +7,7 @@ import { CATALOGO_CONFIGURACAO, chaveConhecida } from '@/dados/tipos/configuraca
 import { formatarDiaISO } from '@/lib/formatacao';
 import { avancouDeFase, rotuloDaFase } from './fases';
 import { FASES, type Fase } from './navegacao';
+import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
 
 type Nomes = ReadonlyMap<string, string>;
 
@@ -42,8 +43,14 @@ function ehFase(valor: unknown): valor is Fase {
   return FASES.includes(valor as Fase);
 }
 
+const NAO_INFORMADO = 'não informado';
+
+function vazio(valor: unknown): boolean {
+  return valor === null || valor === undefined || valor === '' || (Array.isArray(valor) && valor.length === 0);
+}
+
 function valorLegivel(chave: string, valor: unknown, nomes: Nomes): string {
-  if (valor === null || valor === undefined || valor === '') return 'não informado';
+  if (vazio(valor)) return NAO_INFORMADO;
   if (chave === 'fuso') return ROTULOS_FUSO[valor as keyof typeof ROTULOS_FUSO] ?? String(valor);
   if (chave === 'responsavel_backup_id') return nomes.get(String(valor)) ?? 'pessoa removida';
   if (chave.endsWith('_dias')) return plural(Number(valor), 'dia', 'dias');
@@ -69,12 +76,80 @@ function oCambio(dados: EventoAuditoria['depois']): string {
   return typeof moeda === 'string' && typeof data === 'string' ? `o câmbio de ${moeda} de ${formatarDiaISO(data)}` : 'um câmbio';
 }
 
+// ---------- Campos de cada tabela, por extenso ----------
+
+type CampoLegivel = {
+  rotulo: string;
+  valor?: (valor: unknown, nomes: Nomes) => string;
+  /** O histórico diz que mudou, sem mostrar o conteúdo: dado sensível ou texto longo. */
+  semValores?: boolean;
+};
+
+const simNao = (valor: unknown) => (valor ? 'sim' : 'não');
+
+const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegivel>>>> = {
+  pessoa: {
+    nome_completo: { rotulo: 'Nome completo' },
+    nome_exibicao: { rotulo: 'Nome de exibição' },
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO[valor as keyof typeof ROTULOS_TIPO] },
+    eh_socia: { rotulo: 'É sócia', valor: simNao },
+    papeis_contato: { rotulo: 'Papel do contato', valor: (valor) => (valor as PapelContato[]).map((papel) => ROTULOS_PAPEL[papel]).join(', ') },
+    funcao: { rotulo: 'Função' },
+    email: { rotulo: 'E-mail' },
+    telefone: { rotulo: 'Telefone', valor: (valor) => formatarTelefone(String(valor)) },
+    cpf: { rotulo: 'CPF', semValores: true },
+    observacoes: { rotulo: 'Observações', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO[valor as keyof typeof ROTULOS_SITUACAO] },
+  },
+  area: {
+    nome: { rotulo: 'Nome' },
+    responsavel_padrao_id: { rotulo: 'Responsável padrão', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    compartilhada: { rotulo: 'Compartilhada', valor: simNao },
+  },
+};
+
+/** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
+function mudancasLegiveis(evento: EventoAuditoria, nomes: Nomes): string {
+  const campos = CAMPOS_LEGIVEIS[evento.tabela ?? ''] ?? {};
+  return evento.campos_alterados
+    .flatMap((nome) => {
+      const campo = campos[nome];
+      if (!campo) return [];
+      if (campo.semValores) return [campo.rotulo];
+      const legivel = (valor: unknown) => (vazio(valor) ? NAO_INFORMADO : campo.valor ? campo.valor(valor, nomes) : String(valor));
+      return [`${campo.rotulo}: de ${legivel(evento.antes?.[nome])} para ${legivel(evento.depois?.[nome])}`];
+    })
+    .join('; ');
+}
+
+function textoDe(valor: unknown): string | undefined {
+  return typeof valor === 'string' && valor ? valor : undefined;
+}
+
+/** Como chamar o registro na frase. `undefined` quando o evento não diz: fica a frase genérica. */
+function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | undefined {
+  const id = evento.registro_id ?? '';
+  if (evento.tabela === 'pessoa') return textoDe(evento.depois?.nome_completo) ?? textoDe(evento.antes?.nome_completo) ?? nomes.get(id);
+  if (evento.tabela === 'area') {
+    const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
+    return nome && `a área ${nome}`;
+  }
+  return undefined;
+}
+
+function pessoaEArea(dados: EventoAuditoria['depois'], nomes: Nomes): { pessoa: string; area: string } {
+  return { pessoa: nomes.get(String(dados?.pessoa_id)) ?? 'Pessoa removida', area: nomes.get(String(dados?.area_id)) ?? 'área removida' };
+}
+
 /** Histórico legível (02 §6): quem fez o quê. */
 export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const quem = evento.usuario_id === null ? 'Sistema' : (nomes.get(evento.usuario_id) ?? 'Pessoa removida');
   const onde = nomeDaTabela(evento.tabela);
   const registro = evento.registro_codigo ? ` ${evento.registro_codigo}` : '';
   const ehCambio = evento.tabela === 'cambio_referencia';
+  const ehLigacao = evento.tabela === 'pessoa_area';
+  const porExtenso = registroPorExtenso(evento, nomes);
+  const motivo = evento.motivo ? `. Motivo: ${evento.motivo}` : '';
   switch (evento.acao) {
     case 'exportou':
       return `${quem} exportou todos os dados`;
@@ -82,14 +157,32 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
       return `${quem} ${fraseDaAcaoExecutada(evento.depois)}`;
     case 'inseriu':
       if (ehCambio) return `${quem} adicionou ${oCambio(evento.depois)}`;
+      if (ehLigacao) {
+        const { pessoa, area } = pessoaEArea(evento.depois, nomes);
+        return `${quem} colocou ${pessoa} na área ${area}`;
+      }
+      if (evento.tabela === 'pessoa' && porExtenso) return `${quem} cadastrou ${porExtenso}`;
+      if (evento.tabela === 'area' && porExtenso) return `${quem} criou ${porExtenso}`;
       return `${quem} criou um registro em ${onde}${registro}`;
-    case 'alterou':
+    case 'alterou': {
       if (evento.tabela === 'configuracao') return `${quem} ${fraseDaConfiguracao(evento, nomes)}`;
+      if (evento.tabela === 'pessoa' && evento.campos_alterados.length === 1 && evento.campos_alterados[0] === 'situacao' && porExtenso) {
+        return `${quem} ${evento.depois?.situacao === 'inativa' ? 'inativou' : 'reativou'} ${porExtenso}`;
+      }
+      const mudancas = mudancasLegiveis(evento, nomes);
+      if (porExtenso && mudancas) return `${quem} alterou ${porExtenso}: ${mudancas}`;
       return `${quem} alterou um registro em ${onde}${registro}`;
+    }
     case 'arquivou':
       if (ehCambio) return `${quem} removeu ${oCambio(evento.antes)}`;
-      return `${quem} arquivou um registro em ${onde}${registro}${evento.motivo ? `. Motivo: ${evento.motivo}` : ''}`;
+      if (ehLigacao) {
+        const { pessoa, area } = pessoaEArea(evento.antes, nomes);
+        return `${quem} tirou ${pessoa} da área ${area}`;
+      }
+      if (porExtenso) return `${quem} arquivou ${porExtenso}${motivo}`;
+      return `${quem} arquivou um registro em ${onde}${registro}${motivo}`;
     case 'restaurou':
+      if (porExtenso) return `${quem} restaurou ${porExtenso}`;
       return `${quem} restaurou um registro em ${onde}${registro}`;
     default:
       return `${quem} fez uma alteração`;
@@ -98,19 +191,31 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
 
 export type LinhaHistorico = { id: string; texto: string; em: string };
 
-async function nomesDasPessoas(): Promise<Map<string, string>> {
-  const pessoas = await repositorios.pessoa.listar({ incluirArquivados: true });
-  return new Map(pessoas.map((pessoa) => [pessoa.id, pessoa.nome_completo]));
+/** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
+async function nomesDosRegistros(): Promise<Map<string, string>> {
+  const [pessoas, areas] = await Promise.all([repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.area.listar({ incluirArquivados: true })]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...areas.map((area): [string, string] => [area.id, area.nome])]);
+}
+
+function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
+  return { id: evento.id, texto: descreverEvento(evento, nomes), em: evento.ocorrido_em };
 }
 
 export async function historicoRecente(limite: number): Promise<LinhaHistorico[]> {
-  const [eventos, nomes] = await Promise.all([listarHistorico({ limite }), nomesDasPessoas()]);
-  return eventos.map((evento) => ({ id: evento.id, texto: descreverEvento(evento, nomes), em: evento.ocorrido_em }));
+  const [eventos, nomes] = await Promise.all([listarHistorico({ limite }), nomesDosRegistros()]);
+  return eventos.map((evento) => paraLinha(evento, nomes));
 }
 
 /** A última mudança de fase, mostrada na própria seção; `null` se a fase nunca mudou. */
 export async function ultimaMudancaDeFase(): Promise<LinhaHistorico | null> {
-  const [eventos, nomes] = await Promise.all([listarHistorico({ tabela: 'configuracao' }), nomesDasPessoas()]);
+  const [eventos, nomes] = await Promise.all([listarHistorico({ tabela: 'configuracao' }), nomesDosRegistros()]);
   const evento = eventos.find((item) => item.depois?.chave === 'fase_ativa');
-  return evento ? { id: evento.id, texto: descreverEvento(evento, nomes), em: evento.ocorrido_em } : null;
+  return evento ? paraLinha(evento, nomes) : null;
+}
+
+/** Aba Histórico da ficha da pessoa (P2): o cadastro dela e as áreas em que entrou ou de que saiu. */
+export async function historicoDaPessoa(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes] = await Promise.all([listarHistorico(), nomesDosRegistros()]);
+  const dela = eventos.filter((evento) => (evento.tabela === 'pessoa' && evento.registro_id === id) || (evento.tabela === 'pessoa_area' && (evento.depois?.pessoa_id === id || evento.antes?.pessoa_id === id)));
+  return dela.map((evento) => paraLinha(evento, nomes));
 }

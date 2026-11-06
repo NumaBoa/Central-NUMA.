@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Coins, Lock, Plus, Trash2 } from 'lucide-react';
+import { Faixa } from '@/componentes/padroes/faixa';
 import { Campo } from '@/componentes/campos/campo';
 import { SelecaoMoeda } from '@/componentes/campos/selecao-moeda';
 import { aviso } from '@/componentes/padroes/aviso';
@@ -16,6 +17,7 @@ import { Input } from '@/componentes/ui/input';
 import { mensagemDoErro } from '@/dados/erros';
 import type { CambioReferencia } from '@/dados/tipos/cambio-referencia';
 import { adicionarCambio, CAMPOS_NOVO_CAMBIO, esquemaNovoCambio, MENSAGEM_CAMBIO_REPETIDO, removerCambio, type NovoCambio } from '@/dominio/cambio';
+import { AVISO_CREDENCIAL, pareceCredencial } from '@/dominio/segredos';
 import { hojeISO } from '@/lib/datas';
 import { formatarCotacao, formatarDiaISO } from '@/lib/formatacao';
 
@@ -58,9 +60,10 @@ const COLUNAS: readonly Coluna<CambioReferencia>[] = [
 export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] }) {
   const [adicionando, setAdicionando] = useState(false);
   const [removendo, setRemovendo] = useState<CambioReferencia | null>(null);
+  const [fonteAvisada, setFonteAvisada] = useState<string | null>(null);
   const botaoAdicionar = useRef<HTMLButtonElement>(null);
 
-  const { register, handleSubmit, control, reset, setError, setFocus, setValue, formState } = useForm<NovoCambio>({
+  const { register, handleSubmit, control, reset, setError, setFocus, setValue, watch, formState } = useForm<NovoCambio>({
     resolver: zodResolver(esquemaNovoCambio),
     defaultValues: CAMPOS_NOVO_CAMBIO,
     mode: 'onTouched',
@@ -69,10 +72,17 @@ export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] 
 
   function abrir() {
     reset(CAMPOS_NOVO_CAMBIO);
+    setFonteAvisada(null);
     setAdicionando(true);
   }
 
   const enviar = handleSubmit(async (dados) => {
+    // RT-14: texto livre que parece segredo avisa; enviar de novo, com o mesmo texto, segue em frente.
+    if (pareceCredencial(dados.fonte) && fonteAvisada !== dados.fonte) {
+      setFonteAvisada(dados.fonte);
+      setFocus('fonte');
+      return;
+    }
     try {
       const resultado = await adicionarCambio(dados);
       if (!resultado.ok) {
@@ -184,6 +194,11 @@ export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] 
               </Campo>
               <Campo rotulo="Fonte">{(controle) => <Input placeholder="Onde consultou a cotação" autoComplete="off" {...controle} {...register('fonte')} />}</Campo>
             </div>
+            {fonteAvisada !== null && fonteAvisada === (watch('fonte') ?? '').trim() && (
+              <Faixa tipo="atencao" className="mt-4">
+                {AVISO_CREDENCIAL}
+              </Faixa>
+            )}
             <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
               <Button variante="secundario" onClick={() => setAdicionando(false)}>
                 Voltar

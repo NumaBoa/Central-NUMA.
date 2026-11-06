@@ -5,6 +5,7 @@ import { listarHistorico } from '@/dados/historico';
 import { esquecerMetaEmMemoria, gravarMeta, lerMeta } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { VERSAO_DADOS } from '@/dados/tabelas';
+import { REGISTROS_INICIAIS } from './apoio-testes';
 import {
   aplicarImportacao,
   analisarArquivo,
@@ -47,7 +48,7 @@ describe('Configurações › Dados', () => {
   describe('resumo', () => {
     it('conta registros e exemplos, e ainda não há backup', async () => {
       const resumo = await resumoDosDados();
-      expect(resumo).toMatchObject({ registros: 4, exemplos: 2, ultimoBackup: null });
+      expect(resumo).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2, ultimoBackup: null });
       expect(resumo.usoEmCaracteres).toBeGreaterThan(0);
     });
 
@@ -64,7 +65,7 @@ describe('Configurações › Dados', () => {
       const arquivo = arquivoExportado(conteudo);
       expect(nome).toBe('central-numa-2026-11-05.json');
       expect(arquivo).toMatchObject({ formato: 'central-numa', versao_dados: VERSAO_DADOS, exportado_em: '2026-11-05T15:00:00.000Z', exportado_por: { id: ID_KIMBERLY, nome: 'Kimberly Grebe' } });
-      expect(Object.keys(arquivo.tabelas).sort()).toEqual(['auditoria', 'backup_registro', 'cambio_referencia', 'configuracao', 'pessoa']);
+      expect(Object.keys(arquivo.tabelas).sort()).toEqual(['area', 'auditoria', 'backup_registro', 'cambio_referencia', 'configuracao', 'pessoa', 'pessoa_area']);
       expect(arquivo.tabelas.pessoa).toHaveLength(4);
     });
 
@@ -79,7 +80,7 @@ describe('Configurações › Dados', () => {
     it('exportar não aumenta o número de registros mostrado', async () => {
       await exportarTudo();
       await exportarTudo();
-      expect((await resumoDosDados()).registros).toBe(4);
+      expect((await resumoDosDados()).registros).toBe(REGISTROS_INICIAIS);
     });
 
     it('a própria cópia já leva o registro do backup', async () => {
@@ -184,7 +185,7 @@ describe('Configurações › Dados', () => {
       expect((await repositorios.pessoa.obter(ID_CAMILA))?.funcao).toBe('Sócia');
 
       const arquivo = arquivoExportado(conteudo);
-      expect(await aplicarImportacao(arquivo)).toBe(4);
+      expect(await aplicarImportacao(arquivo)).toBe(REGISTROS_INICIAIS);
       expect((await repositorios.pessoa.obter(ID_CAMILA))?.funcao).toBe(novaPessoa.funcao);
 
       await aplicarImportacao(arquivo);
@@ -196,7 +197,7 @@ describe('Configurações › Dados', () => {
       const arquivo = arquivoExportado((await exportarTudo()).conteudo);
       await aplicarImportacao(arquivo);
       const [ultimo, ...anteriores] = await listarHistorico();
-      expect(ultimo?.depois).toMatchObject({ funcao: 'importar_dados', registros: 4 });
+      expect(ultimo?.depois).toMatchObject({ funcao: 'importar_dados', registros: REGISTROS_INICIAIS });
       expect(anteriores.some((evento) => evento.acao === 'exportou')).toBe(true);
     });
 
@@ -243,7 +244,7 @@ describe('Configurações › Dados', () => {
       });
       expect(pessoasAoBaixar).toBe(2);
       expect(arquivoExportado(copiaBaixada).tabelas.pessoa).toHaveLength(2);
-      expect(resultado).toEqual({ registros: 4, comCopia: true });
+      expect(resultado).toEqual({ registros: REGISTROS_INICIAIS, comCopia: true });
       expect(await repositorios.pessoa.listar()).toHaveLength(4);
       const [evento] = await listarHistorico();
       expect(evento?.depois).toMatchObject({ funcao: 'importar_dados', copia_antes: true });
@@ -274,7 +275,7 @@ describe('Configurações › Dados', () => {
       expect(analise.ok && analise.avisos.join(' ')).toContain('não dá para baixar uma cópia');
 
       const baixar = vi.fn();
-      expect(await importarComCopia(arquivo, baixar)).toEqual({ registros: 4, comCopia: false });
+      expect(await importarComCopia(arquivo, baixar)).toEqual({ registros: REGISTROS_INICIAIS, comCopia: false });
       expect(baixar).not.toHaveBeenCalled();
       expect(await repositorios.pessoa.listar()).toHaveLength(4);
     });
@@ -295,7 +296,7 @@ describe('Configurações › Dados', () => {
       await restaurarExemplos();
 
       expect((await repositorios.pessoa.obter(ID_KIMBERLY))?.funcao).toBe('Sócia');
-      expect(await resumoDosDados()).toMatchObject({ registros: 4, exemplos: 2, ultimoBackup: null });
+      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2, ultimoBackup: null });
       expect(lerMeta().contadores).toEqual({});
       const historico = await listarHistorico();
       expect(historico).toHaveLength(1);

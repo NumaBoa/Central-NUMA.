@@ -7,6 +7,7 @@ import { repositorios } from '@/dados/repositorios';
 import { VERSAO_DADOS } from '@/dados/tabelas';
 import { VALORES_PADRAO, type Configuracao } from '@/dados/tipos/configuracao';
 import { hojeISO } from '@/lib/datas';
+import { REGISTROS_INICIAIS } from './apoio-testes';
 import {
   avancarFase,
   carregarTelaGeral,
@@ -334,7 +335,7 @@ describe('T02.01 Configurações gerais', () => {
 
     it('configurações não contam como registros nem como exemplos', async () => {
       await lerConfiguracoes();
-      expect(await resumoDosDados()).toMatchObject({ registros: 4, exemplos: 2 });
+      expect(await resumoDosDados()).toMatchObject({ registros: REGISTROS_INICIAIS, exemplos: 2 });
     });
 
     it('limpar exemplos não mexe nas configurações', async () => {
@@ -376,6 +377,8 @@ describe('T02.01 Configurações gerais', () => {
       const arquivo = JSON.parse((await exportarTudo()).conteudo) as ArquivoDeDados;
       delete arquivo.tabelas.configuracao;
       delete arquivo.tabelas.cambio_referencia;
+      delete arquivo.tabelas.area;
+      delete arquivo.tabelas.pessoa_area;
       arquivo.versao_dados = 1;
       return arquivo;
     }
@@ -386,7 +389,8 @@ describe('T02.01 Configurações gerais', () => {
       const analise = analisarArquivo(JSON.stringify(arquivo), contagensAtuais());
       expect(analise.ok).toBe(true);
       if (!analise.ok) return;
-      expect(analise.avisos.join(' ')).toContain('as configurações: elas voltam aos valores padrão');
+      expect(analise.avisos.join(' ')).toContain('Configurações');
+      expect(analise.avisos.join(' ')).toContain('voltam aos valores iniciais');
       expect(analise.avisos.join(' ')).toContain('Câmbio de referência');
 
       await aplicarImportacao(analise.arquivo);
@@ -403,6 +407,8 @@ describe('T02.01 Configurações gerais', () => {
       await repositorios.pessoa.criar({ nome_completo: 'Pessoa Real', nome_exibicao: null, tipo: 'interna', eh_socia: false, contraparte_id: null, papeis_contato: [], funcao: null, email: null, telefone: null, cpf: null, observacoes: null, situacao: 'ativa' });
       armazenamento.removeItem(chaveDaTabela('configuracao'));
       armazenamento.removeItem(chaveDaTabela('cambio_referencia'));
+      armazenamento.removeItem(chaveDaTabela('area'));
+      armazenamento.removeItem(chaveDaTabela('pessoa_area'));
       gravarMeta({ versao_dados: 1 });
       esquecerMetaEmMemoria();
     }

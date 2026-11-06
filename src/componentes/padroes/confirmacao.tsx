@@ -5,6 +5,8 @@ import { MensagemErro } from '@/componentes/campos/campo';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
 import { Textarea } from '@/componentes/ui/textarea';
+import { AVISO_CREDENCIAL, pareceCredencial } from '@/dominio/segredos';
+import { Faixa } from './faixa';
 
 type ConfirmacaoProps = {
   aberto: boolean;
@@ -20,20 +22,24 @@ type ConfirmacaoProps = {
   /** Motivo obrigatório quando a regra exigir (RT-16). */
   pedirMotivo?: boolean;
   mensagemSemMotivo?: string;
+  /** Só informa: um botão, sem ação a confirmar. */
+  soInforma?: boolean;
   aoConfirmar: (motivo: string) => void;
 };
 
 /** Diálogo de confirmação (P5): centralizado no computador e folha inferior no celular. */
-export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, rotuloCancelar = 'Voltar', perigo = false, pedirMotivo = false, mensagemSemMotivo = 'Informe o motivo.', aoConfirmar }: ConfirmacaoProps) {
+export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, rotuloCancelar = 'Voltar', perigo = false, pedirMotivo = false, mensagemSemMotivo = 'Informe o motivo.', soInforma = false, aoConfirmar }: ConfirmacaoProps) {
   const idMotivo = useId();
   const campoMotivo = useRef<HTMLTextAreaElement>(null);
   const [motivo, setMotivo] = useState('');
   const [semMotivo, setSemMotivo] = useState(false);
+  const [motivoAvisado, setMotivoAvisado] = useState<string | null>(null);
 
   function aoMudarAberto(proximo: boolean) {
     if (proximo) return;
     setMotivo('');
     setSemMotivo(false);
+    setMotivoAvisado(null);
     aoFechar();
   }
 
@@ -44,8 +50,15 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
       campoMotivo.current?.focus();
       return;
     }
+    // RT-14: texto livre que parece segredo avisa; confirmar de novo, com o mesmo texto, segue em frente.
+    if (pedirMotivo && pareceCredencial(limpo) && motivoAvisado !== limpo) {
+      setMotivoAvisado(limpo);
+      campoMotivo.current?.focus();
+      return;
+    }
     setMotivo('');
     setSemMotivo(false);
+    setMotivoAvisado(null);
     aoConfirmar(limpo);
   }
 
@@ -73,13 +86,20 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
               aria-describedby={semMotivo ? `${idMotivo}-erro` : undefined}
             />
             {semMotivo && <MensagemErro id={`${idMotivo}-erro`}>{mensagemSemMotivo}</MensagemErro>}
+            {motivoAvisado !== null && motivoAvisado === motivo.trim() && (
+              <Faixa tipo="atencao" className="mt-3">
+                {AVISO_CREDENCIAL}
+              </Faixa>
+            )}
           </div>
         )}
         <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
-          <Button variante="secundario" onClick={() => aoMudarAberto(false)}>
-            {rotuloCancelar}
-          </Button>
-          <Button variante={perigo ? 'perigo' : 'primario'} onClick={confirmar}>
+          {!soInforma && (
+            <Button variante="secundario" onClick={() => aoMudarAberto(false)}>
+              {rotuloCancelar}
+            </Button>
+          )}
+          <Button variante={perigo ? 'perigo' : 'primario'} onClick={soInforma ? () => aoMudarAberto(false) : confirmar}>
             {rotuloConfirmar}
           </Button>
         </div>

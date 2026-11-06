@@ -10,6 +10,11 @@ const ipsLocais = Object.values(networkInterfaces())
 const config: NextConfig = {
   devIndicators: false,
   allowedDevOrigins: ipsLocais,
+  // Aqui o redirecionamento acontece antes de qualquer renderização: dentro da página, ele
+  // recarregaria tudo depois de a tela começar a abrir.
+  async redirects() {
+    return [{ source: '/configuracoes/cadastros', destination: '/configuracoes/cadastros/pessoas', permanent: false }];
+  },
 };
 
 export default config;

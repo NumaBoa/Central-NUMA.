@@ -21,7 +21,15 @@ export class ErroDeDados extends Error {
   }
 }
 
+/** Regra de negócio que barrou a ação. A mensagem já diz o que fazer e vai direto para a tela. */
+export class ErroDeRegra extends Error {
+  constructor(mensagem: string) {
+    super(mensagem);
+    this.name = 'ErroDeRegra';
+  }
+}
+
 /** Mensagem segura para a tela, seja qual for o erro (RT-18: nunca o erro técnico cru). */
 export function mensagemDoErro(erro: unknown): string {
-  return erro instanceof ErroDeDados ? erro.message : 'Não deu para concluir agora. Seus dados continuam aqui; tente de novo.';
+  return erro instanceof ErroDeDados || erro instanceof ErroDeRegra ? erro.message : 'Não deu para concluir agora. Seus dados continuam aqui; tente de novo.';
 }
