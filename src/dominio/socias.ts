@@ -166,15 +166,18 @@ export function relatorioDeInvestimento(movimentos: readonly Pick<MovimentoSocie
   });
 }
 
-export type ConsolidadoDaSocia = { socia: Pessoa; aportes: number; retiradas: number; reembolsosEmAberto: number; total: number };
+export type ConsolidadoDaSocia = { socia: Pessoa; aportes: number; retiradas: number; aportesLiquidos: number; reembolsosEmAberto: number };
 
-/** RN-05.19: por sócia, aportes − retiradas + reembolsos em aberto. */
+/**
+ * RN-05.19, com a decisão de Kimberly em 06/11/2026: por sócia, os aportes líquidos (aportes − retiradas) e os
+ * reembolsos em aberto, em linhas separadas e sem somar. Se os reembolsos podem virar capital, quem diz é o contador.
+ */
 export function consolidadoDoRelatorio(socias: readonly Pessoa[], linhas: readonly LinhaDoRelatorio[], reembolsos: readonly ReembolsoDaConta[]): ConsolidadoDaSocia[] {
   return socias.map((socia) => {
     const dela = linhas.filter((linha) => linha.sociaId === socia.id);
     const aportes = somar(dela.map((linha) => linha.aportes));
     const retiradas = somar(dela.map((linha) => linha.retiradas));
     const emAberto = somar(reembolsos.filter((titulo) => titulo.beneficiario_pessoa_id === socia.id).map((titulo) => titulo.saldo));
-    return { socia, aportes, retiradas, reembolsosEmAberto: emAberto, total: arredondar(aportes - retiradas + emAberto) };
+    return { socia, aportes, retiradas, aportesLiquidos: arredondar(aportes - retiradas), reembolsosEmAberto: emAberto };
   });
 }

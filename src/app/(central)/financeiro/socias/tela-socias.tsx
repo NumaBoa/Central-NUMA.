@@ -207,7 +207,7 @@ function ReembolsosEmAberto({ dados, aoPagar }: { dados: DadosDasSocias; aoPagar
   );
 }
 
-type LinhaDoCsv = { periodo: string; socia: string; aportes: number; retiradas: number; reembolsos: number | null; total: number };
+type LinhaDoCsv = { periodo: string; socia: string; aportes: number; retiradas: number; liquidos: number; reembolsos: number | null };
 
 function RelatorioDeInvestimento({ dados }: { dados: DadosDasSocias }) {
   const nomeDaPessoa = (id: string) => dados.pessoas.find((pessoa) => pessoa.id === id)?.nome_completo ?? 'Pessoa removida';
@@ -221,16 +221,16 @@ function RelatorioDeInvestimento({ dados }: { dados: DadosDasSocias }) {
     { id: 'liquido', titulo: 'Líquido do mês', numerica: true, essencial: true, celula: (l) => reais(l.liquido) },
   ];
   const paraExportar: readonly LinhaDoCsv[] = [
-    ...linhas.map((l) => ({ periodo: l.rotulo, socia: nomeDaPessoa(l.sociaId), aportes: l.aportes, retiradas: l.retiradas, reembolsos: null, total: l.liquido })),
-    ...consolidado.map((c) => ({ periodo: 'Consolidado', socia: c.socia.nome_completo, aportes: c.aportes, retiradas: c.retiradas, reembolsos: c.reembolsosEmAberto, total: c.total })),
+    ...linhas.map((l) => ({ periodo: l.rotulo, socia: nomeDaPessoa(l.sociaId), aportes: l.aportes, retiradas: l.retiradas, liquidos: l.liquido, reembolsos: null })),
+    ...consolidado.map((c) => ({ periodo: 'Consolidado', socia: c.socia.nome_completo, aportes: c.aportes, retiradas: c.retiradas, liquidos: c.aportesLiquidos, reembolsos: c.reembolsosEmAberto })),
   ];
   const colunasDoArquivo: readonly Coluna<LinhaDoCsv>[] = [
     { id: 'periodo', titulo: 'Período', texto: (l) => l.periodo, celula: () => null },
     { id: 'socia', titulo: 'Sócia', texto: (l) => l.socia, celula: () => null },
     { id: 'aportes', titulo: 'Aportes', texto: (l) => reais(l.aportes), celula: () => null },
     { id: 'retiradas', titulo: 'Retiradas e distribuições', texto: (l) => reais(l.retiradas), celula: () => null },
+    { id: 'liquidos', titulo: 'Aportes líquidos', texto: (l) => reais(l.liquidos), celula: () => null },
     { id: 'reembolsos', titulo: 'Reembolsos em aberto', texto: (l) => (l.reembolsos === null ? '' : reais(l.reembolsos)), celula: () => null },
-    { id: 'total', titulo: 'Total', texto: (l) => reais(l.total), celula: () => null },
   ];
   const fim = dados.fimDoPreOperacional;
   return (
@@ -254,13 +254,24 @@ function RelatorioDeInvestimento({ dados }: { dados: DadosDasSocias }) {
             </span>
           )}
         />
-        <ul className="grid gap-2 text-[13px]" aria-label="Consolidado por sócia">
+        <ul className="grid gap-2 text-[13px] md:grid-cols-2" aria-label="Consolidado por sócia">
           {consolidado.map((linha) => (
-            <li key={linha.socia.id} className="rounded-md bg-mist px-3.5 py-2.5">
-              <strong className="font-semibold">{linha.socia.nome_completo}:</strong> <span className="tabular-nums">{reais(linha.aportes)} em aportes − {reais(linha.retiradas)} em retiradas + {reais(linha.reembolsosEmAberto)} em reembolsos em aberto = <strong className="font-semibold">{reais(linha.total)}</strong></span>
+            <li key={linha.socia.id} className="rounded-md bg-mist px-3.5 py-3">
+              <p className="font-semibold">{linha.socia.nome_completo}</p>
+              <dl className="mt-2 grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <dt className="text-xs text-ink-soft">Aportes líquidos</dt>
+                  <dd className="mt-0.5 font-medium tabular-nums">{reais(linha.aportesLiquidos)}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs text-ink-soft">Reembolsos em aberto</dt>
+                  <dd className="mt-0.5 font-medium tabular-nums">{reais(linha.reembolsosEmAberto)}</dd>
+                </div>
+              </dl>
             </li>
           ))}
         </ul>
+        <p className="text-xs leading-[1.6] text-ink-soft">Os dois ficam separados, sem somar: se os reembolsos em aberto podem virar capital, quem diz é o contador.</p>
         <div className="flex justify-end">
           <BotaoExportarCsv nomeDoArquivo="investimento-das-socias" colunas={colunasDoArquivo} linhas={paraExportar} />
         </div>

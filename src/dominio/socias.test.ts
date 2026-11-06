@@ -175,10 +175,10 @@ describe('T05.05: sócias', () => {
       expect(relatorioDeInvestimento(movimentos, '2026-11-02').map((linha) => linha.mes)).toEqual(['2026-09', '2026-10']);
     });
 
-    it('o consolidado soma os reembolsos em aberto às contas da sócia', () => {
+    it('o consolidado mostra os aportes líquidos e os reembolsos em aberto separados, sem somar (decisão de 06/11)', () => {
       const linhas = relatorioDeInvestimento(movimentos, null);
       const [consolidado] = consolidadoDoRelatorio([SOCIA], linhas, [{ beneficiario_pessoa_id: 'a', valor: 40, saldo: 25 }]);
-      expect(consolidado).toMatchObject({ aportes: 150, retiradas: 30, reembolsosEmAberto: 25, total: 145 });
+      expect(consolidado).toEqual({ socia: SOCIA, aportes: 150, retiradas: 30, aportesLiquidos: 120, reembolsosEmAberto: 25 });
     });
 
     it('o período vai até a primeira PJ ativa com data de abertura', () => {

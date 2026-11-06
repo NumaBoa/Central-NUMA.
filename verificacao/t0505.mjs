@@ -202,13 +202,16 @@ await passo('T05.05: relatório', async () => {
   ok('uma linha por sócia e por mês', lista.length === chaves.size, `${lista.length} ${chaves.size}`);
   const consolidado = await c.avaliar(`[...document.querySelectorAll('ul[aria-label="Consolidado por sócia"] li')].map(l=>l.textContent)`);
   const aportes = somar(movimentos.filter((m) => m.socia_id === ID_KIMBERLY && m.tipo === 'aporte'), 'valor_brl');
-  ok('RN-05.19: consolida aportes − retiradas + reembolsos em aberto', consolidado.length === 2 && espacos(consolidado[0]).includes(`${reais(aportes)} em aportes`) && espacos(consolidado[0]).includes(`= ${reais(aportes)}`), espacos(consolidado[0]));
+  const camila = espacos(consolidado.find((l) => l.startsWith('Camila Lima')) ?? '');
+  const reembolsosDaCamila = reais((await tabela('titulo')).filter((x) => x.origem === 'reembolso' && x.beneficiario_pessoa_id === ID_CAMILA && x.situacao !== 'cancelado' && x.situacao !== 'quitado').reduce((t, x) => t + x.valor, 0));
+  ok('aportes líquidos e reembolsos em aberto separados, sem somar (decisão de 06/11)', consolidado.length === 2 && espacos(consolidado[0]).includes(`Aportes líquidos${reais(aportes)}`) && camila.includes(`Reembolsos em aberto${reembolsosDaCamila}`) && !consolidado.some((l) => l.includes('=')), espacos(consolidado.join(' ; ')));
+  ok('a nota explica por que não soma', (await naTela()).includes('quem diz é o contador'));
   const botoes = await c.avaliar(`(()=>{const s=[...document.querySelectorAll('main section')].find(x=>x.textContent.includes('Consolidado')||x.querySelector('ul[aria-label="Consolidado por sócia"]'));[...s.querySelectorAll('button')].find(b=>b.textContent.trim()==='Exportar').click();return true})()`);
   await esperarAviso('linhas exportadas.');
   const nome = await baixado('investimento-das-socias');
   ok('exporta um CSV com a data', botoes && nome === `investimento-das-socias-${diaISO()}.csv`, nome);
   const arquivo = readFileSync(path.join(downloads, nome), 'utf8').replace(/^﻿/, '').split('\r\n');
-  ok('com os meses e o consolidado', arquivo[0] === 'Período;Sócia;Aportes;Retiradas e distribuições;Reembolsos em aberto;Total' && arquivo.some((l) => l.startsWith('Consolidado;Kimberly Grebe')) && arquivo.length === lista.length + 3, arquivo.join(' / ').slice(0, 300));
+  ok('com os meses e o consolidado', arquivo[0] === 'Período;Sócia;Aportes;Retiradas e distribuições;Aportes líquidos;Reembolsos em aberto' && arquivo.some((l) => l.startsWith('Consolidado;Kimberly Grebe')) && arquivo.length === lista.length + 3, arquivo.join(' / ').slice(0, 300));
 });
 
 await passo('T05.06: transferências', async () => {
