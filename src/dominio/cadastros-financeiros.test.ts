@@ -102,6 +102,8 @@ function novaCategoria(alteracoes: Partial<FormularioCategoria> = {}): Formulari
 const grupoInfra = () => CATEGORIAS_INICIAIS.find((categoria) => categoria.nome === 'Infraestrutura e software')!;
 const grupoReceitas = () => CATEGORIAS_INICIAIS.find((categoria) => categoria.nome === 'Receitas')!;
 const hospedagem = () => CATEGORIAS_INICIAIS.find((categoria) => categoria.nome === 'Hospedagem e nuvem')!;
+/** Nenhuma assinatura de exemplo usa: dá para arquivar. */
+const bancoDeDados = () => CATEGORIAS_INICIAIS.find((categoria) => categoria.nome === 'Banco de dados')!;
 
 function novaConta(alteracoes: Partial<FormularioConta> = {}): FormularioConta {
   return { ...formularioContaVazio('BRL'), nome: 'Conta PJ Numa', tipo: 'banco', titular: `entidade:${ID_ENTIDADE_PLANEJADA}`, saldo_inicial: '1.000,00', data_saldo_inicial: '2026-11-01', ...alteracoes };
@@ -190,8 +192,8 @@ describe('T02.07 a T02.10', () => {
     });
 
     it('uma arquivada segura o nome e diz onde está', async () => {
-      await arquivarCategoria(hospedagem().id);
-      expect((await conferirCategoria(novaCategoria({ nome: 'Hospedagem e nuvem' }))).erroNome).toContain('em Arquivados');
+      await arquivarCategoria(bancoDeDados().id);
+      expect((await conferirCategoria(novaCategoria({ nome: 'Banco de dados' }))).erroNome).toContain('em Arquivados');
     });
 
     it('só 2 níveis: categoria não vira grupo de outra, e grupo com categorias não entra em outro', async () => {
@@ -224,10 +226,15 @@ describe('T02.07 a T02.10', () => {
     });
 
     it('sem vínculos, arquiva e restaura', async () => {
-      await arquivarCategoria(hospedagem().id);
-      expect((await carregarCategorias()).find((categoria) => categoria.id === hospedagem().id)?.arquivado_em).not.toBeNull();
-      await restaurarCategoria(hospedagem().id);
-      expect((await carregarCategorias()).find((categoria) => categoria.id === hospedagem().id)?.arquivado_em).toBeNull();
+      await arquivarCategoria(bancoDeDados().id);
+      expect((await carregarCategorias()).find((categoria) => categoria.id === bancoDeDados().id)?.arquivado_em).not.toBeNull();
+      await restaurarCategoria(bancoDeDados().id);
+      expect((await carregarCategorias()).find((categoria) => categoria.id === bancoDeDados().id)?.arquivado_em).toBeNull();
+    });
+
+    it('categoria de uma assinatura ativa não arquiva e diz qual', async () => {
+      expect(await vinculosDaCategoria(hospedagem().id)).toContain('Assinatura de Nuvem Clara Hosting');
+      await expect(arquivarCategoria(hospedagem().id)).rejects.toThrow('Esta categoria está em uso: Assinatura de Nuvem Clara Hosting');
     });
 
     it('categoria não volta para um grupo arquivado', async () => {
@@ -306,8 +313,8 @@ describe('T02.07 a T02.10', () => {
     });
 
     it('arquivada sai da árvore', async () => {
-      await arquivarCategoria(hospedagem().id);
-      expect((await arvore())[0]?.categorias.map((categoria) => categoria.nome)).not.toContain('Hospedagem e nuvem');
+      await arquivarCategoria(bancoDeDados().id);
+      expect((await arvore())[0]?.categorias.map((categoria) => categoria.nome)).not.toContain('Banco de dados');
     });
   });
 
@@ -462,10 +469,15 @@ describe('T02.07 a T02.10', () => {
       expect(await lista({ busca: 'camila' })).toEqual(['Cartão pessoal — Camila']);
       expect(await lista({ tipo: 'pessoal_socia' })).toHaveLength(2);
       expect(await lista({ situacao: 'encerrada' })).toEqual([]);
-      await arquivarConta(ID_CONTA_KIMBERLY);
-      expect(await lista({ arquivadas: true })).toEqual(['Cartão pessoal — Kimberly']);
-      await restaurarConta(ID_CONTA_KIMBERLY);
+      const caixa = (await carregarContas()).contas.find((conta) => conta.nome === 'Caixa da Numa')!;
+      await arquivarConta(caixa.id);
+      expect(await lista({ arquivadas: true })).toEqual(['Caixa da Numa']);
+      await restaurarConta(caixa.id);
       expect(await lista({ arquivadas: true })).toEqual([]);
+    });
+
+    it('conta de pagamento de uma assinatura ativa não arquiva e diz de qual', async () => {
+      await expect(arquivarConta(ID_CONTA_KIMBERLY)).rejects.toThrow('Esta conta está em uso: Conta de pagamento de Estúdio Verde Registro');
     });
   });
 

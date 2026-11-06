@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { AdicionarAtividadeProvider } from '@/componentes/atividades/adicionar-atividade';
+import { NovaContraparteProvider } from '@/componentes/contrapartes/nova-contraparte';
+import { NovaFerramentaProvider } from '@/componentes/ferramentas/nova-ferramenta';
 import { CentralProvider } from '@/componentes/layout/central-provider';
 import { Moldura } from '@/componentes/layout/moldura';
 import { ProtecaoDeSaida } from '@/componentes/layout/protecao-saida';
@@ -11,7 +13,11 @@ export default function LayoutCentral({ children }: { children: ReactNode }) {
     <CentralProvider>
       <ProtecaoDeSaida>
         <AdicionarAtividadeProvider>
-          <Moldura>{children}</Moldura>
+          <NovaFerramentaProvider>
+            <NovaContraparteProvider>
+              <Moldura>{children}</Moldura>
+            </NovaContraparteProvider>
+          </NovaFerramentaProvider>
         </AdicionarAtividadeProvider>
       </ProtecaoDeSaida>
       <RegiaoAvisos />

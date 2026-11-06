@@ -5,7 +5,7 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { atividadesDeExemplo, contasDeExemplo, contrapartesDeExemplo, rotinaDeExemplo, rotinasIniciais } from './exemplos';
+import { atividadesDeExemplo, categoriasDeFerramentaIniciais, contasDeExemplo, contrapartesDeExemplo, ferramentasDeExemplo, rotinaDeExemplo, rotinasIniciais } from './exemplos';
 import { AREAS_INICIAIS, CATEGORIAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
 import { feriadosDoAno } from './referencia/feriados';
 import { hojeISO } from '@/lib/datas';
@@ -109,6 +109,7 @@ const VALORES_INICIAIS = {
   categoria_financeira: categoriasIniciais,
   feriado: feriadosIniciais,
   recorrencia: rotinasIniciais,
+  categoria_ferramenta: categoriasDeFerramentaIniciais,
 } as const;
 
 export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
@@ -119,7 +120,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)] };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora) };
 }
 
 /**
@@ -173,6 +174,17 @@ function migrar(versao: number) {
     }
   }
   if (versao < 10 && driver().getItem(chaveDaTabela('notificacao')) === null) alteracoes.notificacao = [];
+  if (versao < 11) {
+    if (driver().getItem(chaveDaTabela('categoria_ferramenta')) === null) alteracoes.categoria_ferramenta = categoriasDeFerramentaIniciais(agora);
+    if (driver().getItem(chaveDaTabela('ferramenta')) === null) {
+      // Quem já limpou os exemplos não recebe exemplos novos.
+      const exemplos = aindaHaExemplos() ? ferramentasDeExemplo(agora) : null;
+      alteracoes.ferramenta = exemplos?.ferramenta ?? [];
+      alteracoes.ferramenta_contexto = exemplos?.ferramenta_contexto ?? [];
+      alteracoes.assinatura_ferramenta = exemplos?.assinatura_ferramenta ?? [];
+      alteracoes.assinatura_valor_historico = [];
+    }
+  }
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

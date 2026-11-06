@@ -3,6 +3,7 @@ import { registrarEvento } from '@/dados/historico';
 import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
 import { gerarAlertas } from './alertas';
+import { atualizarSituacoesDasFerramentas } from './ferramentas';
 import { notificarFalhasDasRotinas } from './notificacoes';
 import { gerarOcorrencias } from './recorrencias';
 
@@ -19,13 +20,13 @@ export type Rotina = {
 const nadaAFazerAinda = async () => 0;
 
 /**
- * Rotinas do dia, nesta ordem (02 §0.5). Situações e programação ganham conteúdo junto com o
- * Financeiro (etapa 12).
+ * Rotinas do dia, nesta ordem (02 §0.5). Situações dos títulos e programação ganham conteúdo junto
+ * com o Financeiro (etapa 12).
  */
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
   { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: () => gerarAlertas() },
   { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: () => gerarOcorrencias() },
-  { nome: 'Atualizar situações', executar: nadaAFazerAinda },
+  { nome: 'Atualizar situações', executar: () => atualizarSituacoesDasFerramentas() },
   { nome: 'Estender programação', soNoDiaPrimeiro: true, executar: nadaAFazerAinda },
 ];
 

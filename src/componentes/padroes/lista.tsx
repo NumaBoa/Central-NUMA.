@@ -20,6 +20,10 @@ export type Coluna<T> = {
   numerica?: boolean;
   /** Para alinhar as colunas de listas vizinhas, como os grupos de categorias. */
   largura?: string;
+  /** Não sai da lista ao configurar as colunas (P1). */
+  fixa?: boolean;
+  /** O valor da célula em texto, para exportar. */
+  texto?: (linha: T) => string;
 };
 
 type ListaProps<T> = {
@@ -35,6 +39,8 @@ type ListaProps<T> = {
   cartaoInterativo?: boolean;
   /** Ações sempre disponíveis, sem depender de hover (18 §9.6). */
   acoesDaLinha?: (linha: T) => ReactNode;
+  /** Seleção múltipla, para as ações em lote (P1). Só em tabela: no celular, um registro de cada vez. */
+  selecao?: { selecionados: ReadonlySet<string>; aoMudar: (selecionados: ReadonlySet<string>) => void; rotuloDaLinha: (linha: T) => string };
   estado?: 'pronto' | 'carregando' | 'erro';
   aoTentarDeNovo?: () => void;
   /** Há filtros aplicados: a lista vazia vira "Nada com esses filtros". */
@@ -45,7 +51,7 @@ type ListaProps<T> = {
 };
 
 /** Lista (P1 e 18 §9.6): tabela em papel; no celular, cartões. */
-export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape }: ListaProps<T>) {
+export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, selecao, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape }: ListaProps<T>) {
   const [ordem, setOrdem] = useState<{ id: string; sentido: 1 | -1 } | null>(null);
   const [limite, setLimite] = useState(TAMANHO_PAGINA);
 
@@ -80,6 +86,17 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
         <table aria-label={rotulo} className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>
+              {selecao && (
+                <th scope="col" className="w-10 bg-mist py-2.5 pr-0 pl-3.5 first:rounded-tl-lg">
+                  <input
+                    type="checkbox"
+                    aria-label="Selecionar todas"
+                    className="size-[18px] accent-[var(--ok)] align-middle"
+                    checked={visiveis.length > 0 && visiveis.every((linha) => selecao.selecionados.has(chave(linha)))}
+                    onChange={(evento) => selecao.aoMudar(new Set(evento.target.checked ? visiveis.map(chave) : []))}
+                  />
+                </th>
+              )}
               {colunas.map((coluna, i) => {
                 const ordenada = ordem?.id === coluna.id;
                 return (
@@ -122,6 +139,22 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
                 onKeyDown={aoAbrir ? (evento) => aoTeclarLinha(evento, linha) : undefined}
                 className={cn('group/linha', aoAbrir && 'cursor-pointer hover:bg-linen')}
               >
+                {selecao && (
+                  <td className="h-[52px] w-10 border-t border-line py-1.5 pr-0 pl-3.5" onClick={(evento) => evento.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Selecionar ${selecao.rotuloDaLinha(linha)}`}
+                      className="size-[18px] accent-[var(--ok)] align-middle"
+                      checked={selecao.selecionados.has(chave(linha))}
+                      onChange={(evento) => {
+                        const proximos = new Set(selecao.selecionados);
+                        if (evento.target.checked) proximos.add(chave(linha));
+                        else proximos.delete(chave(linha));
+                        selecao.aoMudar(proximos);
+                      }}
+                    />
+                  </td>
+                )}
                 {colunas.map((coluna, i) => (
                   <td
                     key={coluna.id}
@@ -146,7 +179,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
           {rodape && (
             <tfoot>
               <tr>
-                <td colSpan={colunas.length + (acoesDaLinha ? 1 : 0)} className="border-t border-line bg-linen px-3.5 py-3 text-[13px] font-semibold first:rounded-b-lg">
+                <td colSpan={colunas.length + (acoesDaLinha ? 1 : 0) + (selecao ? 1 : 0)} className="border-t border-line bg-linen px-3.5 py-3 text-[13px] font-semibold first:rounded-b-lg">
                   {rodape}
                 </td>
               </tr>

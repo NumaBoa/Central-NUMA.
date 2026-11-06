@@ -23,6 +23,8 @@ type BarraFiltrosProps = {
   aoLimpar?: () => void;
   /** Conteúdo do botão "Filtros": menu no computador e folha inferior no celular (18 §10.4). */
   filtrosDetalhados?: ReactNode;
+  /** Colunas, visões, exportar e arquivados (P1). */
+  acoes?: ReactNode;
 };
 
 /** Filtro em pílula (18 §9.3): selecionado em espresso, com contador em pílula menor. */
@@ -45,10 +47,10 @@ export function PilulaFiltro({ filtro, ativa, aoClicar }: { filtro: FiltroRapido
   );
 }
 
-export function BarraFiltros({ busca, aoBuscar, rotuloBusca = 'Buscar', rapidos = [], rapidoAtivo, aoEscolherRapido, ativos = [], aoRemoverAtivo, aoLimpar, filtrosDetalhados }: BarraFiltrosProps) {
+export function BarraFiltros({ busca, aoBuscar, rotuloBusca = 'Buscar', rapidos = [], rapidoAtivo, aoEscolherRapido, ativos = [], aoRemoverAtivo, aoLimpar, filtrosDetalhados, acoes }: BarraFiltrosProps) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {aoBuscar && (
           <div className="relative min-w-0 flex-1 md:max-w-xs">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft" aria-hidden />
@@ -68,6 +70,7 @@ export function BarraFiltros({ busca, aoBuscar, rotuloBusca = 'Buscar', rapidos 
             {filtrosDetalhados}
           </MenuSobreposto>
         )}
+        {acoes && <div className="flex flex-wrap items-center gap-2 md:ml-auto">{acoes}</div>}
       </div>
 
       {rapidos.length > 0 && (

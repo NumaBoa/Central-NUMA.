@@ -16,6 +16,7 @@ import { avancouDeFase, rotuloDaFase } from './fases';
 import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
+import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
 
@@ -215,6 +216,46 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     conclusao_nota: { rotulo: 'Nota' },
     recorrencia_id: { rotulo: 'Rotina', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'rotina removida' },
   },
+  ferramenta: {
+    nome: { rotulo: 'Nome' },
+    categoria_id: { rotulo: 'Categoria', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'categoria removida' },
+    fornecedor_id: { rotulo: 'Fornecedor', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'contraparte removida' },
+    finalidade: { rotulo: 'Finalidade' },
+    critica: { rotulo: 'Crítica', valor: simNao },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_FERRAMENTA[valor as keyof typeof ROTULOS_SITUACAO_FERRAMENTA] },
+    url_acesso: { rotulo: 'URL de acesso' },
+    url_admin: { rotulo: 'URL de administração' },
+    email_login_conta: { rotulo: 'Login da conta', semValores: true },
+    ambiente: { rotulo: 'Ambiente' },
+    titular_atual_tipo: { rotulo: 'Titular atual', valor: (valor) => ROTULOS_TITULAR[valor as keyof typeof ROTULOS_TITULAR] },
+    titular_atual_pessoa_id: { rotulo: 'Sócia titular', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    titular_atual_texto: { rotulo: 'Em nome de' },
+    titular_desejado: { rotulo: 'Titular desejado' },
+    referencia_cofre: { rotulo: 'Referência ao cofre', semValores: true },
+    mfa_conta: { rotulo: 'Segunda etapa', valor: (valor) => ROTULOS_MFA[valor as keyof typeof ROTULOS_MFA] },
+    responsavel_tecnico_id: { rotulo: 'Responsável técnica', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    responsavel_financeiro_id: { rotulo: 'Responsável financeira', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    caminho_recuperacao: { rotulo: 'Caminho de recuperação', semValores: true },
+    trata_dados_pessoais: { rotulo: 'Trata dados pessoais', valor: simNao },
+    tipos_dados: { rotulo: 'Tipos de dados', semValores: true },
+    regiao_dados: { rotulo: 'Região dos dados' },
+    acordo_dados_situacao: { rotulo: 'Acordo de tratamento', valor: (valor) => ROTULOS_ACORDO_DADOS[valor as keyof typeof ROTULOS_ACORDO_DADOS] },
+    cancelada_em: { rotulo: 'Cancelada em', valor: (valor) => formatarDiaISO(String(valor)) },
+    cancelamento_motivo: { rotulo: 'Motivo do cancelamento' },
+    observacoes: { rotulo: 'Observações', semValores: true },
+  },
+  assinatura_ferramenta: {
+    plano: { rotulo: 'Plano' },
+    modalidade: { rotulo: 'Modalidade', valor: (valor) => ROTULOS_MODALIDADE[valor as keyof typeof ROTULOS_MODALIDADE] },
+    valor: { rotulo: 'Valor', valor: (valor) => String(valor).replace('.', ',') },
+    moeda: { rotulo: 'Moeda' },
+    periodicidade: { rotulo: 'Periodicidade', valor: (valor) => ROTULOS_PERIODICIDADE[valor as keyof typeof ROTULOS_PERIODICIDADE] },
+    proxima_cobranca: { rotulo: 'Próxima cobrança', valor: (valor) => formatarDiaISO(String(valor)) },
+    renovacao: { rotulo: 'Renovação', valor: (valor) => ROTULOS_RENOVACAO[valor as keyof typeof ROTULOS_RENOVACAO] },
+    fim_teste: { rotulo: 'Fim do teste', valor: (valor) => formatarDiaISO(String(valor)) },
+    conta_financeira_id: { rotulo: 'Conta de pagamento', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    situacao: { rotulo: 'Situação da assinatura', valor: (valor) => (valor === 'ativa' ? 'Ativa' : 'Encerrada') },
+  },
   recorrencia: {
     titulo: { rotulo: 'Título' },
     responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
@@ -262,6 +303,14 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   if (evento.tabela === 'recorrencia') {
     const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
     return titulo && `a rotina ${titulo}`;
+  }
+  if (evento.tabela === 'ferramenta') {
+    const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
+    return nome && `a ferramenta ${nome}`;
+  }
+  if (evento.tabela === 'assinatura_ferramenta') {
+    const ferramenta = nomes.get(String(evento.depois?.ferramenta_id ?? evento.antes?.ferramenta_id ?? ''));
+    return `a assinatura${ferramenta ? ` de ${ferramenta}` : ''}`;
   }
   const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade', categoria_financeira: 'a categoria', conta_financeira: 'a conta', feriado: 'o feriado', etiqueta: 'a etiqueta' };
   const artigo = artigos[evento.tabela ?? ''];
@@ -368,11 +417,12 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   }
 }
 
-export type LinhaHistorico = { id: string; texto: string; em: string };
+/** `quem` e `campos` alimentam os filtros do histórico (02 §6). */
+export type LinhaHistorico = { id: string; texto: string; em: string; quem: string; campos: string[] };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas, ferramentas, categoriasDeFerramenta] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -386,12 +436,24 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.atividade.listar({ incluirArquivados: true }),
     repositorios.checklist_item.listar({ incluirArquivados: true }),
     repositorios.recorrencia.listar({ incluirArquivados: true }),
+    repositorios.ferramenta.listar({ incluirArquivados: true }),
+    repositorios.categoria_ferramenta.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
+  return new Map([...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
-  return { id: evento.id, texto: descreverEvento(evento, nomes), em: evento.ocorrido_em };
+  const legiveis = CAMPOS_LEGIVEIS[evento.tabela ?? ''] ?? {};
+  return {
+    id: evento.id,
+    texto: descreverEvento(evento, nomes),
+    em: evento.ocorrido_em,
+    quem: evento.usuario_id === null ? 'Sistema' : (nomes.get(evento.usuario_id) ?? 'Pessoa removida'),
+    campos: evento.campos_alterados.flatMap((campo) => {
+      const legivel = legiveis[campo];
+      return legivel ? [legivel.rotulo] : [];
+    }),
+  };
 }
 
 export async function historicoRecente(limite: number): Promise<LinhaHistorico[]> {
@@ -434,6 +496,14 @@ export async function historicoDoRegistro(tabela: Tabela, id: string): Promise<L
 }
 
 /** Aba Histórico da ficha da pessoa (P2): o cadastro dela e as áreas em que entrou ou de que saiu. */
+/** Aba Histórico da ferramenta: o cadastro, as assinaturas, os contextos e os links dela. */
+export async function historicoDaFerramenta(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, assinaturas, contextos, anexos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.assinatura_ferramenta.listar({ onde: { ferramenta_id: id }, incluirArquivados: true }), repositorios.ferramenta_contexto.listar({ onde: { ferramenta_id: id }, incluirArquivados: true }), repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true })]);
+  const dela = new Set([id, ...assinaturas, ...contextos, ...anexos].map((linha) => (typeof linha === 'string' ? linha : linha.id)));
+  const valores = new Set(assinaturas.map((assinatura) => assinatura.id));
+  return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id)) || (evento.tabela === 'assinatura_valor_historico' && valores.has(String(evento.depois?.assinatura_id)))).map((evento) => paraLinha(evento, nomes));
+}
+
 export async function historicoDaPessoa(id: string): Promise<LinhaHistorico[]> {
   const [eventos, nomes] = await Promise.all([listarHistorico(), nomesDosRegistros()]);
   const dela = eventos.filter((evento) => (evento.tabela === 'pessoa' && evento.registro_id === id) || (evento.tabela === 'pessoa_area' && (evento.depois?.pessoa_id === id || evento.antes?.pessoa_id === id)));

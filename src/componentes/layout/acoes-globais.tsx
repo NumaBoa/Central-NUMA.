@@ -3,6 +3,8 @@
 import type { ReactElement } from 'react';
 import { CheckSquare, FileText, Inbox, AlarmClock, Receipt, Users, Wrench } from 'lucide-react';
 import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
+import { useNovaContraparte } from '@/componentes/contrapartes/nova-contraparte';
+import { useNovaFerramenta } from '@/componentes/ferramentas/nova-ferramenta';
 import { CLASSE_LINHA_MENU, LinhaEmBreve, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { cn } from '@/lib/utils';
 
@@ -16,16 +18,17 @@ const ITENS_DE_ATIVIDADE = [
   { rotulo: 'Lembrete', tipo: 'lembrete', icone: <AlarmClock aria-hidden /> },
 ] as const;
 
-const ITENS_NOVO = [
-  { rotulo: 'Despesa', icone: <Receipt aria-hidden /> },
-  { rotulo: 'Ferramenta', icone: <Wrench aria-hidden /> },
-  { rotulo: 'Arquivo', icone: <FileText aria-hidden /> },
-  { rotulo: 'Contraparte', icone: <Users aria-hidden /> },
-];
-
 /** "+ Novo" no computador; "Criar" no "+" da barra do celular (18 §10.5). */
 export function MenuNovo({ gatilho, alinhar = 'end' }: { gatilho: ReactElement; alinhar?: 'start' | 'end' }) {
   const { abrirAdicionar } = useAdicionarAtividade();
+  const { abrirNovaFerramenta } = useNovaFerramenta();
+  const { abrirNovaContraparte } = useNovaContraparte();
+  const itens: readonly { rotulo: string; icone: ReactElement; abrir?: () => void }[] = [
+    { rotulo: 'Despesa', icone: <Receipt aria-hidden /> },
+    { rotulo: 'Ferramenta', icone: <Wrench aria-hidden />, abrir: abrirNovaFerramenta },
+    { rotulo: 'Arquivo', icone: <FileText aria-hidden /> },
+    { rotulo: 'Contraparte', icone: <Users aria-hidden />, abrir: abrirNovaContraparte },
+  ];
   return (
     <MenuSobreposto titulo="Criar" gatilho={gatilho} alinhar={alinhar}>
       {(fechar) => (
@@ -45,9 +48,25 @@ export function MenuNovo({ gatilho, alinhar = 'end' }: { gatilho: ReactElement; 
               </button>
             </li>
           ))}
-          {ITENS_NOVO.map((item) => (
-            <LinhaEmBreve key={item.rotulo} rotulo={item.rotulo} icone={item.icone} />
-          ))}
+          {itens.map((item) =>
+            item.abrir ? (
+              <li key={item.rotulo}>
+                <button
+                  type="button"
+                  className={cn(CLASSE_LINHA_MENU, 'hover:bg-hover')}
+                  onClick={() => {
+                    fechar();
+                    item.abrir?.();
+                  }}
+                >
+                  {item.icone}
+                  {item.rotulo}
+                </button>
+              </li>
+            ) : (
+              <LinhaEmBreve key={item.rotulo} rotulo={item.rotulo} icone={item.icone} />
+            ),
+          )}
         </ul>
       )}
     </MenuSobreposto>

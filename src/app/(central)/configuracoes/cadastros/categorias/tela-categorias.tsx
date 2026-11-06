@@ -279,13 +279,13 @@ export function TelaCategorias() {
           titulo={`Não dá para arquivar ${arquivando.categoria.nome}`}
           texto={
             <>
-              <p>Este grupo tem categorias:</p>
+              <p>{arquivando.categoria.pai_id ? 'Esta categoria está em uso:' : 'Este grupo tem categorias:'}</p>
               <ul className="mt-1.5 grid gap-1">
                 {arquivando.vinculos.map((vinculo) => (
                   <li key={vinculo}>{vinculo}</li>
                 ))}
               </ul>
-              <p className="mt-3">Mova ou arquive essas categorias antes. Se o grupo não for mais usado, inative: as categorias deixam de ser oferecidas em novos registros.</p>
+              <p className="mt-3">{arquivando.categoria.pai_id ? 'Troque a categoria nesses registros antes. Se ela não for mais usada, inative: deixa de ser oferecida em novos registros.' : 'Mova ou arquive essas categorias antes. Se o grupo não for mais usado, inative: as categorias deixam de ser oferecidas em novos registros.'}</p>
             </>
           }
           rotuloConfirmar="Entendi"

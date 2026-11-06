@@ -395,6 +395,13 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
                             </option>
                           ))}
                         </optgroup>
+                        <optgroup label="Ferramentas">
+                          {(dados?.ferramentas ?? []).map((ferramenta) => (
+                            <option key={ferramenta.id} value={`ferramenta:${ferramenta.id}`}>
+                              {ferramenta.nome}
+                            </option>
+                          ))}
+                        </optgroup>
                       </Selecao>
                     )}
                   </Campo>

@@ -1,3 +1,4 @@
+import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto, type AssinaturaFerramenta, type AssinaturaValorHistorico, type CategoriaFerramenta, type Ferramenta, type FerramentaContexto } from './tipos/ferramenta';
 import { esquemaNotificacao, type Notificacao } from './tipos/notificacao';
 import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
 import type { Repositorio, RepositorioConfiguracao } from './repositorio';
@@ -42,6 +43,11 @@ export const repositorios: {
   anexo_link: Repositorio<AnexoLink>;
   recorrencia: Repositorio<Recorrencia>;
   notificacao: Repositorio<Notificacao>;
+  categoria_ferramenta: Repositorio<CategoriaFerramenta>;
+  ferramenta: Repositorio<Ferramenta>;
+  ferramenta_contexto: Repositorio<FerramentaContexto>;
+  assinatura_ferramenta: Repositorio<AssinaturaFerramenta>;
+  assinatura_valor_historico: Repositorio<AssinaturaValorHistorico>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -68,4 +74,9 @@ export const repositorios: {
   anexo_link: criarRepositorioLocal({ tabela: 'anexo_link', esquema: esquemaAnexoLink }),
   recorrencia: criarRepositorioLocal({ tabela: 'recorrencia', esquema: esquemaRecorrencia }),
   notificacao: criarRepositorioLocal({ tabela: 'notificacao', esquema: esquemaNotificacao, semHistorico: true }),
+  categoria_ferramenta: criarRepositorioLocal({ tabela: 'categoria_ferramenta', esquema: esquemaCategoriaFerramenta }),
+  ferramenta: criarRepositorioLocal({ tabela: 'ferramenta', esquema: esquemaFerramenta, prefixoCodigo: 'FER' }),
+  ferramenta_contexto: criarRepositorioLocal({ tabela: 'ferramenta_contexto', esquema: esquemaFerramentaContexto }),
+  assinatura_ferramenta: criarRepositorioLocal({ tabela: 'assinatura_ferramenta', esquema: esquemaAssinaturaFerramenta }),
+  assinatura_valor_historico: criarRepositorioLocal({ tabela: 'assinatura_valor_historico', esquema: esquemaAssinaturaValorHistorico }),
 };

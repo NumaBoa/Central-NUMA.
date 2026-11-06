@@ -7,6 +7,7 @@ import type { Atividade } from '@/dados/tipos/atividade';
 import { CAMINHO_DA_ATIVIDADE, carregarMeuDia, contextosDaAtividade, estaAberta, ROTULOS_SITUACAO_ATIVIDADE, ROTULOS_TIPO_ATIVIDADE } from './atividades';
 import { nomeDaContraparte } from './contrapartes';
 import { normalizarTexto } from './duplicidade';
+import { ROTULOS_SITUACAO_FERRAMENTA } from './ferramentas';
 import { ROTULOS_TIPO } from './pessoas';
 
 export const MINIMO_PARA_BUSCAR = 2;
@@ -46,7 +47,7 @@ function detalheDaAtividade(atividade: Atividade, contextos: readonly string[]):
 export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
   const termo = normalizarTexto(busca).trim();
   if (termo.length < MINIMO_PARA_BUSCAR) return [];
-  const [meuDia, contrapartes, pessoas, produtos, marcas] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar()]);
+  const [meuDia, contrapartes, pessoas, produtos, marcas, ferramentas] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.ferramenta.listar()]);
 
   const grupos = [
     montarGrupo(
@@ -91,6 +92,20 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
         href: `/configuracoes/cadastros/pessoas/${pessoa.id}`,
         texto: `${pessoa.nome_completo} ${pessoa.nome_exibicao ?? ''} ${pessoa.email ?? ''}`,
         peso: pessoa.situacao === 'ativa' ? 0 : 1,
+      })),
+      termo,
+    ),
+    montarGrupo(
+      'ferramentas',
+      'Ferramentas',
+      ferramentas.map((ferramenta) => ({
+        id: ferramenta.id,
+        codigo: ferramenta.codigo,
+        titulo: ferramenta.nome,
+        detalhe: ROTULOS_SITUACAO_FERRAMENTA[ferramenta.situacao],
+        href: `/ferramentas/${ferramenta.id}`,
+        texto: `${ferramenta.codigo} ${ferramenta.nome} ${ferramenta.finalidade}`,
+        peso: ferramenta.situacao === 'cancelada' ? 1 : 0,
       })),
       termo,
     ),

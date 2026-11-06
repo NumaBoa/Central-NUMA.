@@ -112,7 +112,7 @@ export function DialogoBusca({ aberta, aoMudar }: { aberta: boolean; aoMudar: (a
           <BotaoFechar onClick={() => aoMudar(false)} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2" id={ID_DA_LISTA} role="listbox" aria-label="Resultados">
-          {curto && <p className="px-3 py-6 text-center text-sm text-ink-soft">Busque por código, título ou nome em atividades, contrapartes, pessoas e produtos.</p>}
+          {curto && <p className="px-3 py-6 text-center text-sm text-ink-soft">Busque por código, título ou nome em atividades, contrapartes, pessoas, ferramentas e produtos.</p>}
           {!curto && consulta.estado === 'pronto' && !grupos.length && <p className="px-3 py-6 text-center text-sm text-ink-soft">Nada encontrado para “{termo.trim()}”.</p>}
           {grupos.map((grupo) => (
             <Fragment key={grupo.tipo}>

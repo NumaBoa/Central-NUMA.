@@ -48,10 +48,13 @@ type FormularioContraparteProps = {
   contraparte?: Contraparte | null;
   pessoas: readonly Pessoa[];
   aoCadastrar?: (contraparte: Contraparte) => void;
+  /** Criação rápida de outro formulário (02 §6): já vem com o nome digitado e o papel. */
+  nomeInicial?: string;
+  papeisIniciais?: Formulario['papeis'];
 };
 
 /** Formulário de T02.06, em painel lateral (P3). A classe de informação fica no padrão (03 §0). */
-export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, aoCadastrar }: FormularioContraparteProps) {
+export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, aoCadastrar, nomeInicial = '', papeisIniciais }: FormularioContraparteProps) {
   const { pessoa: pessoaAtual } = useCentral();
   const { register, handleSubmit, control, reset, watch, setError, setValue, formState } = useForm<Formulario>({
     resolver: zodResolver(esquemaFormularioContraparte),
@@ -68,7 +71,7 @@ export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, 
   useEffect(() => {
     if (!aberto) return;
     // A responsável sugerida em novos registros é a pessoa atual (02 §0.4).
-    reset(contraparte ? formularioDaContraparte(contraparte, pessoas) : formularioContraparteVazio(pessoaAtual.id));
+    reset(contraparte ? formularioDaContraparte(contraparte, pessoas) : { ...formularioContraparteVazio(pessoaAtual.id), nome: nomeInicial, ...(papeisIniciais ? { papeis: papeisIniciais } : {}) });
     setDocumentoRepetido(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- as pessoas mudam quando os dados mudam em outra aba
   }, [aberto, contraparte?.id, reset]);

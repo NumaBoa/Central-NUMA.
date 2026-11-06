@@ -6,6 +6,10 @@ import { CHAVE_META, driver } from './armazenamento';
 
 export { CHAVE_META };
 
+/** Visão salva de uma lista (P1): a combinação de filtros e colunas, com um nome. */
+export type VisaoSalva = { id: string; nome: string; filtros: Record<string, unknown>; colunas: string[] };
+export type PreferenciaDaLista = { colunas: string[] | null; visoes: VisaoSalva[] };
+
 export type Meta = {
   /** `null` até a primeira carga dos dados. */
   versao_dados: number | null;
@@ -18,6 +22,8 @@ export type Meta = {
   menu_recolhido: boolean;
   /** Quadro ou Lista, no Meu dia (T03.01). */
   visao_meu_dia: 'quadro' | 'lista';
+  /** Por pessoa e lista: `<pessoa>:<lista>`. */
+  listas: Readonly<Record<string, PreferenciaDaLista>>;
 };
 
 export const META_INICIAL: Meta = {
@@ -29,6 +35,7 @@ export const META_INICIAL: Meta = {
   ultima_abertura: null,
   menu_recolhido: false,
   visao_meu_dia: 'quadro',
+  listas: {},
 };
 
 let atual: Meta | null = null;

@@ -49,6 +49,9 @@ O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arq
 - `npm run dev:rede`: para abrir no celular pelo IP do computador (`18 §10.7`)
 - `npm test`: regras (Vitest)
 - `npm run typecheck` e `npm run build`
+- `bash verificacao/rodar-tudo.sh <suíte nova> <suítes anteriores...>`: a verificação completa de uma etapa, com o `npm run dev` de pé: regras, tipos, build e as suítes num Chrome de verdade, em dev e em produção. `rodar-producao.sh` roda só as suítes, sobre o build que já existe.
+
+As suítes ficam em `verificacao/`, uma por etapa, e entram no commit da etapa: uma pasta temporária já foi apagada entre sessões, e com ela todas as suítes. Fotos, perfil do Chrome e registros vão para `%TEMP%\central-numa-verificacao`, ou para `VERIFICACAO_PASTA`. Elas conferem números da carga inicial (`Registros131`, `31 de exemplo`, `versao_dados`): ao acrescentar carga, atualize as suítes junto com `apoio-testes.ts`.
 
 Para rever a abertura, que só aparece uma vez por dia: `/configuracoes?abertura=1`, ou `?abertura=manter` para segurá-la na tela. A vitrine dos padrões fica em `/padroes`, fora do menu.
 

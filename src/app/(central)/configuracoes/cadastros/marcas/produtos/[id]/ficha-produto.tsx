@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Box, Pencil } from 'lucide-react';
 import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
+import { AbaFerramentas } from '@/componentes/ferramentas/aba-ferramentas';
+import { ferramentasDoProduto } from '@/dominio/ferramentas';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
@@ -28,7 +30,7 @@ function AbaHistorico({ id }: { id: string }) {
   const consulta = useConsulta(() => historicoDoRegistro('produto', id), [id]);
   return (
     <div className="rounded-lg border border-line bg-paper p-4 md:p-5">
-      <ListaHistorico consulta={consulta} />
+      <ListaHistorico consulta={consulta} comFiltros />
     </div>
   );
 }
@@ -160,6 +162,7 @@ export function FichaProduto() {
               </ListaDeDados>
             ),
           },
+          { id: 'ferramentas', rotulo: 'Ferramentas', conteudo: <AbaFerramentas consultar={() => ferramentasDoProduto(produto.id)} dependencia={produto.id} vazio="As ferramentas ligadas a este produto aparecem aqui." /> },
           { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('produto', produto.id)} dependencia={produto.id} vazio="As atividades deste produto aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={produto.id} /> },
         ]}

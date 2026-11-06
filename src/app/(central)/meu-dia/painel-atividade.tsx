@@ -611,6 +611,13 @@ function SecaoVinculos({ atividade, painel, dados }: { atividade: Atividade; pai
                     </option>
                   ))}
               </optgroup>
+              <optgroup label="Ferramentas">
+                {(consulta.dados?.ferramentas ?? []).map((ferramenta) => (
+                  <option key={ferramenta.id} value={`ferramenta:${ferramenta.id}`}>
+                    {ferramenta.nome}
+                  </option>
+                ))}
+              </optgroup>
             </Selecao>
           )}
         </Campo>
@@ -825,7 +832,7 @@ function SecaoHistorico({ id }: { id: string }) {
   const consulta = useConsulta(() => historicoDaAtividade(id), [id]);
   return (
     <Secao titulo="Histórico">
-      <ListaHistorico consulta={consulta} />
+      <ListaHistorico consulta={consulta} comFiltros />
     </Secao>
   );
 }

@@ -1,4 +1,5 @@
 /** Regras de T02.06 (04-M02): contrapartes, sobretudo fornecedores na F0a. */
+import { vinculosDeFerramentaDaContraparte } from './ferramentas';
 import { z } from 'zod';
 import { ErroDeDados, ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
@@ -188,8 +189,9 @@ export async function salvarContraparte(formulario: FormularioContraparte, id?: 
 
 /** O que depende da contraparte. Cada módulo novo que apontar para ela acrescenta aqui (T04, T05…). */
 export async function vinculosDaContraparte(id: string): Promise<string[]> {
+  const deFerramentas = await vinculosDeFerramentaDaContraparte(id);
   const [contatos, entidades, atividades] = await Promise.all([repositorios.pessoa.listar({ onde: { contraparte_id: id } }), repositorios.entidade.listar({ onde: { contador_id: id } }), quantasAtividadesAbertasVinculadas('contraparte', id)]);
-  return [...contatos.map((pessoa) => `Contato: ${pessoa.nome_completo}`), ...entidades.map((entidade) => `Contador de ${entidade.nome}`), ...(atividades ? [atividades === 1 ? '1 atividade aberta' : `${atividades} atividades abertas`] : [])];
+  return [...contatos.map((pessoa) => `Contato: ${pessoa.nome_completo}`), ...entidades.map((entidade) => `Contador de ${entidade.nome}`), ...(atividades ? [atividades === 1 ? '1 atividade aberta' : `${atividades} atividades abertas`] : []), ...deFerramentas];
 }
 
 export async function inativarContraparte(id: string): Promise<void> {

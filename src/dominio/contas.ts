@@ -8,6 +8,7 @@ import type { Pessoa } from '@/dados/tipos/pessoa';
 import { lerValor, valorParaCampo } from './dinheiro';
 import { normalizarTexto } from './duplicidade';
 import { entidadesParaVincular, nomeDaEntidade } from './entidades';
+import { vinculosDeFerramentaDaConta } from './ferramentas';
 import { pessoasDoSeletor } from './pessoa-atual';
 import { AVISO_CREDENCIAL, pareceCredencial } from './segredos';
 
@@ -172,6 +173,8 @@ export async function salvarConta(formulario: FormularioConta, id?: string): Pro
 }
 
 export async function arquivarConta(id: string): Promise<void> {
+  const vinculos = await vinculosDeFerramentaDaConta(id);
+  if (vinculos.length) throw new ErroDeRegra(`Esta conta está em uso: ${vinculos.join(', ')}. Troque a conta antes.`);
   await repositorios.conta_financeira.arquivar(id);
 }
 

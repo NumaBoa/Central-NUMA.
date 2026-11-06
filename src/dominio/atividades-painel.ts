@@ -20,6 +20,7 @@ export const TEXTO_DO_COMENTARIO_REMOVIDO = 'Comentário removido';
 export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; href: (id: string) => string }>> = {
   contraparte: { rotulo: 'Contraparte', href: (id) => `/configuracoes/cadastros/contrapartes/${id}` },
   produto: { rotulo: 'Produto', href: (id) => `/configuracoes/cadastros/marcas/produtos/${id}` },
+  ferramenta: { rotulo: 'Ferramenta', href: (id) => `/ferramentas/${id}` },
 };
 
 export { CAMINHO_DA_ATIVIDADE };
@@ -267,6 +268,7 @@ async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
     return contraparte?.nome_fantasia || contraparte?.nome || 'Contraparte removida';
   }
   if (tipo === 'produto') return (await repositorios.produto.obter(id))?.nome ?? 'Produto removido';
+  if (tipo === 'ferramenta') return (await repositorios.ferramenta.obter(id))?.nome ?? 'Ferramenta removida';
   return 'Registro removido';
 }
 

@@ -7,6 +7,7 @@ import type { Area } from '@/dados/tipos/area';
 import { parDoVinculo } from '@/dados/tipos/apoio';
 import type { Atividade } from '@/dados/tipos/atividade';
 import type { Contraparte } from '@/dados/tipos/contraparte';
+import type { Ferramenta } from '@/dados/tipos/ferramenta';
 import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { hojeISO, instanteNoFuso } from '@/lib/datas';
@@ -260,9 +261,10 @@ export type DadosDoFormulario = {
   produtos: Produto[];
   marcas: Marca[];
   contrapartes: Contraparte[];
+  ferramentas: Ferramenta[];
 };
 
 export async function carregarFormularioAtividade(): Promise<DadosDoFormulario> {
-  const [pessoas, areas, produtos, marcas, contrapartes] = await Promise.all([repositorios.pessoa.listar(), repositorios.area.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.contraparte.listar()]);
-  return { pessoas, areas: areas.sort((a, b) => a.ordem - b.ordem), produtos: produtos.filter((produto) => produto.situacao === 'ativo'), marcas, contrapartes };
+  const [pessoas, areas, produtos, marcas, contrapartes, ferramentas] = await Promise.all([repositorios.pessoa.listar(), repositorios.area.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.contraparte.listar(), repositorios.ferramenta.listar()]);
+  return { pessoas, areas: areas.sort((a, b) => a.ordem - b.ordem), produtos: produtos.filter((produto) => produto.situacao === 'ativo'), marcas, contrapartes, ferramentas: ferramentas.filter((ferramenta) => ferramenta.situacao !== 'cancelada') };
 }

@@ -4,9 +4,10 @@ import type { Pessoa } from '../tipos/pessoa';
 import { atividadesDeExemplo } from './atividades';
 import { ID_BRUNA, ID_CAMILA, ID_CONTA_CAMILA, ID_CONTA_KIMBERLY, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY } from './base';
 import { controle } from './controle';
+import { categoriasDeFerramentaIniciais, ferramentasDeExemplo } from './ferramentas';
 import { rotinaDeExemplo, rotinasIniciais } from './rotinas';
 
-export { atividadesDeExemplo, controle, rotinaDeExemplo, rotinasIniciais };
+export { atividadesDeExemplo, categoriasDeFerramentaIniciais, controle, ferramentasDeExemplo, rotinaDeExemplo, rotinasIniciais };
 
 /*
  * Dados de exemplo (02 §0.3 e 17 §6). As sócias são reais; os demais registros são fictícios e
@@ -77,7 +78,7 @@ export function contasDeExemplo(agora: string): ContaFinanceira[] {
   return [contaPessoal(ID_CONTA_KIMBERLY, agora, 'Cartão pessoal — Kimberly', ID_KIMBERLY), contaPessoal(ID_CONTA_CAMILA, agora, 'Cartão pessoal — Camila', ID_CAMILA)];
 }
 
-export type DadosDeExemplo = { pessoa: Pessoa[]; contraparte: Contraparte[]; conta_financeira: ContaFinanceira[] } & ReturnType<typeof atividadesDeExemplo>;
+export type DadosDeExemplo = { pessoa: Pessoa[]; contraparte: Contraparte[]; conta_financeira: ContaFinanceira[] } & ReturnType<typeof atividadesDeExemplo> & ReturnType<typeof ferramentasDeExemplo>;
 
 export function gerarExemplos(agora: string): DadosDeExemplo {
   return {
@@ -90,5 +91,6 @@ export function gerarExemplos(agora: string): DadosDeExemplo {
     contraparte: contrapartesDeExemplo(agora),
     conta_financeira: contasDeExemplo(agora),
     ...atividadesDeExemplo(agora),
+    ...ferramentasDeExemplo(agora),
   };
 }

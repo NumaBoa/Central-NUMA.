@@ -4,6 +4,7 @@ import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import type { CategoriaFinanceira } from '@/dados/tipos/financeiro';
 import { normalizarTexto } from './duplicidade';
+import { vinculosDeFerramentaDaCategoria } from './ferramentas';
 
 type TipoCategoria = CategoriaFinanceira['tipo'];
 
@@ -93,12 +94,13 @@ export async function salvarCategoria(formulario: FormularioCategoria, id?: stri
 /** O que depende da categoria. Lançamentos acrescentam aqui na T05. */
 export async function vinculosDaCategoria(id: string): Promise<string[]> {
   const filhas = await repositorios.categoria_financeira.listar({ onde: { pai_id: id } });
-  return filhas.map((categoria) => `Categoria ${categoria.nome}`);
+  return [...filhas.map((categoria) => `Categoria ${categoria.nome}`), ...(await vinculosDeFerramentaDaCategoria(id))];
 }
 
 export async function arquivarCategoria(id: string): Promise<void> {
+  const categoria = await repositorios.categoria_financeira.obter(id);
   const vinculos = await vinculosDaCategoria(id);
-  if (vinculos.length) throw new ErroDeRegra(`Este grupo tem categorias: ${vinculos.join(', ')}. Mova ou arquive essas categorias antes.`);
+  if (vinculos.length) throw new ErroDeRegra(categoria?.pai_id ? `Esta categoria está em uso: ${vinculos.join(', ')}. Troque a categoria nesses registros antes.` : `Este grupo tem categorias: ${vinculos.join(', ')}. Mova ou arquive essas categorias antes.`);
   await repositorios.categoria_financeira.arquivar(id);
 }
 
