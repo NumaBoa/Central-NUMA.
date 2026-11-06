@@ -14,6 +14,7 @@ import type { Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte'
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import type { BackupRegistro } from '@/dados/tipos/backup-registro';
 import type { Controle } from '@/dados/tipos/controle';
+import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { hojeISO } from '@/lib/datas';
 import { gerarUuid } from '@/lib/ids';
@@ -39,7 +40,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -275,11 +276,13 @@ export async function limparExemplos(): Promise<number> {
   garantirCarga();
   const autor = idDaPessoaAtual();
   let removidos = 0;
+  const idsRemovidos = new Set<string>();
   const novasLinhas = Object.fromEntries(
     TABELAS_DE_REGISTROS.map((tabela) => {
       const linhas = lerTabela<Controle>(tabela);
       const mantidas = linhas.filter((linha) => !linha.exemplo);
       removidos += linhas.length - mantidas.length;
+      for (const linha of linhas) if (linha.exemplo) idsRemovidos.add(linha.id);
       return [tabela, mantidas];
     }),
   );
@@ -288,6 +291,8 @@ export async function limparExemplos(): Promise<number> {
   const pessoasQueFicam = new Set((novasLinhas.pessoa as Controle[]).map((pessoa) => pessoa.id));
   novasLinhas.pessoa_area = (novasLinhas.pessoa_area as PessoaArea[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
   novasLinhas.entidade_representante = (novasLinhas.entidade_representante as EntidadeRepresentante[]).filter((ligacao) => pessoasQueFicam.has(ligacao.pessoa_id));
+  // Etiqueta é de quem a usa: o registro fictício sai, e a etiqueta fica sem esse vínculo.
+  novasLinhas.etiqueta_vinculo = (novasLinhas.etiqueta_vinculo as EtiquetaVinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.registro_id));
   // Contraparte fictícia que saiu não fica pendurada em registro de verdade.
   const contrapartesQueFicam = new Set((novasLinhas.contraparte as Controle[]).map((contraparte) => contraparte.id));
   novasLinhas.pessoa = (novasLinhas.pessoa as Pessoa[]).map((pessoa) => (pessoa.contraparte_id && !contrapartesQueFicam.has(pessoa.contraparte_id) ? { ...pessoa, contraparte_id: null } : pessoa));

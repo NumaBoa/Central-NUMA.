@@ -308,7 +308,7 @@ export function TelaEntidades() {
           aberto
           aoFechar={() => setArquivando(null)}
           titulo={`Não dá para arquivar ${nomeDaLinha(arquivando.entidade)}`}
-          texto={`Esta entidade está em uso: ${arquivando.vinculos.join(', ')}. Troque a entidade desses produtos antes.`}
+          texto={`Esta entidade está em uso: ${arquivando.vinculos.join(', ')}. Troque a entidade desses registros antes.`}
           rotuloConfirmar="Entendi"
           soInforma
           aoConfirmar={() => setArquivando(null)}

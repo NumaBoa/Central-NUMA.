@@ -158,14 +158,14 @@ export async function salvarEntidade(formulario: FormularioEntidade, id?: string
 
 /** O que depende da entidade. Contratos e propostas acrescentam aqui na F1. */
 export async function vinculosDaEntidade(id: string): Promise<string[]> {
-  const produtos = await repositorios.produto.listar({ onde: { entidade_id: id } });
-  return produtos.map((produto) => `Produto ${produto.nome}`);
+  const [produtos, contas] = await Promise.all([repositorios.produto.listar({ onde: { entidade_id: id } }), repositorios.conta_financeira.listar({ onde: { titular_entidade_id: id } })]);
+  return [...produtos.map((produto) => `Produto ${produto.nome}`), ...contas.map((conta) => `Conta ${conta.nome}`)];
 }
 
 /** Arquivada não é sugerida em novos contratos: deixa de ser a padrão, e não volta a ser ao restaurar. */
 export async function arquivarEntidade(id: string): Promise<void> {
   const vinculos = await vinculosDaEntidade(id);
-  if (vinculos.length) throw new ErroDeRegra(`Esta entidade está em uso: ${vinculos.join(', ')}. Troque a entidade desses produtos antes.`);
+  if (vinculos.length) throw new ErroDeRegra(`Esta entidade está em uso: ${vinculos.join(', ')}. Troque a entidade desses registros antes.`);
   await emTransacao(async () => {
     if ((await repositorios.entidade.obter(id))?.entidade_padrao) await repositorios.entidade.atualizar(id, { entidade_padrao: false });
     await repositorios.entidade.arquivar(id);

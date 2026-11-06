@@ -5,7 +5,11 @@ import { TABELAS, type Tabela } from '@/dados/tabelas';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import { CATALOGO_CONFIGURACAO, chaveConhecida } from '@/dados/tipos/configuracao';
 import { formatarDiaISO } from '@/lib/formatacao';
+import { ROTULOS_NATUREZA, ROTULOS_SITUACAO_CATEGORIA, ROTULOS_TIPO_CATEGORIA } from './categorias';
+import { ROTULOS_SITUACAO_CONTA, ROTULOS_TIPO_CONTA } from './contas';
 import { ROTULOS_ORIGEM, ROTULOS_PAPEL_CONTRAPARTE, ROTULOS_TIPO_PESSOA } from './contrapartes';
+import { rotuloDosModulos } from './etiquetas';
+import { ROTULOS_ABRANGENCIA } from './feriados';
 import { ROTULOS_SITUACAO_ENTIDADE, ROTULOS_TIPO_ENTIDADE } from './entidades';
 import { avancouDeFase, rotuloDaFase } from './fases';
 import { ROTULOS_SITUACAO_MARCA } from './marcas';
@@ -163,6 +167,37 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     entidade_padrao: { rotulo: 'Entidade padrão', valor: simNao },
     contador_id: { rotulo: 'Contador', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'contraparte removida' },
   },
+  categoria_financeira: {
+    nome: { rotulo: 'Nome' },
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_CATEGORIA[valor as keyof typeof ROTULOS_TIPO_CATEGORIA] },
+    natureza_custo: { rotulo: 'Natureza do custo', valor: (valor) => ROTULOS_NATUREZA[valor as keyof typeof ROTULOS_NATUREZA] },
+    pai_id: { rotulo: 'Grupo', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'grupo removido' },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_CATEGORIA[valor as keyof typeof ROTULOS_SITUACAO_CATEGORIA] },
+  },
+  conta_financeira: {
+    nome: { rotulo: 'Nome' },
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_CONTA[valor as keyof typeof ROTULOS_TIPO_CONTA] },
+    titular_entidade_id: { rotulo: 'Entidade titular', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'entidade removida' },
+    titular_pessoa_id: { rotulo: 'Sócia titular', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    instituicao: { rotulo: 'Instituição' },
+    final_numero: { rotulo: 'Final', semValores: true },
+    moeda: { rotulo: 'Moeda' },
+    saldo_inicial: { rotulo: 'Saldo inicial', semValores: true },
+    data_saldo_inicial: { rotulo: 'Data do saldo', valor: (valor) => formatarDiaISO(String(valor)) },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_CONTA[valor as keyof typeof ROTULOS_SITUACAO_CONTA] },
+  },
+  feriado: {
+    data: { rotulo: 'Data', valor: (valor) => formatarDiaISO(String(valor)) },
+    nome: { rotulo: 'Nome' },
+    abrangencia: { rotulo: 'Abrangência', valor: (valor) => ROTULOS_ABRANGENCIA[valor as keyof typeof ROTULOS_ABRANGENCIA] },
+    uf: { rotulo: 'Estado' },
+    municipio: { rotulo: 'Município' },
+  },
+  etiqueta: {
+    nome: { rotulo: 'Nome' },
+    cor: { rotulo: 'Cor' },
+    modulos: { rotulo: 'Módulos', valor: (valor) => rotuloDosModulos(valor as string[]) },
+  },
 };
 
 /** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
@@ -191,7 +226,7 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
     return nome && `a área ${nome}`;
   }
-  const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade' };
+  const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade', categoria_financeira: 'a categoria', conta_financeira: 'a conta', feriado: 'o feriado', etiqueta: 'a etiqueta' };
   const artigo = artigos[evento.tabela ?? ''];
   if (artigo) {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
@@ -212,6 +247,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const ehCambio = evento.tabela === 'cambio_referencia';
   const ehLigacao = evento.tabela === 'pessoa_area';
   const ehRepresentante = evento.tabela === 'entidade_representante';
+  const ehVinculoDeEtiqueta = evento.tabela === 'etiqueta_vinculo';
   const porExtenso = registroPorExtenso(evento, nomes);
   const motivo = evento.motivo ? `. Motivo: ${evento.motivo}` : '';
   switch (evento.acao) {
@@ -231,6 +267,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
       return `${quem} criou um registro em ${onde}${registro}`;
     case 'alterou': {
       if (evento.tabela === 'configuracao') return `${quem} ${fraseDaConfiguracao(evento, nomes)}`;
+      if (ehVinculoDeEtiqueta) return `${quem} moveu um registro para a etiqueta ${nomes.get(String(evento.depois?.etiqueta_id)) ?? 'removida'}`;
       if (evento.tabela === 'pessoa' && evento.campos_alterados.length === 1 && evento.campos_alterados[0] === 'situacao' && porExtenso) {
         return `${quem} ${evento.depois?.situacao === 'inativa' ? 'inativou' : 'reativou'} ${porExtenso}`;
       }
@@ -245,6 +282,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
         return `${quem} tirou ${pessoa} da área ${area}`;
       }
       if (ehRepresentante) return `${quem} tirou ${nomes.get(String(evento.antes?.pessoa_id)) ?? 'Pessoa removida'} como representante de ${nomes.get(String(evento.antes?.entidade_id)) ?? 'entidade removida'}`;
+      if (ehVinculoDeEtiqueta) return `${quem} tirou um registro da etiqueta ${nomes.get(String(evento.antes?.etiqueta_id)) ?? 'removida'}`;
       if (porExtenso) return `${quem} arquivou ${porExtenso}${motivo}`;
       return `${quem} arquivou um registro em ${onde}${registro}${motivo}`;
     case 'restaurou':
@@ -259,15 +297,19 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
     repositorios.produto.listar({ incluirArquivados: true }),
     repositorios.contraparte.listar({ incluirArquivados: true }),
     repositorios.entidade.listar({ incluirArquivados: true }),
+    repositorios.categoria_financeira.listar({ incluirArquivados: true }),
+    repositorios.conta_financeira.listar({ incluirArquivados: true }),
+    repositorios.feriado.listar({ incluirArquivados: true }),
+    repositorios.etiqueta.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades].map((registro): [string, string] => [registro.id, registro.nome])]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {

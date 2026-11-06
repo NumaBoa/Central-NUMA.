@@ -3,8 +3,11 @@ import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-lo
 import { criarRepositorioLocal } from './repositorio-local';
 import { esquemaArea, esquemaPessoaArea, type Area, type PessoaArea } from './tipos/area';
 import { esquemaBackupRegistro, type BackupRegistro } from './tipos/backup-registro';
+import { esquemaFeriado, type Feriado } from './tipos/calendario';
 import { esquemaCambioReferencia, type CambioReferencia } from './tipos/cambio-referencia';
 import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante, type Contraparte, type Entidade, type EntidadeRepresentante } from './tipos/contraparte';
+import { esquemaEtiqueta, esquemaEtiquetaVinculo, type Etiqueta, type EtiquetaVinculo } from './tipos/etiqueta';
+import { esquemaCategoriaFinanceira, esquemaContaFinanceira, type CategoriaFinanceira, type ContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto, type Marca, type Produto } from './tipos/marca';
 import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
 
@@ -21,6 +24,11 @@ export const repositorios: {
   contraparte: Repositorio<Contraparte>;
   entidade: Repositorio<Entidade>;
   entidade_representante: Repositorio<EntidadeRepresentante>;
+  categoria_financeira: Repositorio<CategoriaFinanceira>;
+  conta_financeira: Repositorio<ContaFinanceira>;
+  feriado: Repositorio<Feriado>;
+  etiqueta: Repositorio<Etiqueta>;
+  etiqueta_vinculo: Repositorio<EtiquetaVinculo>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -33,4 +41,9 @@ export const repositorios: {
   contraparte: criarRepositorioLocal({ tabela: 'contraparte', esquema: esquemaContraparte }),
   entidade: criarRepositorioLocal({ tabela: 'entidade', esquema: esquemaEntidade }),
   entidade_representante: criarRepositorioLocal({ tabela: 'entidade_representante', esquema: esquemaEntidadeRepresentante }),
+  categoria_financeira: criarRepositorioLocal({ tabela: 'categoria_financeira', esquema: esquemaCategoriaFinanceira }),
+  conta_financeira: criarRepositorioLocal({ tabela: 'conta_financeira', esquema: esquemaContaFinanceira }),
+  feriado: criarRepositorioLocal({ tabela: 'feriado', esquema: esquemaFeriado }),
+  etiqueta: criarRepositorioLocal({ tabela: 'etiqueta', esquema: esquemaEtiqueta }),
+  etiqueta_vinculo: criarRepositorioLocal({ tabela: 'etiqueta_vinculo', esquema: esquemaEtiquetaVinculo }),
 };

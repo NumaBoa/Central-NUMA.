@@ -18,6 +18,8 @@ export type Coluna<T> = {
   essencial?: boolean;
   /** Números à direita, tabulares (18 §9.6). */
   numerica?: boolean;
+  /** Para alinhar as colunas de listas vizinhas, como os grupos de categorias. */
+  largura?: string;
 };
 
 type ListaProps<T> = {
@@ -83,6 +85,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, acoe
                     key={coluna.id}
                     scope="col"
                     aria-sort={ordenada ? (ordem?.sentido === 1 ? 'ascending' : 'descending') : undefined}
+                    style={coluna.largura ? { width: coluna.largura } : undefined}
                     className={cn(
                       'bg-mist px-3.5 py-2.5 text-left font-semibold whitespace-nowrap text-ink-soft first:rounded-tl-lg last:rounded-tr-lg',
                       coluna.numerica && 'text-right',

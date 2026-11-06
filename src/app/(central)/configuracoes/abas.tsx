@@ -23,6 +23,10 @@ const CADASTROS = [
   { id: 'marcas', rotulo: 'Marcas e produtos', href: '/configuracoes/cadastros/marcas' },
   { id: 'entidades', rotulo: 'Entidades', href: '/configuracoes/cadastros/entidades' },
   { id: 'contrapartes', rotulo: 'Contrapartes', href: '/configuracoes/cadastros/contrapartes' },
+  { id: 'categorias', rotulo: 'Categorias', href: '/configuracoes/cadastros/categorias' },
+  { id: 'contas', rotulo: 'Contas', href: '/configuracoes/cadastros/contas' },
+  { id: 'calendario', rotulo: 'Calendário', href: '/configuracoes/cadastros/calendario' },
+  { id: 'etiquetas', rotulo: 'Etiquetas', href: '/configuracoes/cadastros/etiquetas' },
 ] as const;
 
 export function SubabasCadastros({ ativa }: { ativa: (typeof CADASTROS)[number]['id'] }) {

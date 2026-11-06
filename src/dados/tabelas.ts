@@ -1,10 +1,13 @@
 import type { z } from 'zod';
 import { esquemaArea, esquemaPessoaArea } from './tipos/area';
+import { esquemaFeriado } from './tipos/calendario';
 import { esquemaEventoAuditoria } from './tipos/auditoria';
 import { esquemaBackupRegistro } from './tipos/backup-registro';
 import { esquemaCambioReferencia } from './tipos/cambio-referencia';
 import { esquemaConfiguracao } from './tipos/configuracao';
 import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } from './tipos/contraparte';
+import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
+import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaPessoa } from './tipos/pessoa';
 
@@ -21,6 +24,11 @@ export const TABELAS = {
   contraparte: { rotulo: 'Contrapartes', esquema: esquemaContraparte },
   entidade: { rotulo: 'Entidades', esquema: esquemaEntidade },
   entidade_representante: { rotulo: 'Representantes das entidades', esquema: esquemaEntidadeRepresentante },
+  categoria_financeira: { rotulo: 'Categorias financeiras', esquema: esquemaCategoriaFinanceira },
+  conta_financeira: { rotulo: 'Contas financeiras', esquema: esquemaContaFinanceira },
+  feriado: { rotulo: 'Feriados', esquema: esquemaFeriado },
+  etiqueta: { rotulo: 'Etiquetas', esquema: esquemaEtiqueta },
+  etiqueta_vinculo: { rotulo: 'Etiquetas nos registros', esquema: esquemaEtiquetaVinculo },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -37,5 +45,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 3: T02.03 acrescenta `area` e `pessoa_area`.
  * 4: T02.04 acrescenta `marca` e `produto`; o contexto escolhido passa a ser o id do produto.
  * 5: T02.05 e T02.06 acrescentam `entidade`, `entidade_representante` e `contraparte`.
+ * 6: T02.07 a T02.10 acrescentam `categoria_financeira`, `conta_financeira`, `feriado`, `etiqueta` e `etiqueta_vinculo`.
  */
-export const VERSAO_DADOS = 5;
+export const VERSAO_DADOS = 6;

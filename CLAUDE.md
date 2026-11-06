@@ -54,6 +54,8 @@ Para rever a abertura, que só aparece uma vez por dia: `/configuracoes?abertura
 
 Para atualizar a lista oficial de municípios do IBGE: `node scripts/gerar-municipios.mjs`, e registre a nova data no Mapa.
 
+Logo depois de mudar um arquivo, o `next dev` pode acusar erro de hidratação na primeira visita a uma rota: o servidor de desenvolvimento ainda entrega o HTML da versão anterior (visto ao mudar `abas.tsx`, com a diferença de React mostrando um item a mais só no cliente). Recarregar resolve, e em produção não acontece. Se o erro continuar depois de recarregar, é defeito de verdade.
+
 ## Git
 
 - Repositório local. A identidade (NumaBoa) está configurada só neste repositório; nunca use `--global`.

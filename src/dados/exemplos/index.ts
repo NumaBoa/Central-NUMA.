@@ -1,7 +1,8 @@
 import type { Contraparte } from '../tipos/contraparte';
 import type { Controle } from '../tipos/controle';
+import type { ContaFinanceira } from '../tipos/financeiro';
 import type { Pessoa } from '../tipos/pessoa';
-import { ID_CAMILA, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY } from './base';
+import { ID_CAMILA, ID_CONTA_CAMILA, ID_CONTA_KIMBERLY, ID_CONTRAPARTE_CONTABILIDADE, ID_KIMBERLY } from './base';
 
 /**
  * Dados de exemplo (02 §0.3 e 17 §6). As sócias são reais; os demais registros são fictícios e
@@ -64,7 +65,28 @@ export function contrapartesDeExemplo(agora: string): Contraparte[] {
   ];
 }
 
-export type DadosDeExemplo = { pessoa: Pessoa[]; contraparte: Contraparte[] };
+function contaPessoal(id: string, agora: string, nome: string, socia: string): ContaFinanceira {
+  return {
+    ...controle(id, true, agora),
+    nome,
+    tipo: 'pessoal_socia',
+    titular_entidade_id: null,
+    titular_pessoa_id: socia,
+    instituicao: null,
+    final_numero: null,
+    moeda: 'BRL',
+    saldo_inicial: null,
+    data_saldo_inicial: null,
+    situacao: 'ativa',
+  };
+}
+
+/** Uma conta pessoal de cada sócia (T02.08). Os nomes são os de `17 §6`, e os reais vêm com o uso. */
+export function contasDeExemplo(agora: string): ContaFinanceira[] {
+  return [contaPessoal(ID_CONTA_KIMBERLY, agora, 'Cartão pessoal — Kimberly', ID_KIMBERLY), contaPessoal(ID_CONTA_CAMILA, agora, 'Cartão pessoal — Camila', ID_CAMILA)];
+}
+
+export type DadosDeExemplo = { pessoa: Pessoa[]; contraparte: Contraparte[]; conta_financeira: ContaFinanceira[] };
 
 export function gerarExemplos(agora: string): DadosDeExemplo {
   return {
@@ -75,5 +97,6 @@ export function gerarExemplos(agora: string): DadosDeExemplo {
       pessoa('3ea04f85-6c9b-4d4e-8a5f-8b1d0f7c4d04', true, agora, { nome_completo: 'Rafael Souza', tipo: 'externa', eh_socia: false, funcao: 'Contador', email: 'rafael@exemplo.com.br', contraparte_id: ID_CONTRAPARTE_CONTABILIDADE, papeis_contato: ['principal', 'financeiro'] }),
     ],
     contraparte: contrapartesDeExemplo(agora),
+    conta_financeira: contasDeExemplo(agora),
   };
 }

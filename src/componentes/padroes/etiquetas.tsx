@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { CheckCircle2, ChevronUp, ChevronsUp, CircleAlert, CircleDot, Minus, TriangleAlert, type LucideIcon } from 'lucide-react';
 import type { Contexto } from '@/dominio/contextos';
+import { tintaDaCor } from '@/dominio/cores';
 import { cn } from '@/lib/utils';
 
 const BASE = 'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap [&_svg]:size-[13px] [&_svg]:shrink-0';
@@ -61,6 +62,18 @@ export function EtiquetaPrioridade({ prioridade }: { prioridade: Prioridade }) {
 /** Etiqueta livre: pílula linho, texto cinza (18 §9.4). */
 export function EtiquetaLivre({ children }: { children: ReactNode }) {
   return <span className={cn(BASE, 'bg-linen text-ink-soft')}>{children}</span>;
+}
+
+/** Etiqueta de T02.10: com cor, como a de produto (18 §9.4); sem cor, neutra. */
+export function EtiquetaColorida({ nome, cor }: { nome: string; cor: string | null }) {
+  if (!cor) return <EtiquetaLivre>{nome}</EtiquetaLivre>;
+  const cores = { '--tinta': tintaDaCor(cor), '--ponto': cor } as CSSProperties;
+  return (
+    <span style={cores} className={cn(BASE, 'bg-[var(--tinta)] text-ink')}>
+      <span className="size-2 shrink-0 rounded-full bg-[var(--ponto)]" aria-hidden />
+      {nome}
+    </span>
+  );
 }
 
 /** Marca de módulo ou recurso ainda não construído. */

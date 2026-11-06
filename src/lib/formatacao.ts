@@ -11,6 +11,11 @@ export function formatarCotacao(valor: number): string {
   return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
 }
 
+/** Na moeda do registro (RT-07). Não soma moedas diferentes: só mostra. */
+export function formatarDinheiro(valor: number, moeda: string): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: moeda }).format(valor);
+}
+
 export function formatarData(iso: string, fuso: string = fusoConfigurado()): string {
   return formatInTimeZone(iso, fuso, 'dd/MM/yyyy');
 }

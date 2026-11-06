@@ -5,10 +5,14 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { contrapartesDeExemplo } from './exemplos';
-import { AREAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
+import { contasDeExemplo, contrapartesDeExemplo } from './exemplos';
+import { AREAS_INICIAIS, CATEGORIAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
+import { feriadosDoAno } from './referencia/feriados';
+import { hojeISO } from '@/lib/datas';
 import type { Area, PessoaArea } from './tipos/area';
+import type { Feriado } from './tipos/calendario';
 import type { Entidade } from './tipos/contraparte';
+import type { CategoriaFinanceira } from './tipos/financeiro';
 import type { Marca, Produto } from './tipos/marca';
 import type { Pessoa } from './tipos/pessoa';
 import { CATALOGO_CONFIGURACAO, CHAVES_CONFIGURACAO, VALORES_PADRAO, type Configuracao } from './tipos/configuracao';
@@ -81,6 +85,16 @@ function entidadesIniciais(agora: string): Entidade[] {
   ];
 }
 
+function categoriasIniciais(agora: string): CategoriaFinanceira[] {
+  return CATEGORIAS_INICIAIS.map(({ id, nome, tipo, pai }) => ({ ...controle(id, false, agora), nome, tipo, natureza_custo: null, pai_id: pai, situacao: 'ativa' }));
+}
+
+/** O calendário do ano em que a Central foi aberta, no local padrão de T02.01 (D16). */
+function feriadosIniciais(agora: string): Feriado[] {
+  const ano = Number(hojeISO(new Date(agora)).slice(0, 4));
+  return feriadosDoAno(ano, { uf: VALORES_PADRAO.uf_padrao, municipio: VALORES_PADRAO.municipio_padrao }).map((feriado) => ({ ...controle(gerarUuid(), false, agora), ...feriado }));
+}
+
 /**
  * Tabelas que não podem começar vazias: valores da especificação, não exemplos. Se um backup antigo
  * não as trouxer, voltam a estes valores.
@@ -92,6 +106,8 @@ const VALORES_INICIAIS = {
   marca: marcasIniciais,
   produto: produtosIniciais,
   entidade: entidadesIniciais,
+  categoria_financeira: categoriasIniciais,
+  feriado: feriadosIniciais,
 } as const;
 
 export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
@@ -102,7 +118,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], cambio_referencia: [], backup_registro: [] };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [] };
 }
 
 /**
@@ -132,6 +148,14 @@ function migrar(versao: number) {
     if (driver().getItem(chaveDaTabela('entidade_representante')) === null) alteracoes.entidade_representante = [];
     // Quem já limpou os exemplos não recebe exemplos novos.
     if (driver().getItem(chaveDaTabela('contraparte')) === null) alteracoes.contraparte = aindaHaExemplos() ? contrapartesDeExemplo(agora) : [];
+  }
+  if (versao < 6) {
+    if (driver().getItem(chaveDaTabela('categoria_financeira')) === null) alteracoes.categoria_financeira = categoriasIniciais(agora);
+    if (driver().getItem(chaveDaTabela('feriado')) === null) alteracoes.feriado = feriadosIniciais(agora);
+    if (driver().getItem(chaveDaTabela('etiqueta')) === null) alteracoes.etiqueta = [];
+    if (driver().getItem(chaveDaTabela('etiqueta_vinculo')) === null) alteracoes.etiqueta_vinculo = [];
+    // Quem já limpou os exemplos não recebe exemplos novos.
+    if (driver().getItem(chaveDaTabela('conta_financeira')) === null) alteracoes.conta_financeira = aindaHaExemplos() ? contasDeExemplo(agora) : [];
   }
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];

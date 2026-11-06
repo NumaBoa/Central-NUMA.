@@ -188,7 +188,7 @@ export async function salvarPessoa(formulario: FormularioPessoa, id?: string): P
 
 /** O que depende da pessoa. Cada módulo novo que apontar para ela acrescenta a sua linha aqui. */
 export async function vinculosDaPessoa(id: string): Promise<string[]> {
-  const [areas, ligacoes, configuracoes, produtos, contrapartes, entidades, representacoes] = await Promise.all([
+  const [areas, ligacoes, configuracoes, produtos, contrapartes, entidades, representacoes, contas] = await Promise.all([
     repositorios.area.listar(),
     repositorios.pessoa_area.listar({ onde: { pessoa_id: id } }),
     repositorios.configuracao.ler(),
@@ -196,6 +196,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
     repositorios.contraparte.listar({ onde: { responsavel_id: id } }),
     repositorios.entidade.listar(),
     repositorios.entidade_representante.listar({ onde: { pessoa_id: id } }),
+    repositorios.conta_financeira.listar({ onde: { titular_pessoa_id: id } }),
   ]);
   const nomeDaArea = new Map(areas.map((area) => [area.id, area.nome]));
   return [
@@ -206,6 +207,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
     }),
     ...produtos.map((produto) => `Responsável pelo produto ${produto.nome}`),
     ...contrapartes.map((contraparte) => `Responsável por ${contraparte.nome_fantasia || contraparte.nome}`),
+    ...contas.map((conta) => `Titular da conta ${conta.nome}`),
     ...representacoes.flatMap((representacao) => {
       const entidade = entidades.find((item) => item.id === representacao.entidade_id);
       return entidade ? [`Representante de ${entidade.nome}`] : [];

@@ -43,6 +43,33 @@ export const ID_ENTIDADE_PLANEJADA = 'd5f3b4a7-ae62-4d43-9f34-3c4d5e6f7a01';
 /** Contraparte fictícia ligada ao contador de exemplo. */
 export const ID_CONTRAPARTE_CONTABILIDADE = 'e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b01';
 
+/** Contas de exemplo de `17 §6`: os nomes reais só vêm com o uso (`04-M02 §4`). */
+export const ID_CONTA_KIMBERLY = 'a8c6e7da-d195-4a76-8c67-6f7a8b9c0d01';
+export const ID_CONTA_CAMILA = 'a8c6e7da-d195-4a76-8c67-6f7a8b9c0d02';
+
+const GRUPOS_DE_CATEGORIAS = [
+  { nome: 'Infraestrutura e software', tipo: 'despesa', categorias: ['Hospedagem e nuvem', 'Banco de dados', 'Domínios', 'E-mail e produtividade', 'Design e criação', 'IA', 'Desenvolvimento (repositório, CI)', 'Lojas de aplicativos (contas de desenvolvedor)', 'Outras assinaturas'] },
+  { nome: 'Serviços de terceiros', tipo: 'despesa', categorias: ['Contabilidade', 'Jurídico', 'Design/freelancer', 'Desenvolvimento/freelancer', 'Registro de marca'] },
+  { nome: 'Marketing', tipo: 'despesa', categorias: ['Anúncios pagos', 'Produção de conteúdo', 'Eventos', 'Brindes e materiais'] },
+  { nome: 'Administrativo', tipo: 'despesa', categorias: ['Tarifas bancárias', 'Juros e multas', 'Taxas e impostos (informativo)', 'Certificado digital', 'Cartório e registros', 'Outros'] },
+  { nome: 'Pessoal / sócias', tipo: 'despesa', categorias: ['Reembolso de despesas'] },
+  { nome: 'Receitas', tipo: 'receita', categorias: ['Assinaturas', 'Implantação/setup', 'Serviços sob medida', 'Comissões', 'Patrocínio/apoio', 'Outras receitas'] },
+  { nome: 'Movimentos societários', tipo: 'movimento_societario', categorias: ['Aporte de capital', 'Retirada', 'Distribuição'] },
+  { nome: 'Transferências', tipo: 'transferencia', categorias: ['Entre contas próprias'] },
+] as const;
+
+const idDeCategoria = (grupo: number, categoria: number) => `f7b5d6c9-c084-4f65-9b56-5e6f7a8b${String(grupo + 1).padStart(2, '0')}${String(categoria).padStart(2, '0')}`;
+
+/**
+ * Carga inicial sugerida de T02.07: dados reais e editáveis, não são exemplo. Grupo vem antes das
+ * suas categorias. O tipo vem do grupo; a natureza do custo fica vazia, porque a especificação não
+ * diz qual é (Mapa, "A revisar por Kimberly").
+ */
+export const CATEGORIAS_INICIAIS = GRUPOS_DE_CATEGORIAS.flatMap((grupo, g) => [
+  { id: idDeCategoria(g, 0), nome: grupo.nome, tipo: grupo.tipo, pai: null as string | null },
+  ...grupo.categorias.map((nome, c) => ({ id: idDeCategoria(g, c + 1), nome, tipo: grupo.tipo, pai: idDeCategoria(g, 0) as string | null })),
+]);
+
 /**
  * Produtos de T02.04 e M07 §6. O que a especificação não diz fica em "A revisar por Kimberly", no
  * Mapa: responsável (vazio), tipo de Zarpa e Mimo (Outro), usuários reais do Sobrevivência Urbana.
