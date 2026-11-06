@@ -16,6 +16,7 @@ import { avancouDeFase, rotuloDaFase } from './fases';
 import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
+import { ROTULOS_TIPO_ATIVO, ROTULOS_TRANSFERENCIA } from './ativos';
 import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
@@ -244,6 +245,26 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     cancelamento_motivo: { rotulo: 'Motivo do cancelamento' },
     observacoes: { rotulo: 'Observações', semValores: true },
   },
+  ativo_digital: {
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ATIVO[valor as keyof typeof ROTULOS_TIPO_ATIVO] },
+    identificador: { rotulo: 'Identificador' },
+    produto_id: { rotulo: 'Produto', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'produto removido' },
+    ferramenta_id: { rotulo: 'Ferramenta', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'ferramenta removida' },
+    titular_atual_tipo: { rotulo: 'Titular atual', valor: (valor) => ROTULOS_TITULAR[valor as keyof typeof ROTULOS_TITULAR] },
+    titular_atual_pessoa_id: { rotulo: 'Sócia titular', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    titular_atual_texto: { rotulo: 'Em nome de' },
+    titular_desejado: { rotulo: 'Titular desejado' },
+    transferencia_situacao: { rotulo: 'Situação da transferência', valor: (valor) => ROTULOS_TRANSFERENCIA[valor as keyof typeof ROTULOS_TRANSFERENCIA] },
+    requisito_transferencia: { rotulo: 'Requisito para transferir' },
+    registrado_em: { rotulo: 'Data de registro', valor: (valor) => formatarDiaISO(String(valor)) },
+    vencimento: { rotulo: 'Vencimento', valor: (valor) => formatarDiaISO(String(valor)) },
+    renovacao_automatica: { rotulo: 'Renovação automática', valor: simNao },
+    critico: { rotulo: 'Crítico', valor: simNao },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    transferido_em: { rotulo: 'Transferido em', valor: (valor) => formatarDiaISO(String(valor)) },
+    evidencia_transferencia_url: { rotulo: 'Evidência da transferência' },
+    observacoes: { rotulo: 'Observações', semValores: true },
+  },
   assinatura_ferramenta: {
     plano: { rotulo: 'Plano' },
     modalidade: { rotulo: 'Modalidade', valor: (valor) => ROTULOS_MODALIDADE[valor as keyof typeof ROTULOS_MODALIDADE] },
@@ -303,6 +324,10 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   if (evento.tabela === 'recorrencia') {
     const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
     return titulo && `a rotina ${titulo}`;
+  }
+  if (evento.tabela === 'ativo_digital') {
+    const identificador = textoDe(evento.depois?.identificador) ?? textoDe(evento.antes?.identificador) ?? nomes.get(id);
+    return identificador && `o ativo ${identificador}`;
   }
   if (evento.tabela === 'ferramenta') {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
@@ -422,7 +447,7 @@ export type LinhaHistorico = { id: string; texto: string; em: string; quem: stri
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas, ferramentas, categoriasDeFerramenta] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades, itens, rotinas, ferramentas, categoriasDeFerramenta, ativos] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -438,8 +463,9 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.recorrencia.listar({ incluirArquivados: true }),
     repositorios.ferramenta.listar({ incluirArquivados: true }),
     repositorios.categoria_ferramenta.listar({ incluirArquivados: true }),
+    repositorios.ativo_digital.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
+  return new Map([...ativos.map((ativo): [string, string] => [ativo.id, ativo.identificador]), ...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
@@ -502,6 +528,13 @@ export async function historicoDaFerramenta(id: string): Promise<LinhaHistorico[
   const dela = new Set([id, ...assinaturas, ...contextos, ...anexos].map((linha) => (typeof linha === 'string' ? linha : linha.id)));
   const valores = new Set(assinaturas.map((assinatura) => assinatura.id));
   return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id)) || (evento.tabela === 'assinatura_valor_historico' && valores.has(String(evento.depois?.assinatura_id)))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico do ativo: o cadastro e os links dele. */
+export async function historicoDoAtivo(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, anexos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true })]);
+  const dele = new Set([id, ...anexos.map((anexo) => anexo.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
 }
 
 export async function historicoDaPessoa(id: string): Promise<LinhaHistorico[]> {

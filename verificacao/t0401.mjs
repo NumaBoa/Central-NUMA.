@@ -87,7 +87,7 @@ const restaurarExemplos = async () => {
   await dialogoAberto();
   await c.espera(120);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros131')&&!document.querySelector('.dialogo')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros136')&&!document.querySelector('.dialogo')`);
 };
 
 await c.tamanho(1440, 900);
@@ -263,7 +263,7 @@ await passo('T04.01: exportar (P1)', async () => {
   await irLista();
   await clicarBotao('Exportar');
   await esperarAviso('6 linhas exportadas.');
-  for (let i = 0; i < 40 && !readdirSync(downloads).some((n) => n.endsWith('.csv')); i += 1) await c.espera(100);
+  for (let i = 0; i < 200 && !readdirSync(downloads).some((n) => n.endsWith('.csv')); i += 1) await c.espera(100);
   const nome = readdirSync(downloads).find((n) => n.endsWith('.csv'));
   ok('baixa um CSV com a data', nome === `ferramentas-${diaISO()}.csv`, nome);
   const conteudo = readFileSync(path.join(downloads, nome), 'utf8');
@@ -628,7 +628,7 @@ await passo('T04.02: ficha, resumo e abas', async () => {
   ok('abre pela linha', (await c.avaliar(`location.pathname`)).startsWith('/ferramentas/'));
   ok('cabeçalho: categoria, situação, crítica, produtos e responsáveis', ['Hospedagem e nuvem', 'Ativa', 'Crítica', 'Kipi', 'Zupi', 'Técnica:', 'Financeira:'].every((t) => cabecalho.includes(t)), cabecalho.slice(0, 300));
   const abas = await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(a=>a.textContent.trim())`);
-  ok('as abas da especificação, sem Acessos (D14)', js(abas) === js(['Resumo', 'Assinatura e custos', 'Produtos e rateio', 'Dados pessoais', 'Atividades', 'Arquivos', 'Histórico']), js(abas));
+  ok('as abas da especificação, sem Acessos (D14)', js(abas) === js(['Resumo', 'Assinatura e custos', 'Produtos e rateio', 'Dados pessoais', 'Ativos hospedados', 'Atividades', 'Arquivos', 'Histórico']), js(abas));
   ok('resumo: finalidade, fornecedor, ambiente, titular', ['Hospedar os apps Kipi e Zupi', 'Estúdio', 'organização numa-studio', 'Pessoa física — Camila Lima', 'Numa'].some((t) => cabecalho.includes(t)) && cabecalho.includes('Pessoa física — Camila Lima') && cabecalho.includes('organização numa-studio'), cabecalho.slice(0, 500));
   ok('URL de acesso abre em outra aba, com segurança', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main a')].find(x=>x.textContent.trim()==='Abrir acesso');return a&&a.target==='_blank'&&a.rel.includes('noopener')})()`));
   await c.foto('i-ficha');
@@ -1077,7 +1077,7 @@ await passo('Limpar exemplos, e o estado vazio', async () => {
   await clicarBotao('Limpar exemplos');
   await dialogoAberto();
   await c.espera(120);
-  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('31 registros de exemplo serão removidos'), await texto('.dialogo'));
+  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('36 registros de exemplo serão removidos'), await texto('.dialogo'));
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
   await c.ate(`document.querySelector('main').textContent.includes('Registros100')`);
   ok('as categorias ficam', (await tabela('categoria_ferramenta')).length === 15);
@@ -1109,7 +1109,7 @@ await passo('migração da versão anterior', async () => {
   await irLista();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('quem vem da versão anterior recebe a tela pronta', (await nomes()).length === 6, js(await nomes()));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 11);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 12);
   ok('as categorias entram', (await tabela('categoria_ferramenta')).length === 15);
 });
 

@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArchiveRestore, ArrowLeft, Ellipsis, ExternalLink, Pencil, Plus, Receipt, Replace, Trash2, Wrench } from 'lucide-react';
+import { ArchiveRestore, ArrowLeft, Ellipsis, ExternalLink, Globe, Pencil, Plus, Receipt, Replace, Trash2, Wrench } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
+import { EtiquetaCritica, SituacaoDaTransferencia } from '@/componentes/ferramentas/etiquetas-ferramentas';
 import { FormularioDeFerramenta } from '@/componentes/ferramentas/formulario-ferramenta';
 import { CAMINHO_DE_FERRAMENTAS } from '@/componentes/ferramentas/nova-ferramenta';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
@@ -32,6 +33,7 @@ import type { AssinaturaFerramenta } from '@/dados/tipos/ferramenta';
 import { TIPOS_DE_DADOS } from '@/dados/tipos/ferramenta';
 import { useConsulta } from '@/dados/use-consulta';
 import { atividadesDoRegistro } from '@/dominio/atividades-painel';
+import { ativosDaFerramenta, ROTULOS_TIPO_ATIVO } from '@/dominio/ativos';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { nomeDaContraparte } from '@/dominio/contrapartes';
 import {
@@ -60,9 +62,10 @@ import {
 } from '@/dominio/ferramentas';
 import { historicoDaFerramenta } from '@/dominio/historico';
 import { valorParaCampo } from '@/dominio/dinheiro';
+import { textoDoTitular } from '@/dominio/titularidade';
 import { hojeISO } from '@/lib/datas';
 import { formatarData, formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
-import { contextosDaFerramenta, EtiquetaCritica, SituacaoDaFerramenta, textoDoTitular, textoDoValor } from '../tela-ferramentas';
+import { contextosDaFerramenta, SituacaoDaFerramenta, textoDoValor } from '../tela-ferramentas';
 
 const paraOpcoes = (rotulos: Record<string, string>) => Object.entries(rotulos).map(([valor, rotulo]) => ({ valor, rotulo }));
 
@@ -428,6 +431,29 @@ function AbaArquivos({ id, somenteLeitura }: { id: string; somenteLeitura: boole
   );
 }
 
+/** T04.02, aba 6: o mesmo registro do ativo, sem cópia. */
+function AbaAtivosHospedados({ id }: { id: string }) {
+  const consulta = useConsulta(() => ativosDaFerramenta(id), [id]);
+  if (consulta.estado === 'carregando') return <EstadoCarregando linhas={2} />;
+  if (consulta.estado === 'erro') return <EstadoErro titulo="Não deu para ler os ativos." aoTentarDeNovo={consulta.recarregar} />;
+  if (!consulta.dados.length) return <EstadoVazio icone={Globe} titulo="Nenhum ativo aqui." texto="Domínios, contas e perfis ligados a esta ferramenta aparecem aqui." />;
+  return (
+    <ul className="grid gap-2">
+      {consulta.dados.map((ativo) => (
+        <li key={ativo.id} className="rounded-lg border border-line bg-paper p-4">
+          <LinkCentral href={`/ferramentas/ativos/${ativo.id}`} className="inline-flex min-h-11 items-center font-medium break-all underline-offset-2 hover:underline md:min-h-0">
+            {ativo.identificador}
+          </LinkCentral>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-soft">
+            <span>{ROTULOS_TIPO_ATIVO[ativo.tipo]}</span>
+            <SituacaoDaTransferencia situacao={ativo.transferencia_situacao} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function AbaHistorico({ id }: { id: string }) {
   const consulta = useConsulta(() => historicoDaFerramenta(id), [id]);
   return (
@@ -479,7 +505,7 @@ function DialogoDeCancelar({ ferramenta, aoFechar }: { ferramenta: LinhaDaFerram
   );
 }
 
-/** T04.02: ficha da ferramenta (P2). Acessos entram na F2 (D14); Ativos hospedados, com T04.04. */
+/** T04.02: ficha da ferramenta (P2). Acessos entram na F2 (D14). */
 export function FichaFerramenta() {
   const { id } = useParams<{ id: string }>();
   const consulta = useConsulta(carregarFerramentas);
@@ -633,6 +659,7 @@ export function FichaFerramenta() {
           { id: 'assinatura', rotulo: 'Assinatura e custos', conteudo: <AbaAssinatura ferramenta={ferramenta} id={ferramenta.id} dados={dados} /> },
           { id: 'rateio', rotulo: 'Produtos e rateio', conteudo: <AbaRateio ferramenta={ferramenta} dados={dados} somenteLeitura={somenteLeitura} /> },
           { id: 'dados', rotulo: 'Dados pessoais', conteudo: <AbaDadosPessoais ferramenta={ferramenta} somenteLeitura={somenteLeitura} /> },
+          { id: 'ativos', rotulo: 'Ativos hospedados', conteudo: <AbaAtivosHospedados id={ferramenta.id} /> },
           { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('ferramenta', ferramenta.id)} dependencia={ferramenta.id} vazio="Vincule uma atividade a esta ferramenta, pelo painel da atividade." /> },
           { id: 'arquivos', rotulo: 'Arquivos', conteudo: <AbaArquivos id={ferramenta.id} somenteLeitura={somenteLeitura} /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={ferramenta.id} /> },

@@ -7,7 +7,7 @@ import { Input } from '@/componentes/ui/input';
 import { cn } from '@/lib/utils';
 import { MenuSobreposto } from './menu-sobreposto';
 
-export type FiltroRapido = { id: string; rotulo: string; contador?: number };
+export type FiltroRapido = { id: string; rotulo: string; contador?: number; emBreve?: boolean };
 export type FiltroAtivo = { id: string; rotulo: string };
 
 type BarraFiltrosProps = {
@@ -29,6 +29,15 @@ type BarraFiltrosProps = {
 
 /** Filtro em pílula (18 §9.3): selecionado em espresso, com contador em pílula menor. */
 export function PilulaFiltro({ filtro, ativa, aoClicar }: { filtro: FiltroRapido; ativa: boolean; aoClicar: () => void }) {
+  // O que ainda não existe fica à vista, sem clique, como no menu.
+  if (filtro.emBreve) {
+    return (
+      <span className="inline-flex min-h-11 shrink-0 cursor-default items-center gap-2 rounded-pill border border-line px-3.5 text-[13px] font-semibold whitespace-nowrap text-ink-soft md:min-h-9">
+        <span className="opacity-80">{filtro.rotulo}</span>
+        <span className="texto-micro font-medium">Em breve</span>
+      </span>
+    );
+  }
   return (
     <button
       type="button"

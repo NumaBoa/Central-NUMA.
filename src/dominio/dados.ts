@@ -17,6 +17,7 @@ import type { Controle } from '@/dados/tipos/controle';
 import type { AnexoLink, ChecklistItem, Comentario, Vinculo } from '@/dados/tipos/apoio';
 import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
+import type { AtivoDigital } from '@/dados/tipos/ativo';
 import type { AssinaturaFerramenta, AssinaturaValorHistorico, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
 import type { Notificacao } from '@/dados/tipos/notificacao';
 import type { Pessoa } from '@/dados/tipos/pessoa';
@@ -349,6 +350,19 @@ export async function limparExemplos(): Promise<number> {
   novasLinhas.ferramenta_contexto = (novasLinhas.ferramenta_contexto as FerramentaContexto[]).filter((ligacao) => !idsRemovidos.has(ligacao.ferramenta_id));
   novasLinhas.assinatura_ferramenta = (novasLinhas.assinatura_ferramenta as AssinaturaFerramenta[]).filter((assinatura) => !idsRemovidos.has(assinatura.ferramenta_id)).map((assinatura) => (assinatura.conta_financeira_id && !contasQueFicam.has(assinatura.conta_financeira_id) ? { ...assinatura, conta_financeira_id: null } : assinatura));
   novasLinhas.assinatura_valor_historico = (novasLinhas.assinatura_valor_historico as AssinaturaValorHistorico[]).filter((valor) => !idsRemovidos.has(valor.assinatura_id));
+  // Ativo de verdade continua: perde o que era fictício (ferramenta, assinatura), e quem saiu passa a responsabilidade.
+  const ferramentasQueFicam = new Set((novasLinhas.ferramenta as Controle[]).map((ferramenta) => ferramenta.id));
+  const assinaturasQueFicam = new Set((novasLinhas.assinatura_ferramenta as Controle[]).map((assinatura) => assinatura.id));
+  novasLinhas.ativo_digital = (novasLinhas.ativo_digital as AtivoDigital[]).map((ativo) => {
+    const saiuTitular = ativo.titular_atual_pessoa_id && !pessoasQueFicam.has(ativo.titular_atual_pessoa_id);
+    return {
+      ...ativo,
+      ferramenta_id: ativo.ferramenta_id && ferramentasQueFicam.has(ativo.ferramenta_id) ? ativo.ferramenta_id : null,
+      assinatura_id: ativo.assinatura_id && assinaturasQueFicam.has(ativo.assinatura_id) ? ativo.assinatura_id : null,
+      responsavel_id: quemResponde(ativo.responsavel_id),
+      ...(saiuTitular ? { titular_atual_tipo: 'terceiro' as const, titular_atual_pessoa_id: null, titular_atual_texto: nomeDe(ativo.titular_atual_pessoa_id as string) } : {}),
+    };
+  });
   // Notificação é de uma pessoa, sobre um registro: sai junto com qualquer um dos dois.
   novasLinhas.notificacao = (novasLinhas.notificacao as Notificacao[]).filter((notificacao) => pessoasQueFicam.has(notificacao.usuario_id) && !idsRemovidos.has(notificacao.registro_id ?? ''));
   // Etiqueta é de quem a usa: o registro fictício sai, e a etiqueta fica sem esse vínculo.

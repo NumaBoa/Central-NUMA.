@@ -170,6 +170,8 @@ await passo('busca: alterações pendentes', async () => {
 });
 
 await passo('sino: contagem e lista', async () => {
+  const amanha = new Date(Date.now() + 86400_000).toISOString();
+  await c.avaliar(`(()=>{const k='numa-central:v1:atividade';localStorage.setItem(k,JSON.stringify(JSON.parse(localStorage.getItem(k)).map(a=>a.titulo==='Ligar para o banco sobre a conta da empresa'?{...a,aviso_em:${js(amanha)}}:a)));const n='numa-central:v1:notificacao';localStorage.setItem(n,JSON.stringify(JSON.parse(localStorage.getItem(n)||'[]').filter(x=>x.tipo!=='lembrete')))})()`);
   await irMeuDia();
   await c.espera(300);
   ok('mostra a contagem', (await rotuloDoSino()) === 'Notificações: 1 não lida', await rotuloDoSino());
@@ -282,7 +284,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   // migração
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:notificacao');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=9;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await c.recarregar();
-  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===11`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===12`);
   ok('versão anterior recebe a tabela', await c.avaliar(`localStorage.getItem('numa-central:v1:notificacao')!==null`));
   await irDados();
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Restaurar exemplos').click()`);
@@ -290,7 +292,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros131')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros136')`);
   ok('notificações não contam como registro', true);
 });
 

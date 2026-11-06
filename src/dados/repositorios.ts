@@ -1,3 +1,4 @@
+import { esquemaAtivoDigital, type AtivoDigital } from './tipos/ativo';
 import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto, type AssinaturaFerramenta, type AssinaturaValorHistorico, type CategoriaFerramenta, type Ferramenta, type FerramentaContexto } from './tipos/ferramenta';
 import { esquemaNotificacao, type Notificacao } from './tipos/notificacao';
 import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
@@ -48,6 +49,7 @@ export const repositorios: {
   ferramenta_contexto: Repositorio<FerramentaContexto>;
   assinatura_ferramenta: Repositorio<AssinaturaFerramenta>;
   assinatura_valor_historico: Repositorio<AssinaturaValorHistorico>;
+  ativo_digital: Repositorio<AtivoDigital>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -79,4 +81,5 @@ export const repositorios: {
   ferramenta_contexto: criarRepositorioLocal({ tabela: 'ferramenta_contexto', esquema: esquemaFerramentaContexto }),
   assinatura_ferramenta: criarRepositorioLocal({ tabela: 'assinatura_ferramenta', esquema: esquemaAssinaturaFerramenta }),
   assinatura_valor_historico: criarRepositorioLocal({ tabela: 'assinatura_valor_historico', esquema: esquemaAssinaturaValorHistorico }),
+  ativo_digital: criarRepositorioLocal({ tabela: 'ativo_digital', esquema: esquemaAtivoDigital, prefixoCodigo: 'ATI' }),
 };

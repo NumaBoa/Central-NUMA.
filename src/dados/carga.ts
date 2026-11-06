@@ -5,7 +5,7 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { atividadesDeExemplo, categoriasDeFerramentaIniciais, contasDeExemplo, contrapartesDeExemplo, ferramentasDeExemplo, rotinaDeExemplo, rotinasIniciais } from './exemplos';
+import { atividadesDeExemplo, ativosDeExemplo, categoriasDeFerramentaIniciais, contasDeExemplo, contrapartesDeExemplo, ferramentasDeExemplo, rotinaDeExemplo, rotinasIniciais } from './exemplos';
 import { AREAS_INICIAIS, CATEGORIAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
 import { feriadosDoAno } from './referencia/feriados';
 import { hojeISO } from '@/lib/datas';
@@ -185,6 +185,8 @@ function migrar(versao: number) {
       alteracoes.assinatura_valor_historico = [];
     }
   }
+  // Quem já limpou os exemplos não recebe exemplos novos.
+  if (versao < 12 && driver().getItem(chaveDaTabela('ativo_digital')) === null) alteracoes.ativo_digital = aindaHaExemplos() ? ativosDeExemplo(agora).ativo_digital : [];
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

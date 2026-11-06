@@ -618,6 +618,13 @@ function SecaoVinculos({ atividade, painel, dados }: { atividade: Atividade; pai
                   </option>
                 ))}
               </optgroup>
+              <optgroup label="Ativos digitais">
+                {(consulta.dados?.ativos ?? []).map((ativo) => (
+                  <option key={ativo.id} value={`ativo_digital:${ativo.id}`}>
+                    {ativo.identificador}
+                  </option>
+                ))}
+              </optgroup>
             </Selecao>
           )}
         </Campo>

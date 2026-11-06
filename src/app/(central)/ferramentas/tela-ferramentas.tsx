@@ -3,6 +3,8 @@
 import { useMemo, useState, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, ChartLine, CreditCard, Database, GitBranch, Globe, HardDrive, Mail, MessageCircle, Palette, Plus, Scale, Server, Share2, Sparkles, Store, Wrench } from 'lucide-react';
+import { AbasFerramentas } from '@/componentes/ferramentas/abas-ferramentas';
+import { EtiquetaCritica } from '@/componentes/ferramentas/etiquetas-ferramentas';
 import { FormularioDeFerramenta } from '@/componentes/ferramentas/formulario-ferramenta';
 import { CAMINHO_DE_FERRAMENTAS } from '@/componentes/ferramentas/nova-ferramenta';
 import { Campo } from '@/componentes/campos/campo';
@@ -26,6 +28,7 @@ import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { tintaDaCor } from '@/dominio/cores';
 import { carregarFerramentas, filtrarFerramentas, FILTROS_FERRAMENTAS_INICIAIS, indicadoresDeFerramentas, mudarResponsavelTecnica, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR, vincularFerramentasAProduto, type DadosDasFerramentas, type FiltrosFerramentas, type LinhaDaFerramenta } from '@/dominio/ferramentas';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
+import { textoDoTitular } from '@/dominio/titularidade';
 import { salvarColunas } from '@/dominio/preferencias-lista';
 import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro, formatarNumero } from '@/lib/formatacao';
@@ -51,10 +54,6 @@ const ICONES_DA_CATEGORIA: Readonly<Record<string, ComponentType<{ 'aria-hidden'
   Pagamentos: CreditCard,
   'Jurídico/contábil': Scale,
 };
-
-export function EtiquetaCritica() {
-  return <span className="inline-flex min-h-6 items-center rounded-pill bg-err-wash px-2.5 text-xs font-semibold text-err">Crítica</span>;
-}
 
 export function SituacaoDaFerramenta({ situacao }: { situacao: Ferramenta['situacao'] }) {
   return <EtiquetaSituacao tipo={TIPOS_DA_SITUACAO[situacao]}>{ROTULOS_SITUACAO_FERRAMENTA[situacao]}</EtiquetaSituacao>;
@@ -93,12 +92,6 @@ function ValorDaFerramenta({ ferramenta }: { ferramenta: Pick<LinhaDaFerramenta,
     </span>
   );
 }
-
-export const textoDoTitular = (ferramenta: Pick<Ferramenta, 'titular_atual_tipo' | 'titular_atual_pessoa_id' | 'titular_atual_texto'>, pessoas: DadosDasFerramentas['pessoas']) => {
-  if (ferramenta.titular_atual_tipo === 'pessoa_fisica') return `Pessoa física — ${pessoas.find((pessoa) => pessoa.id === ferramenta.titular_atual_pessoa_id)?.nome_completo ?? 'pessoa removida'}`;
-  if (ferramenta.titular_atual_tipo === 'terceiro') return `Terceiro — ${ferramenta.titular_atual_texto ?? ''}`;
-  return ROTULOS_TITULAR.numa;
-};
 
 function Indicadores({ ferramentas, hoje, contextoId }: { ferramentas: readonly LinhaDaFerramenta[]; hoje: string; contextoId: string }) {
   const valores = indicadoresDeFerramentas(ferramentas, hoje, contextoId);
@@ -300,6 +293,7 @@ export function TelaFerramentas() {
           </Button>
         }
       />
+      <AbasFerramentas ativa="ferramentas" />
       <Indicadores ferramentas={doContexto} hoje={hoje} contextoId={contexto.id} />
       <BarraFiltros
         busca={filtros.busca}

@@ -5,6 +5,7 @@ import { repositorios } from '@/dados/repositorios';
 import type { Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { quantasAtividadesAbertasNoProduto } from './atividades';
+import { ativosDoProduto } from './ativos';
 import { quantasFerramentasDoProduto } from './ferramentas';
 import { normalizarTexto } from './duplicidade';
 import { pessoasDoSeletor } from './pessoa-atual';
@@ -129,6 +130,8 @@ export async function arquivarProduto(id: string): Promise<void> {
   if (abertas) throw new ErroDeRegra(`Este produto tem ${abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`}. Conclua ou troque o contexto antes.`);
   const ferramentas = await quantasFerramentasDoProduto(id);
   if (ferramentas) throw new ErroDeRegra(`Este produto tem ${ferramentas === 1 ? '1 ferramenta vinculada' : `${ferramentas} ferramentas vinculadas`}. Tire o vínculo antes.`);
+  const ativos = (await ativosDoProduto(id)).length;
+  if (ativos) throw new ErroDeRegra(`Este produto tem ${ativos === 1 ? '1 ativo digital' : `${ativos} ativos digitais`}. Troque o contexto deles antes.`);
   await repositorios.produto.arquivar(id);
 }
 

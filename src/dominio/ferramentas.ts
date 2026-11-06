@@ -14,6 +14,7 @@ import type { Pessoa } from '@/dados/tipos/pessoa';
 import { hojeISO } from '@/lib/datas';
 import { AREAS_INICIAIS } from '@/dados/exemplos/base';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
+import { ativosDaFerramenta } from './ativos';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { lerValor, valorParaCampo } from './dinheiro';
 import { nomesParecidos, normalizarTexto } from './duplicidade';
@@ -26,7 +27,7 @@ export const ROTULOS_SITUACAO_FERRAMENTA = { avaliacao: 'Em avaliação', teste:
 export const ROTULOS_MODALIDADE = { gratuita: 'Gratuita', paga: 'Paga', teste: 'Teste' } as const;
 export const ROTULOS_PERIODICIDADE = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual', unica: 'Única', por_uso: 'Por uso' } as const;
 export const ROTULOS_RENOVACAO = { automatica: 'Automática', manual: 'Manual' } as const;
-export const ROTULOS_TITULAR = { numa: 'Numa (PJ)', pessoa_fisica: 'Pessoa física', terceiro: 'Terceiro' } as const;
+export { ROTULOS_TITULAR } from './titularidade';
 export const ROTULOS_MFA = { sim: 'Sim', nao: 'Não', desconhecido: 'Desconhecido' } as const;
 export const ROTULOS_ACORDO_DADOS = { nao_avaliado: 'Não avaliado', termos_padrao: 'Termos padrão aceitos', dpa_assinado: 'DPA assinado', nao_aplicavel: 'Não aplicável' } as const;
 export const ROTULOS_TIPOS_DADOS: Readonly<Record<(typeof TIPOS_DE_DADOS)[number], string>> = { identificacao: 'Identificação', contato: 'Contato', localizacao: 'Localização', financeiro: 'Financeiro', saude: 'Saúde', terceiros: 'Dados de terceiros (pets/clientes)', uso: 'Uso/navegação', outros: 'Outros' };
@@ -438,15 +439,15 @@ export async function cancelarFerramenta(id: string, { data, motivo }: { data: s
   });
 }
 
-/** Cada módulo novo que apontar para a ferramenta bloqueia aqui (ativos, títulos…). */
+/** Cada módulo novo que apontar para a ferramenta bloqueia aqui (títulos…). */
 export async function vinculosDaFerramenta(id: string): Promise<string[]> {
-  const abertas = await quantasAtividadesAbertasVinculadas('ferramenta', id);
-  return abertas ? [abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`] : [];
+  const [abertas, ativos] = await Promise.all([quantasAtividadesAbertasVinculadas('ferramenta', id), ativosDaFerramenta(id)]);
+  return [...(abertas ? [abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`] : []), ...(ativos.length ? [ativos.length === 1 ? '1 ativo hospedado' : `${ativos.length} ativos hospedados`] : [])];
 }
 
 export async function arquivarFerramenta(id: string): Promise<void> {
   const vinculos = await vinculosDaFerramenta(id);
-  if (vinculos.length) throw new ErroDeRegra(`Esta ferramenta tem ${vinculos.join(', ')}. Conclua ou tire o vínculo antes.`);
+  if (vinculos.length) throw new ErroDeRegra(`Esta ferramenta tem ${vinculos.join(' e ')}. Conclua ou tire o vínculo antes.`);
   await repositorios.ferramenta.arquivar(id);
 }
 

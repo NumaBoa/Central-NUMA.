@@ -9,6 +9,7 @@ import { esquemaCambioReferencia } from './tipos/cambio-referencia';
 import { esquemaConfiguracao } from './tipos/configuracao';
 import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } from './tipos/contraparte';
 import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
+import { esquemaAtivoDigital } from './tipos/ativo';
 import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto } from './tipos/ferramenta';
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
@@ -48,6 +49,7 @@ export const TABELAS = {
   ferramenta_contexto: { rotulo: 'Produtos das ferramentas', esquema: esquemaFerramentaContexto },
   assinatura_ferramenta: { rotulo: 'Assinaturas de ferramentas', esquema: esquemaAssinaturaFerramenta },
   assinatura_valor_historico: { rotulo: 'Histórico de valores', esquema: esquemaAssinaturaValorHistorico },
+  ativo_digital: { rotulo: 'Ativos digitais', esquema: esquemaAtivoDigital },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -70,5 +72,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 9: T03.05 acrescenta `recorrencia`.
  * 10: T13.04 acrescenta `notificacao`.
  * 11: T04.01 a T04.03 acrescentam `categoria_ferramenta`, `ferramenta`, `ferramenta_contexto`, `assinatura_ferramenta` e `assinatura_valor_historico`.
+ * 12: T04.04 e T04.05 acrescentam `ativo_digital`.
  */
-export const VERSAO_DADOS = 11;
+export const VERSAO_DADOS = 12;

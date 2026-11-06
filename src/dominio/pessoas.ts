@@ -7,6 +7,7 @@ import type { Area, PessoaArea } from '@/dados/tipos/area';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { vinculosDeAtividadeDaPessoa } from './atividades';
+import { vinculosDeAtivoDaPessoa } from './ativos';
 import { vinculosDeFerramentaDaPessoa } from './ferramentas';
 import { vinculosDeRotinaDaPessoa } from './recorrencias';
 import { cpfValido, nomesParecidos, normalizarTexto, soDigitos, telefoneValido } from './duplicidade';
@@ -201,7 +202,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
     repositorios.entidade_representante.listar({ onde: { pessoa_id: id } }),
     repositorios.conta_financeira.listar({ onde: { titular_pessoa_id: id } }),
   ]);
-  const deAtividades = [...(await vinculosDeAtividadeDaPessoa(id)), ...(await vinculosDeRotinaDaPessoa(id)), ...(await vinculosDeFerramentaDaPessoa(id))];
+  const deAtividades = [...(await vinculosDeAtividadeDaPessoa(id)), ...(await vinculosDeRotinaDaPessoa(id)), ...(await vinculosDeFerramentaDaPessoa(id)), ...(await vinculosDeAtivoDaPessoa(id))];
   const nomeDaArea = new Map(areas.map((area) => [area.id, area.nome]));
   return [
     ...areas.filter((area) => area.responsavel_padrao_id === id).map((area) => `Responsável padrão de ${area.nome}`),
