@@ -74,7 +74,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, acoe
   return (
     <div>
       {/* Computador e tablet */}
-      <div className="faixa-rolagem hidden rounded-lg border border-line bg-paper md:block">
+      <div className="faixa-rolagem relative hidden rounded-lg border border-line bg-paper md:block">
         <table aria-label={rotulo} className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>

@@ -319,7 +319,7 @@ describe('T02.01 Configurações gerais', () => {
     it('mudar de fase nunca libera tela que não foi construída', async () => {
       for (let i = 0; i < 4; i++) await avancarFase();
       const { fase_ativa: fase } = await lerConfiguracoes();
-      expect([...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo, fase))).toEqual([]);
+      expect([...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo, fase)).map((modulo) => modulo.id)).toEqual(['meu-dia']);
     });
   });
 

@@ -4,6 +4,7 @@ import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import type { Area, PessoaArea } from '@/dados/tipos/area';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import { quantasAtividadesAbertasNaArea } from './atividades';
 import { normalizarTexto } from './duplicidade';
 import { pessoasDoSeletor } from './pessoa-atual';
 
@@ -69,6 +70,8 @@ export async function arquivarArea(id: string): Promise<void> {
   if (usadaPor.length) {
     throw new ErroDeRegra(`Esta área está em uso: ${usadaPor.map((pessoa) => pessoa.nome_completo).join(', ')} ${usadaPor.length === 1 ? 'atua' : 'atuam'} nela. Tire a área da ficha dessas pessoas antes de arquivar.`);
   }
+  const abertas = await quantasAtividadesAbertasNaArea(id);
+  if (abertas) throw new ErroDeRegra(`Esta área tem ${abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`}. Conclua ou troque a área antes.`);
   await repositorios.area.arquivar(id);
 }
 

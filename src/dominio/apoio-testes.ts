@@ -7,8 +7,9 @@ const ENTIDADES_INICIAIS = 1;
 const CONTAS_INICIAIS = 2;
 /** 9 nacionais de data fixa, 4 que vêm da Páscoa, São Jorge e São Sebastião. */
 export const FERIADOS_INICIAIS = 15;
+export const ATIVIDADES_INICIAIS = 16;
 
-/** Bruna, Rafael, as 3 contrapartes fictícias e as 2 contas pessoais. */
-export const EXEMPLOS_INICIAIS = 7;
+/** Bruna, Rafael, as 3 contrapartes fictícias, as 2 contas pessoais e as atividades. */
+export const EXEMPLOS_INICIAIS = 7 + ATIVIDADES_INICIAIS;
 
-export const REGISTROS_INICIAIS = PESSOAS_INICIAIS + AREAS_INICIAIS.length + MARCAS_INICIAIS.length + PRODUTOS_INICIAIS.length + CONTRAPARTES_INICIAIS + ENTIDADES_INICIAIS + CATEGORIAS_INICIAIS.length + CONTAS_INICIAIS + FERIADOS_INICIAIS;
+export const REGISTROS_INICIAIS = PESSOAS_INICIAIS + AREAS_INICIAIS.length + MARCAS_INICIAIS.length + PRODUTOS_INICIAIS.length + CONTRAPARTES_INICIAIS + ENTIDADES_INICIAIS + CATEGORIAS_INICIAIS.length + CONTAS_INICIAIS + FERIADOS_INICIAIS + ATIVIDADES_INICIAIS;

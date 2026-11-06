@@ -1,0 +1,195 @@
+'use client';
+
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { Campo } from '@/componentes/campos/campo';
+import { Selecao } from '@/componentes/campos/selecao';
+import { useCentral } from '@/componentes/layout/central-provider';
+import { EstadoCarregando, EstadoErro, EstadoVazio, EstadoVazioFiltro } from '@/componentes/padroes/estados';
+import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
+import { useConsulta } from '@/dados/use-consulta';
+import { Sun } from 'lucide-react';
+import {
+  atividadesDaBase,
+  atividadesVisiveis,
+  carregarMeuDia,
+  colunasDoQuadro,
+  dataPorExtenso,
+  FILTROS_MEU_DIA_INICIAIS,
+  fraseDoResumo,
+  primeiroNome,
+  recorteDosFiltros,
+  resumoDoDia,
+  ROTULOS_AGRUPAR,
+  saudacao,
+  type AgruparPor,
+  type DestaqueDoResumo,
+  type FiltrosMeuDia as Filtros,
+  type ResumoDoDia,
+} from '@/dominio/atividades';
+import { ID_INSTITUCIONAL } from '@/dominio/contextos';
+import { hojeISO } from '@/lib/datas';
+import { cn } from '@/lib/utils';
+import { useAcoesDaAtividade } from './acoes-atividade';
+import { FiltrosMeuDia, PessoaRapida, ROTULOS_DESTAQUE } from './filtros-meu-dia';
+import { ListaAtividades } from './lista-atividades';
+import { QuadroAtividades } from './quadro-atividades';
+
+const CARTOES_DO_RESUMO = ['atrasadas', 'hoje', 'em_andamento', 'aguardando', 'bloqueadas', 'concluidas'] as const;
+
+/** Linhas calmas do cabeçalho do Meu dia, versão estática em SVG (18 §2.2). */
+function LinhasDoCabecalho() {
+  return (
+    <svg aria-hidden className="pointer-events-none absolute top-0 right-0 hidden h-full w-[46%] lg:block" viewBox="0 0 520 140" preserveAspectRatio="none" fill="none">
+      {[34, 52, 70, 88, 106].map((base, i) => (
+        <path key={base} d={`M0 ${base} C 110 ${base - 18 + i * 3}, 210 ${base + 22 - i * 4}, 330 ${base - 6} S 470 ${base + 14 - i * 2}, 520 ${base - 10}`} stroke="var(--espresso)" strokeOpacity=".12" strokeWidth="1" />
+      ))}
+      <path d="M0 78 C 120 44, 190 118, 300 74 S 460 40, 520 62" stroke="var(--indigo)" strokeOpacity=".55" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+/** Saudação, data por extenso e a frase-resumo, com o marca-texto em um só trecho (18 §2.2). */
+function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia }) {
+  const frase = fraseDoResumo(resumo);
+  return (
+    <header className="relative">
+      <LinhasDoCabecalho />
+      <p className="relative text-[13px] leading-[18px] font-medium text-ink-soft first-letter:uppercase">{dataPorExtenso()}</p>
+      <h1 className="relative mt-1.5 texto-display">
+        {saudacao()}, {primeiroNome(nome)}.
+      </h1>
+      <p className="relative mt-2 text-[15px] leading-[22px] text-ink-soft md:text-base">
+        {frase ? (
+          <>
+            {frase.abertura}
+            <mark>{frase.itens}</mark>
+            {frase.resto}
+          </>
+        ) : (
+          'Nada para hoje por enquanto.'
+        )}
+      </p>
+    </header>
+  );
+}
+
+/** Cartões clicáveis que aplicam filtro (T03.01). No celular, pílulas com rolagem (18 §10.6). */
+function FaixaDeResumo({ resumo, destaque, aoEscolher, recorte }: { resumo: ResumoDoDia; destaque: DestaqueDoResumo; aoEscolher: (destaque: DestaqueDoResumo) => void; recorte: readonly string[] }) {
+  return (
+    <div className="space-y-2">
+      <div role="group" aria-label="Resumo do dia" className="faixa-rolagem flex gap-1.5 py-0.5 md:grid md:grid-cols-3 md:gap-2 lg:grid-cols-6">
+        {CARTOES_DO_RESUMO.map((id) => {
+          const ativo = destaque === id;
+          const atencao = (id === 'atrasadas' || id === 'bloqueadas') && resumo[id] > 0;
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={ativo}
+              onClick={() => aoEscolher(ativo ? '' : id)}
+              className={cn(
+                'flex min-h-11 shrink-0 items-center gap-2 rounded-pill border px-3.5 text-left text-[13px] font-semibold whitespace-nowrap transition-colors duration-150 md:min-h-0 md:flex-col md:items-start md:gap-1 md:rounded-lg md:px-4 md:py-3 md:whitespace-normal',
+                ativo ? 'border-espresso bg-espresso text-linen' : 'border-line bg-paper text-ink hover:border-ink-soft',
+              )}
+            >
+              <span className={cn('md:text-xs md:font-semibold', !ativo && 'md:text-ink-soft')}>{ROTULOS_DESTAQUE[id]}</span>
+              <span className={cn('tabular-nums md:texto-kpi', atencao && !ativo && 'text-err')}>{resumo[id]}</span>
+            </button>
+          );
+        })}
+      </div>
+      {recorte.length > 0 && <p className="text-xs text-ink-soft">Contagem com filtro: {recorte.join(', ')}</p>}
+    </div>
+  );
+}
+
+function AlternanciaDeVisao({ visao }: { visao: 'quadro' | 'lista' }) {
+  const opcoes = [
+    { id: 'quadro', rotulo: 'Quadro' },
+    { id: 'lista', rotulo: 'Lista' },
+  ] as const;
+  return (
+    <div role="group" aria-label="Visão" className="inline-flex rounded-pill border border-line bg-paper p-0.5">
+      {opcoes.map(({ id, rotulo }) => (
+        <button key={id} type="button" aria-pressed={visao === id} onClick={() => gravarMeta({ visao_meu_dia: id })} className={cn('min-h-11 rounded-pill px-4 text-[13px] font-semibold transition-colors duration-150 md:min-h-8', visao === id ? 'bg-espresso text-linen' : 'text-ink-soft hover:text-ink')}>
+          {rotulo}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** T03.01: a tela inicial. Mostra tudo o que está aberto, das duas sócias, em todos os produtos (RN-03.01). */
+export function TelaMeuDia() {
+  const { pessoa, contexto } = useCentral();
+  const consulta = useConsulta(carregarMeuDia);
+  const { visao_meu_dia: visao } = useSyncExternalStore(assinarMeta, lerMeta, metaDoServidor);
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_MEU_DIA_INICIAIS);
+  const [agruparPor, setAgruparPor] = useState<AgruparPor>('nenhum');
+
+  const dados = consulta.dados;
+  const hoje = hojeISO();
+  const { acoes, dialogos } = useAcoesDaAtividade(dados, hoje);
+
+  const nomeDaPessoa = (id: string) => dados?.pessoas.find((item) => item.id === id)?.nome_completo ?? 'Pessoa removida';
+  const nomeDaArea = (id: string) => dados?.areas.find((area) => area.id === id)?.nome ?? 'Área removida';
+  const nomeDoContexto = (id: string) => (id === ID_INSTITUCIONAL ? 'Numa' : (dados?.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido'));
+
+  const base = useMemo(() => (dados ? atividadesDaBase(dados.atividades, filtros, { hoje, pessoaAtualId: pessoa.id, contextoGlobalId: contexto.id, nomeDaPessoa }) : []), [dados, filtros, hoje, pessoa.id, contexto.id]); // eslint-disable-line react-hooks/exhaustive-deps -- nomeDaPessoa só depende de dados
+  const resumo = useMemo(() => resumoDoDia(base, hoje), [base, hoje]);
+  const visiveis = useMemo(() => atividadesVisiveis(base, filtros, visao, hoje), [base, filtros, visao, hoje]);
+  const colunas = useMemo(() => colunasDoQuadro(visiveis), [visiveis]);
+  const recorte = recorteDosFiltros(filtros, { nomeDaPessoa, nomeDaArea, nomeDoContexto, contextoGlobalId: contexto.id });
+
+  const mudar = (parcial: Partial<Filtros>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
+  const nadaNoDia = dados && dados.atividades.every((atividade) => atividade.situacao === 'cancelada' || atividade.situacao === 'concluida') && resumo.concluidas === 0;
+  const limpar = () => setFiltros(FILTROS_MEU_DIA_INICIAIS);
+
+  if (consulta.estado === 'carregando') return <EstadoCarregando />;
+  if (consulta.estado === 'erro' || !dados) {
+    return (
+      <>
+        <h1 className="mb-5">Meu dia</h1>
+        <EstadoErro titulo="Não deu para ler as atividades." texto="Os dados deste navegador podem estar danificados. Importe um backup ou restaure os exemplos em Configurações › Dados." aoTentarDeNovo={consulta.recarregar} />
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <CabecalhoDoDia nome={pessoa.nome} resumo={resumo} />
+      <FaixaDeResumo resumo={resumo} destaque={filtros.destaque} aoEscolher={(destaque) => mudar({ destaque })} recorte={recorte} />
+      <FiltrosMeuDia filtros={filtros} aoMudar={mudar} dados={dados} nomeDoContexto={nomeDoContexto} />
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+        <PessoaRapida filtros={filtros} aoMudar={mudar} />
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+          {visao === 'lista' && (
+            <Campo rotulo="Agrupar por" id="agrupar-por" className="w-44">
+              {(controle) => (
+                <Selecao {...controle} value={agruparPor} onChange={(evento) => setAgruparPor(evento.target.value as AgruparPor)}>
+                  {Object.entries(ROTULOS_AGRUPAR).map(([valor, rotulo]) => (
+                    <option key={valor} value={valor}>
+                      {rotulo}
+                    </option>
+                  ))}
+                </Selecao>
+              )}
+            </Campo>
+          )}
+          <AlternanciaDeVisao visao={visao} />
+        </div>
+      </div>
+
+      {nadaNoDia ? (
+        <EstadoVazio icone={Sun} titulo="Tudo em dia por aqui." texto="Que tal registrar o que vem pela frente?" />
+      ) : visiveis.length === 0 ? (
+        <EstadoVazioFiltro aoLimpar={limpar} />
+      ) : visao === 'quadro' ? (
+        <QuadroAtividades colunas={colunas} dados={dados} hoje={hoje} acoes={acoes} />
+      ) : (
+        <ListaAtividades linhas={visiveis} dados={dados} hoje={hoje} acoes={acoes} agruparPor={agruparPor} />
+      )}
+      {dialogos}
+    </div>
+  );
+}

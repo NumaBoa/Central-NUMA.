@@ -31,7 +31,7 @@ export type Modulo = {
 };
 
 export const MODULOS_TOPO: readonly Modulo[] = [
-  { id: 'meu-dia', nome: 'Meu dia', fase: 'f0a' },
+  { id: 'meu-dia', nome: 'Meu dia', fase: 'f0a', href: '/meu-dia' },
   { id: 'visao-geral', nome: 'Visão geral', fase: 'f1' },
 ];
 
@@ -57,8 +57,8 @@ export const MODULO_CONFIGURACOES: Modulo = {
 /** Barra inferior do celular (18 §10.5): os demais módulos ficam no "Mais". */
 export const IDS_BARRA_CELULAR: readonly IconeModulo[] = ['meu-dia', 'financeiro', 'ferramentas'];
 
-/** Decisão de 05/11/2026: abre em Configurações até o Meu dia existir (etapa 6). */
-export const TELA_INICIAL = '/configuracoes';
+/** O Meu dia é a tela inicial do sistema (05-M03 §1). */
+export const TELA_INICIAL = '/meu-dia';
 
 export function faseLiberada(fase: Fase, faseAtiva: Fase): boolean {
   return FASES.indexOf(fase) <= FASES.indexOf(faseAtiva);

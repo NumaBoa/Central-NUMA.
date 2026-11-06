@@ -6,6 +6,7 @@ import { emTransacao } from '@/dados/transacao';
 import type { Area, PessoaArea } from '@/dados/tipos/area';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import { vinculosDeAtividadeDaPessoa } from './atividades';
 import { cpfValido, nomesParecidos, normalizarTexto, soDigitos, telefoneValido } from './duplicidade';
 import { pessoasDoSeletor } from './pessoa-atual';
 import { pareceCredencial } from './segredos';
@@ -198,6 +199,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
     repositorios.entidade_representante.listar({ onde: { pessoa_id: id } }),
     repositorios.conta_financeira.listar({ onde: { titular_pessoa_id: id } }),
   ]);
+  const deAtividades = await vinculosDeAtividadeDaPessoa(id);
   const nomeDaArea = new Map(areas.map((area) => [area.id, area.nome]));
   return [
     ...areas.filter((area) => area.responsavel_padrao_id === id).map((area) => `Responsável padrão de ${area.nome}`),
@@ -208,6 +210,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
     ...produtos.map((produto) => `Responsável pelo produto ${produto.nome}`),
     ...contrapartes.map((contraparte) => `Responsável por ${contraparte.nome_fantasia || contraparte.nome}`),
     ...contas.map((conta) => `Titular da conta ${conta.nome}`),
+    ...deAtividades,
     ...representacoes.flatMap((representacao) => {
       const entidade = entidades.find((item) => item.id === representacao.entidade_id);
       return entidade ? [`Representante de ${entidade.nome}`] : [];

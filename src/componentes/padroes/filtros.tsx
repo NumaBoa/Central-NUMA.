@@ -26,7 +26,7 @@ type BarraFiltrosProps = {
 };
 
 /** Filtro em pílula (18 §9.3): selecionado em espresso, com contador em pílula menor. */
-function PilulaFiltro({ filtro, ativa, aoClicar }: { filtro: FiltroRapido; ativa: boolean; aoClicar: () => void }) {
+export function PilulaFiltro({ filtro, ativa, aoClicar }: { filtro: FiltroRapido; ativa: boolean; aoClicar: () => void }) {
   return (
     <button
       type="button"

@@ -18,11 +18,16 @@ type OpcoesRepositorio<T extends Controle> = {
   prefixoCodigo?: string;
 };
 
-/** Códigos nunca são reutilizados (RT-01): o contador só anda para a frente. */
-function proximoCodigo(prefixo: string): string {
+/**
+ * Códigos nunca são reutilizados (RT-01): o contador só anda para a frente. Também olha o que já
+ * está na tabela, porque a carga inicial e os arquivos importados trazem códigos prontos.
+ */
+function proximoCodigo(prefixo: string, existentes: readonly { codigo?: string }[]): string {
   const ano = hojeISO().slice(0, 4);
   const chave = `${prefixo}-${ano}`;
-  const numero = (lerMeta().contadores[chave] ?? 0) + 1;
+  const inicio = `${chave}-`;
+  const maiorNaTabela = existentes.reduce((maior, { codigo }) => (codigo?.startsWith(inicio) ? Math.max(maior, Number(codigo.slice(inicio.length)) || 0) : maior), 0);
+  const numero = Math.max(lerMeta().contadores[chave] ?? 0, maiorNaTabela) + 1;
   gravarMeta({ contadores: { ...lerMeta().contadores, [chave]: numero } });
   return montarCodigo(prefixo, ano, numero);
 }
@@ -86,7 +91,7 @@ export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, pre
         ...dados,
         id: dados.id ?? gerarUuid(),
         exemplo: dados.exemplo ?? false,
-        ...(prefixoCodigo ? { codigo: proximoCodigo(prefixoCodigo) } : {}),
+        ...(prefixoCodigo ? { codigo: proximoCodigo(prefixoCodigo, lista as readonly { codigo?: string }[]) } : {}),
         criado_em: agora,
         criado_por: autor,
         atualizado_em: agora,

@@ -29,7 +29,7 @@ describe('descreverEvento', () => {
 
   it('descreve as alterações de registros, com código e motivo', () => {
     expect(descrever({ usuarioId: ID_KIMBERLY, acao: 'inseriu', tabela: 'pessoa' })).toBe('Kimberly Grebe criou um registro em Pessoas');
-    expect(descrever({ usuarioId: ID_KIMBERLY, acao: 'alterou', tabela: 'atividade', registroCodigo: 'ATV-2026-0001' })).toBe('Kimberly Grebe alterou um registro em atividade ATV-2026-0001');
+    expect(descrever({ usuarioId: ID_KIMBERLY, acao: 'alterou', tabela: 'atividade', registroCodigo: 'ATV-2026-0001' })).toBe('Kimberly Grebe alterou um registro em Atividades ATV-2026-0001');
     expect(descrever({ usuarioId: ID_KIMBERLY, acao: 'arquivou', tabela: 'pessoa', motivo: 'Saiu da equipe' })).toBe('Kimberly Grebe arquivou um registro em Pessoas. Motivo: Saiu da equipe');
     expect(descrever({ usuarioId: ID_KIMBERLY, acao: 'restaurou', tabela: 'pessoa' })).toBe('Kimberly Grebe restaurou um registro em Pessoas');
   });

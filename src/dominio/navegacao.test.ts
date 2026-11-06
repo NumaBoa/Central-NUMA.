@@ -23,7 +23,7 @@ describe('estrutura do menu', () => {
   });
 
   it('não tem link para nenhuma tela ainda não construída', () => {
-    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['configuracoes']);
+    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'configuracoes']);
   });
 });
 
@@ -56,6 +56,7 @@ describe('moduloAtivo', () => {
     expect(moduloAtivo(MODULO_CONFIGURACOES, '/configuracoes')).toBe(true);
     expect(moduloAtivo(MODULO_CONFIGURACOES, '/configuracoes/dados')).toBe(true);
     expect(moduloAtivo(MODULO_CONFIGURACOES, '/configuracoes-antigas')).toBe(false);
-    expect(moduloAtivo(MODULOS_TOPO[0]!, '/meu-dia')).toBe(false);
+    expect(moduloAtivo(MODULOS_TOPO[0]!, '/meu-dia')).toBe(true);
+    expect(moduloAtivo(MODULOS_TOPO[1]!, '/visao-geral')).toBe(false);
   });
 });

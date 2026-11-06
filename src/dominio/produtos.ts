@@ -4,6 +4,7 @@ import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
 import type { Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import { quantasAtividadesAbertasNoProduto } from './atividades';
 import { normalizarTexto } from './duplicidade';
 import { pessoasDoSeletor } from './pessoa-atual';
 import { pareceCredencial } from './segredos';
@@ -123,6 +124,8 @@ export async function salvarProduto(formulario: FormularioProdutoValidado, id?: 
 
 /** Cada módulo novo que apontar para o produto bloqueia aqui, como a marca faz com os produtos. */
 export async function arquivarProduto(id: string): Promise<void> {
+  const abertas = await quantasAtividadesAbertasNoProduto(id);
+  if (abertas) throw new ErroDeRegra(`Este produto tem ${abertas === 1 ? '1 atividade aberta' : `${abertas} atividades abertas`}. Conclua ou troque o contexto antes.`);
   await repositorios.produto.arquivar(id);
 }
 

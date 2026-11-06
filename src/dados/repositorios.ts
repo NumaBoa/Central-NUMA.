@@ -2,6 +2,7 @@ import type { Repositorio, RepositorioConfiguracao } from './repositorio';
 import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-local';
 import { criarRepositorioLocal } from './repositorio-local';
 import { esquemaArea, esquemaPessoaArea, type Area, type PessoaArea } from './tipos/area';
+import { esquemaAtividade, esquemaAtividadeParticipante, esquemaAtividadeProduto, type Atividade, type AtividadeParticipante, type AtividadeProduto } from './tipos/atividade';
 import { esquemaBackupRegistro, type BackupRegistro } from './tipos/backup-registro';
 import { esquemaFeriado, type Feriado } from './tipos/calendario';
 import { esquemaCambioReferencia, type CambioReferencia } from './tipos/cambio-referencia';
@@ -29,6 +30,9 @@ export const repositorios: {
   feriado: Repositorio<Feriado>;
   etiqueta: Repositorio<Etiqueta>;
   etiqueta_vinculo: Repositorio<EtiquetaVinculo>;
+  atividade: Repositorio<Atividade>;
+  atividade_produto: Repositorio<AtividadeProduto>;
+  atividade_participante: Repositorio<AtividadeParticipante>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -46,4 +50,7 @@ export const repositorios: {
   feriado: criarRepositorioLocal({ tabela: 'feriado', esquema: esquemaFeriado }),
   etiqueta: criarRepositorioLocal({ tabela: 'etiqueta', esquema: esquemaEtiqueta }),
   etiqueta_vinculo: criarRepositorioLocal({ tabela: 'etiqueta_vinculo', esquema: esquemaEtiquetaVinculo }),
+  atividade: criarRepositorioLocal({ tabela: 'atividade', esquema: esquemaAtividade, prefixoCodigo: 'ATV' }),
+  atividade_produto: criarRepositorioLocal({ tabela: 'atividade_produto', esquema: esquemaAtividadeProduto }),
+  atividade_participante: criarRepositorioLocal({ tabela: 'atividade_participante', esquema: esquemaAtividadeParticipante }),
 };

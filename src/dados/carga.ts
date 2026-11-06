@@ -5,7 +5,7 @@ import { gerarUuid } from '@/lib/ids';
 import { gravarMeta, lerMeta } from './meta';
 import { VERSAO_DADOS } from './tabelas';
 import type { EventoAuditoria } from './tipos/auditoria';
-import { contasDeExemplo, contrapartesDeExemplo } from './exemplos';
+import { atividadesDeExemplo, contasDeExemplo, contrapartesDeExemplo } from './exemplos';
 import { AREAS_INICIAIS, CATEGORIAS_INICIAIS, ID_ENTIDADE_PLANEJADA, MARCAS_INICIAIS, PRODUTOS_INICIAIS } from './exemplos/base';
 import { feriadosDoAno } from './referencia/feriados';
 import { hojeISO } from '@/lib/datas';
@@ -156,6 +156,13 @@ function migrar(versao: number) {
     if (driver().getItem(chaveDaTabela('etiqueta_vinculo')) === null) alteracoes.etiqueta_vinculo = [];
     // Quem já limpou os exemplos não recebe exemplos novos.
     if (driver().getItem(chaveDaTabela('conta_financeira')) === null) alteracoes.conta_financeira = aindaHaExemplos() ? contasDeExemplo(agora) : [];
+  }
+  if (versao < 7 && driver().getItem(chaveDaTabela('atividade')) === null) {
+    // Quem já limpou os exemplos não recebe exemplos novos.
+    const { atividade, atividade_produto, atividade_participante } = aindaHaExemplos() ? atividadesDeExemplo(agora) : { atividade: [], atividade_produto: [], atividade_participante: [] };
+    alteracoes.atividade = atividade;
+    alteracoes.atividade_produto = atividade_produto;
+    alteracoes.atividade_participante = atividade_participante;
   }
   try {
     alteracoes.auditoria = [...lerTabela<EventoAuditoria>('auditoria'), novoEvento({ usuarioId: null, acao: 'executou_acao', depois: { funcao: 'migrar_dados', de: versao, para: VERSAO_DADOS } })];

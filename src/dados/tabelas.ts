@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { esquemaArea, esquemaPessoaArea } from './tipos/area';
+import { esquemaAtividade, esquemaAtividadeParticipante, esquemaAtividadeProduto } from './tipos/atividade';
 import { esquemaFeriado } from './tipos/calendario';
 import { esquemaEventoAuditoria } from './tipos/auditoria';
 import { esquemaBackupRegistro } from './tipos/backup-registro';
@@ -29,6 +30,9 @@ export const TABELAS = {
   feriado: { rotulo: 'Feriados', esquema: esquemaFeriado },
   etiqueta: { rotulo: 'Etiquetas', esquema: esquemaEtiqueta },
   etiqueta_vinculo: { rotulo: 'Etiquetas nos registros', esquema: esquemaEtiquetaVinculo },
+  atividade: { rotulo: 'Atividades', esquema: esquemaAtividade },
+  atividade_produto: { rotulo: 'Produtos das atividades', esquema: esquemaAtividadeProduto },
+  atividade_participante: { rotulo: 'Participantes das atividades', esquema: esquemaAtividadeParticipante },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -46,5 +50,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 4: T02.04 acrescenta `marca` e `produto`; o contexto escolhido passa a ser o id do produto.
  * 5: T02.05 e T02.06 acrescentam `entidade`, `entidade_representante` e `contraparte`.
  * 6: T02.07 a T02.10 acrescentam `categoria_financeira`, `conta_financeira`, `feriado`, `etiqueta` e `etiqueta_vinculo`.
+ * 7: T03.01 acrescenta `atividade`, `atividade_produto` e `atividade_participante`.
  */
-export const VERSAO_DADOS = 6;
+export const VERSAO_DADOS = 7;

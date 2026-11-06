@@ -16,6 +16,8 @@ export type Meta = {
   contexto_id: string;
   ultima_abertura: string | null;
   menu_recolhido: boolean;
+  /** Quadro ou Lista, no Meu dia (T03.01). */
+  visao_meu_dia: 'quadro' | 'lista';
 };
 
 export const META_INICIAL: Meta = {
@@ -26,6 +28,7 @@ export const META_INICIAL: Meta = {
   contexto_id: 'consolidada',
   ultima_abertura: null,
   menu_recolhido: false,
+  visao_meu_dia: 'quadro',
 };
 
 let atual: Meta | null = null;

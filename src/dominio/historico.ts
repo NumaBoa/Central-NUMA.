@@ -4,7 +4,8 @@ import { repositorios } from '@/dados/repositorios';
 import { TABELAS, type Tabela } from '@/dados/tabelas';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import { CATALOGO_CONFIGURACAO, chaveConhecida } from '@/dados/tipos/configuracao';
-import { formatarDiaISO } from '@/lib/formatacao';
+import { formatarDataHora, formatarDiaISO } from '@/lib/formatacao';
+import { ROTULOS_PRIORIDADE_ATIVIDADE, ROTULOS_SITUACAO_ATIVIDADE, ROTULOS_TIPO_ATIVIDADE } from './atividades';
 import { ROTULOS_NATUREZA, ROTULOS_SITUACAO_CATEGORIA, ROTULOS_TIPO_CATEGORIA } from './categorias';
 import { ROTULOS_SITUACAO_CONTA, ROTULOS_TIPO_CONTA } from './contas';
 import { ROTULOS_ORIGEM, ROTULOS_PAPEL_CONTRAPARTE, ROTULOS_TIPO_PESSOA } from './contrapartes';
@@ -193,6 +194,23 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     uf: { rotulo: 'Estado' },
     municipio: { rotulo: 'Município' },
   },
+  atividade: {
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ATIVIDADE[valor as keyof typeof ROTULOS_TIPO_ATIVIDADE] },
+    titulo: { rotulo: 'Título' },
+    descricao: { rotulo: 'Descrição', semValores: true },
+    area_id: { rotulo: 'Área', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'área removida' },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    prioridade: { rotulo: 'Prioridade', valor: (valor) => ROTULOS_PRIORIDADE_ATIVIDADE[valor as keyof typeof ROTULOS_PRIORIDADE_ATIVIDADE] },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_ATIVIDADE[valor as keyof typeof ROTULOS_SITUACAO_ATIVIDADE] },
+    bloqueada: { rotulo: 'Bloqueada', valor: simNao },
+    bloqueio_motivo: { rotulo: 'Motivo do bloqueio' },
+    prazo: { rotulo: 'Prazo', valor: (valor) => formatarDiaISO(String(valor)) },
+    prazo_hora: { rotulo: 'Hora do prazo' },
+    aviso_em: { rotulo: 'Aviso', valor: (valor) => formatarDataHora(String(valor)) },
+    aguardando_de_pessoa_id: { rotulo: 'Aguardando de', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    aguardando_de_texto: { rotulo: 'Aguardando de' },
+    acompanhamento_em: { rotulo: 'Acompanhamento', valor: (valor) => formatarDiaISO(String(valor)) },
+  },
   etiqueta: {
     nome: { rotulo: 'Nome' },
     cor: { rotulo: 'Cor' },
@@ -225,6 +243,10 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   if (evento.tabela === 'area') {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
     return nome && `a área ${nome}`;
+  }
+  if (evento.tabela === 'atividade') {
+    const titulo = textoDe(evento.depois?.titulo) ?? textoDe(evento.antes?.titulo) ?? nomes.get(id);
+    return titulo && `a atividade ${titulo}`;
   }
   const artigos: Readonly<Record<string, string>> = { marca: 'a marca', produto: 'o produto', contraparte: 'a contraparte', entidade: 'a entidade', categoria_financeira: 'a categoria', conta_financeira: 'a conta', feriado: 'o feriado', etiqueta: 'a etiqueta' };
   const artigo = artigos[evento.tabela ?? ''];
@@ -297,7 +319,7 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas] = await Promise.all([
+  const [pessoas, areas, marcas, produtos, contrapartes, entidades, categorias, contas, feriados, etiquetas, atividades] = await Promise.all([
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
@@ -308,8 +330,9 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.conta_financeira.listar({ incluirArquivados: true }),
     repositorios.feriado.listar({ incluirArquivados: true }),
     repositorios.etiqueta.listar({ incluirArquivados: true }),
+    repositorios.atividade.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome])]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {

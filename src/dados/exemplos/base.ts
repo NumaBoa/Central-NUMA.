@@ -3,6 +3,8 @@
  */
 export const ID_KIMBERLY = '0b7f1c52-3f6e-4a1b-9d2c-5e8a7c4f1a01';
 export const ID_CAMILA = '1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02';
+/** Freelancer fictícia de `17 §6`. */
+export const ID_BRUNA = '2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03';
 
 /**
  * Áreas de T02.03 e D11: dados reais, não são exemplo. Quem atua em cada uma vem da mesma tabela;
@@ -35,7 +37,11 @@ export const MARCAS_INICIAIS = [
   { id: ID_MARCA_MIMO, nome: 'Mimo', cor: '#C2668A', provisorio: true, institucional: false },
 ] as const;
 
+export const ID_PRODUTO_URBANA = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f02';
 export const ID_PRODUTO_KIPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f03';
+export const ID_PRODUTO_ZUPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f04';
+export const ID_PRODUTO_ZARPA = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f05';
+export const ID_PRODUTO_MIMO = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f06';
 
 /** T02.05: criada na carga inicial, para permitir rascunhos. Dado real, não é exemplo. */
 export const ID_ENTIDADE_PLANEJADA = 'd5f3b4a7-ae62-4d43-9f34-3c4d5e6f7a01';
@@ -75,9 +81,9 @@ export const CATEGORIAS_INICIAIS = GRUPOS_DE_CATEGORIAS.flatMap((grupo, g) => [
  * Mapa: responsável (vazio), tipo de Zarpa e Mimo (Outro), usuários reais do Sobrevivência Urbana.
  */
 export const PRODUTOS_INICIAIS = [
-  { id: 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f02', marca: ID_MARCA_URBANA, nome: 'Sobrevivência Urbana', codigo: 'SURB', tipo: 'app_mobile', estagio: 'em_uso', fila: null, usuarios: true, contextoAntigo: 'urb' },
+  { id: ID_PRODUTO_URBANA, marca: ID_MARCA_URBANA, nome: 'Sobrevivência Urbana', codigo: 'SURB', tipo: 'app_mobile', estagio: 'em_uso', fila: null, usuarios: true, contextoAntigo: 'urb' },
   { id: ID_PRODUTO_KIPI, marca: ID_MARCA_KIPI, nome: 'Kipi', codigo: 'KIPI', tipo: 'app_mobile', estagio: 'em_uso', fila: null, usuarios: true, contextoAntigo: 'kipi' },
-  { id: 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f04', marca: ID_MARCA_ZUPI, nome: 'Zupi', codigo: 'ZUPI', tipo: 'app_mobile', estagio: 'ideia', fila: 1, usuarios: false, contextoAntigo: 'zupi' },
-  { id: 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f05', marca: ID_MARCA_ZARPA, nome: 'Zarpa', codigo: 'ZARPA', tipo: 'outro', estagio: 'ideia', fila: 2, usuarios: false, contextoAntigo: 'zarpa' },
-  { id: 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f06', marca: ID_MARCA_MIMO, nome: 'Mimo', codigo: 'MIMO', tipo: 'outro', estagio: 'ideia', fila: 3, usuarios: false, contextoAntigo: 'mimo' },
+  { id: ID_PRODUTO_ZUPI, marca: ID_MARCA_ZUPI, nome: 'Zupi', codigo: 'ZUPI', tipo: 'app_mobile', estagio: 'ideia', fila: 1, usuarios: false, contextoAntigo: 'zupi' },
+  { id: ID_PRODUTO_ZARPA, marca: ID_MARCA_ZARPA, nome: 'Zarpa', codigo: 'ZARPA', tipo: 'outro', estagio: 'ideia', fila: 2, usuarios: false, contextoAntigo: 'zarpa' },
+  { id: ID_PRODUTO_MIMO, marca: ID_MARCA_MIMO, nome: 'Mimo', codigo: 'MIMO', tipo: 'outro', estagio: 'ideia', fila: 3, usuarios: false, contextoAntigo: 'mimo' },
 ] as const;

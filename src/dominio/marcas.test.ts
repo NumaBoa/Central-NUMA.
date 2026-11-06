@@ -343,6 +343,7 @@ describe('T02.04 Marcas e produtos', () => {
 
   describe('com os outros dados', () => {
     it('arquivar e restaurar um produto', async () => {
+      await limparExemplos();
       await arquivarProduto(ID_PRODUTO_KIPI);
       expect((await repositorios.produto.listar()).map((produto) => produto.nome)).not.toContain('Kipi');
       expect((await historicoRecente(1))[0]?.texto).toBe('Kimberly Grebe arquivou o produto Kipi');
