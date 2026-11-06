@@ -13,6 +13,13 @@ export function lerValor(texto: string): number | null {
   return valor !== null && Math.abs(valor) <= MAIOR_VALOR ? valor : null;
 }
 
+/** RT-07: câmbio é `numeric(12,6)`. Devolve `null` quando não dá para ter certeza do valor. */
+export function lerCambio(texto: string): number | null {
+  const limpo = texto.trim();
+  if (!/^\d{1,6}([.,]\d{1,6})?$/.test(limpo)) return null;
+  return Number(limpo.replace(',', '.'));
+}
+
 /** Para mostrar de volta no campo, com a vírgula de quem digita. */
 export function valorParaCampo(valor: number): string {
   return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

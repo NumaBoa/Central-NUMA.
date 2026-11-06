@@ -788,7 +788,7 @@ await passo('RN-04.10: cancelar', async () => {
   await abrirMenuDaFicha();
   const menu = await texto('.menu-suspenso');
   ok('o menu traz o resto das ações', menu.includes('Cancelar ferramenta') && menu.includes('Arquivar'), menu);
-  ok('Registrar pagamento aparece como "Em breve", sem clique', menu.includes('Registrar pagamento') && menu.includes('Em breve'), menu);
+  ok('Registrar pagamento está no menu', menu.includes('Registrar pagamento'), menu);
   await clicarBotao('Cancelar ferramenta', '.menu-suspenso');
   await dialogoAberto();
   await c.espera(150);

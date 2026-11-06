@@ -776,8 +776,8 @@ await passo('painel: alerta e lembrete', async () => {
 await passo('fichas: aba Atividades (RN-03.20)', async () => {
   await ir(`/configuracoes/cadastros/contrapartes/${ID_SOUZA}`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Souza Contabilidade'`);
-  ok('contraparte: as abas', (await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(t=>t.textContent).join('|')`)) === 'Resumo|Contatos (1)|Ferramentas fornecidas|Atividades|Histórico');
-  await c.clicar('main [role=tab]:nth-child(4)');
+  ok('contraparte: as abas', (await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(t=>t.textContent).join('|')`)) === 'Resumo|Contatos (1)|Ferramentas fornecidas|Lançamentos|Atividades|Histórico');
+  await c.clicar('main [role=tab]:nth-child(5)');
   await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('Confirmar os documentos para abrir a empresa')`);
   ok('a atividade vinculada aparece na contraparte', true);
   await c.foto('i-aba');

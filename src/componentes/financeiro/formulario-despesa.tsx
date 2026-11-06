@@ -21,7 +21,7 @@ import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
 import type { Titulo } from '@/dados/tipos/titulo';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
-import { lerValor, valorParaCampo } from '@/dominio/dinheiro';
+import { lerCambio, lerValor, valorParaCampo } from '@/dominio/dinheiro';
 import type { DadosDosLancamentos } from '@/dominio/lancamentos';
 import { assinaturaSugerida, categoriaDoFornecedor, competenciaDoDia, conferirDespesa, criarDespesa, criarEsquemaDespesa, descricoesAnteriores, formularioDespesaVazio, mesDaCompetencia, rateioEmPartesIguais, ROTULOS_TRATAMENTO, valorEmReais, type FormularioDespesa as Formulario } from '@/dominio/titulos';
 import { hojeISO } from '@/lib/datas';
@@ -56,13 +56,15 @@ type FormularioDeDespesaProps = {
   aoFechar: () => void;
   dados: DadosDosLancamentos;
   aoCriar?: (titulo: Titulo) => void;
+  /** "Duplicar" (T05.03): já começa com os dados de outro título. */
+  valoresIniciais?: Formulario;
 };
 
 /** T05.02: rápida, em menos de um minuto. "Já foi pago?" abre a parte do pagamento. */
-export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar }: FormularioDeDespesaProps) {
+export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresIniciais }: FormularioDeDespesaProps) {
   const { pessoa, contexto } = useCentral();
   const hoje = hojeISO();
-  const inicial = useMemo(() => formularioDespesaVazio(contexto.id, 'BRL', hoje), [contexto.id, hoje]);
+  const inicial = useMemo(() => valoresIniciais ?? formularioDespesaVazio(contexto.id, 'BRL', hoje), [valoresIniciais, contexto.id, hoje]);
   const contasAtivas = useMemo(() => dados.contas.filter((conta) => !conta.arquivado_em && conta.situacao === 'ativa'), [dados.contas]);
   const resolvedor = useMemo(() => zodResolver(criarEsquemaDespesa(contasAtivas, hoje)), [contasAtivas, hoje]);
   const { register, handleSubmit, control, reset, watch, setValue, getValues, trigger, setFocus, formState } = useForm<Formulario>({ resolver: resolvedor, defaultValues: inicial, mode: 'onTouched' });
@@ -71,8 +73,12 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar }: Formul
   const [cadastrando, setCadastrando] = useState<string | null>(null);
   const lancarOutra = useRef(false);
 
+  const contextosAplicados = useRef(inicial.contextos.join('|'));
   useEffect(() => {
-    if (aberto) reset(inicial);
+    if (!aberto) return;
+    // O rateio de quem veio duplicado fica como está, sem voltar para partes iguais.
+    contextosAplicados.current = inicial.contextos.join('|');
+    reset(inicial);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `inicial` vale no momento de abrir
   }, [aberto, reset]);
 
@@ -99,7 +105,6 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar }: Formul
 
   // Rateio: mudou quem participa, volta para partes iguais (editável).
   const contextosComoTexto = valores.contextos.join('|');
-  const contextosAplicados = useRef(contextosComoTexto);
   useEffect(() => {
     if (contextosAplicados.current === contextosComoTexto) return;
     contextosAplicados.current = contextosComoTexto;
@@ -113,7 +118,7 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar }: Formul
     if (calculoAplicado.current === baseDoCalculo) return;
     calculoAplicado.current = baseDoCalculo;
     const valor = lerValor(valores.valor);
-    const cambio = lerValor(valores.cambio);
+    const cambio = lerCambio(valores.cambio);
     if (estrangeira && valor !== null && cambio !== null && cambio > 0) setValue('valor_brl', valorParaCampo(valorEmReais(valor, cambio, lerValor(valores.iof))), { shouldDirty: true, shouldValidate: formState.isSubmitted });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- o cálculo só depende destes três campos
   }, [baseDoCalculo]);

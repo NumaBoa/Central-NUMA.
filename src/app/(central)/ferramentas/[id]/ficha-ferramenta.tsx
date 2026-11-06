@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArchiveRestore, ArrowLeft, Ellipsis, ExternalLink, Globe, Pencil, Plus, Receipt, Replace, Trash2, Wrench } from 'lucide-react';
+import { ArchiveRestore, ArrowLeft, Ellipsis, ExternalLink, Globe, Pencil, Plus, Replace, Trash2, Wrench } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
@@ -12,6 +12,7 @@ import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
 import { EtiquetaCritica, SituacaoDaTransferencia } from '@/componentes/ferramentas/etiquetas-ferramentas';
 import { FormularioDeFerramenta } from '@/componentes/ferramentas/formulario-ferramenta';
+import { DialogoDeBaixa } from '@/componentes/financeiro/dialogo-baixa';
 import { CAMINHO_DE_FERRAMENTAS } from '@/componentes/ferramentas/nova-ferramenta';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
@@ -21,7 +22,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaContexto, EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { Ficha } from '@/componentes/padroes/ficha';
 import { ListaHistorico } from '@/componentes/padroes/historico';
-import { CLASSE_LINHA_MENU, LinhaEmBreve, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
+import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { PainelFormulario } from '@/componentes/padroes/painel-formulario';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
@@ -61,6 +62,7 @@ import {
   type LinhaDaFerramenta,
 } from '@/dominio/ferramentas';
 import { historicoDaFerramenta } from '@/dominio/historico';
+import { carregarLancamentos, type LinhaDoTitulo } from '@/dominio/lancamentos';
 import { ROTULOS_SITUACAO_TITULO, titulosFuturosDaFerramenta } from '@/dominio/titulos';
 import { valorParaCampo } from '@/dominio/dinheiro';
 import { textoDoTitular } from '@/dominio/titularidade';
@@ -203,7 +205,9 @@ function AbaAssinatura({ ferramenta, id, dados }: { ferramenta: LinhaDaFerrament
             {consulta.dados.titulos.map((titulo) => (
               <li key={titulo.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-line bg-paper px-3.5 py-2.5">
                 <span className="min-w-0">
-                  <span className="font-medium tabular-nums">{formatarDiaISO(titulo.vencimento)}</span>
+                  <LinkCentral href={`/financeiro/${titulo.id}`} className="inline-flex min-h-11 items-center font-medium tabular-nums underline-offset-2 hover:underline md:min-h-0">
+                    {formatarDiaISO(titulo.vencimento)}
+                  </LinkCentral>
                   <span className="text-ink-soft"> · {titulo.codigo} · {ROTULOS_SITUACAO_TITULO[titulo.situacao]}</span>
                 </span>
                 <span className="font-medium tabular-nums">{formatarDinheiro(titulo.valor, titulo.moeda)}</span>
@@ -547,6 +551,7 @@ export function FichaFerramenta() {
   const [editando, setEditando] = useState<'editar' | 'plano' | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [arquivando, setArquivando] = useState(false);
+  const [pagando, setPagando] = useState<LinhaDoTitulo | null>(null);
 
   const voltar = (
     <LinkCentral href={CAMINHO_DE_FERRAMENTAS} className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-pill pr-3 text-[13px] font-medium text-ink-soft hover:text-ink md:min-h-0 [&_svg]:size-4">
@@ -590,6 +595,14 @@ export function FichaFerramenta() {
     }
   }
 
+  /** O próximo título em aberto da ferramenta. */
+  async function abrirPagamento() {
+    const { titulos } = await carregarLancamentos(hojeISO());
+    const proximo = titulos.filter((titulo) => titulo.ferramenta_id === id && titulo.saldo > 0 && titulo.situacao !== 'cancelado' && !titulo.arquivado_em).sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
+    if (proximo) setPagando(proximo);
+    else aviso('Esta ferramenta não tem título em aberto.');
+  }
+
   const linhaDoMenu = (fechar: () => void, rotulo: string, aoClicar: () => void) => (
     <li>
       <button
@@ -618,8 +631,7 @@ export function FichaFerramenta() {
     >
       {(fechar) => (
         <ul className="grid gap-0.5">
-          {/* Registrar pagamento chega com o Financeiro (T05). */}
-          {!cancelada && <LinhaEmBreve icone={<Receipt aria-hidden />} rotulo="Registrar pagamento" />}
+          {!cancelada && linhaDoMenu(fechar, 'Registrar pagamento', () => void abrirPagamento())}
           {!cancelada && linhaDoMenu(fechar, 'Cancelar ferramenta', () => setCancelando(true))}
           {linhaDoMenu(fechar, 'Arquivar', () => setArquivando(true))}
         </ul>
@@ -702,6 +714,7 @@ export function FichaFerramenta() {
       />
       <FormularioDeFerramenta aberto={Boolean(editando)} aoFechar={() => setEditando(null)} dados={dados} ferramenta={ferramenta} contextos={ferramenta.contextos} assinatura={ferramenta.assinatura} trocandoPlano={editando === 'plano'} />
       {cancelando && <DialogoDeCancelar ferramenta={ferramenta} aoFechar={() => setCancelando(false)} />}
+      {pagando && <DialogoDeBaixa titulo={pagando} contas={dados.contas} aoFechar={() => setPagando(null)} />}
       <Confirmacao
         aberto={arquivando}
         aoFechar={() => setArquivando(false)}

@@ -17,7 +17,7 @@ import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
 import { ROTULOS_TIPO_ATIVO, ROTULOS_TRANSFERENCIA } from './ativos';
-import { rotuloDaCompetencia, ROTULOS_SITUACAO_TITULO } from './titulos';
+import { rotuloDaCompetencia, ROTULOS_SITUACAO_TITULO, ROTULOS_TIPO_BAIXA, ROTULOS_TRATAMENTO } from './titulos';
 import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
@@ -258,6 +258,19 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
     cancelado_motivo: { rotulo: 'Motivo do cancelamento' },
     observacao: { rotulo: 'Observação', semValores: true },
+  },
+  baixa: {
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_BAIXA[valor as keyof typeof ROTULOS_TIPO_BAIXA] },
+    data: { rotulo: 'Data', valor: (valor) => formatarDiaISO(String(valor)) },
+    conta_financeira_id: { rotulo: 'Conta', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    valor_moeda: { rotulo: 'Valor', valor: (valor) => String(valor).replace('.', ',') },
+    valor_brl: { rotulo: 'Valor em reais', valor: (valor) => String(valor).replace('.', ',') },
+    cambio: { rotulo: 'Câmbio', valor: (valor) => String(valor).replace('.', ',') },
+    iof_brl: { rotulo: 'IOF', valor: (valor) => String(valor).replace('.', ',') },
+    comprovante_url: { rotulo: 'Comprovante' },
+    sem_comprovante_motivo: { rotulo: 'Sem comprovante' },
+    tratamento: { rotulo: 'Tratamento', valor: (valor) => ROTULOS_TRATAMENTO[valor as keyof typeof ROTULOS_TRATAMENTO] },
+    motivo: { rotulo: 'Motivo' },
   },
   ativo_digital: {
     tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ATIVO[valor as keyof typeof ROTULOS_TIPO_ATIVO] },
@@ -562,6 +575,13 @@ export async function historicoDaFerramenta(id: string): Promise<LinhaHistorico[
 export async function historicoDoAtivo(id: string): Promise<LinhaHistorico[]> {
   const [eventos, nomes, anexos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true })]);
   const dele = new Set([id, ...anexos.map((anexo) => anexo.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico do título: o cadastro, o rateio, as baixas e os aportes que nasceram dele. */
+export async function historicoDoTitulo(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, rateio, baixas, movimentos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.titulo_rateio.listar({ onde: { titulo_id: id }, incluirArquivados: true }), repositorios.baixa.listar({ onde: { titulo_id: id }, incluirArquivados: true }), repositorios.movimento_societario.listar({ onde: { titulo_origem_id: id }, incluirArquivados: true })]);
+  const dele = new Set([id, ...[...rateio, ...baixas, ...movimentos].map((linha) => linha.id)]);
   return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
 }
 

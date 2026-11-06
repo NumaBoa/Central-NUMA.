@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Archive, ArrowDownLeft, ArrowUpRight, Check, Plus, Receipt } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
 import { AbasFinanceiro } from '@/componentes/financeiro/abas-financeiro';
+import { DialogoDeBaixaEmLote } from '@/componentes/financeiro/dialogo-baixa-lote';
 import { FormularioDeDespesa } from '@/componentes/financeiro/formulario-despesa';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
@@ -68,9 +70,12 @@ function Totais({ linhas, dados, filtros, hoje }: { linhas: readonly LinhaDoTitu
 
 /** T05.01 (P1): todo dinheiro que sai da Numa, de quem é cada custo, e o que está em aberto. */
 export function TelaLancamentos() {
+  const roteador = useRouter();
   const { pessoa, contexto } = useCentral();
   const hoje = hojeISO();
   const consulta = useConsulta(() => carregarLancamentos(hoje), [hoje]);
+  const [selecionados, setSelecionados] = useState<ReadonlySet<string>>(new Set());
+  const [emLote, setEmLote] = useState(false);
   const [filtros, setFiltros] = useState<FiltrosLancamentos>(FILTROS_LANCAMENTOS_INICIAIS);
   const [cadastrando, setCadastrando] = useState(false);
   const { colunasVisiveis, visoes } = usePreferenciasDaLista(pessoa.id, LISTA, COLUNAS_PADRAO);
@@ -170,6 +175,7 @@ export function TelaLancamentos() {
     ...(filtros.moeda ? [{ id: 'moeda', rotulo: `Moeda: ${filtros.moeda}` }] : []),
   ];
   const { arquivados: _semArquivados, aba: _semAba, ...filtrosDaVisao } = filtros;
+  const selecionadas = linhas.filter((linha) => selecionados.has(linha.id));
   const moedas = [...new Set(dados.titulos.map((titulo) => titulo.moeda))].sort();
   const categorias = dados.categorias.filter((categoria) => categoria.pai_id && categoria.tipo === 'despesa' && !categoria.arquivado_em);
   const contrapartesUsadas = dados.contrapartes.filter((item) => dados.titulos.some((titulo) => titulo.contraparte_id === item.id));
@@ -325,11 +331,24 @@ export function TelaLancamentos() {
           </>
         }
       />
+      {selecionadas.length > 0 && (
+        <div className="hidden flex-wrap items-center gap-2 rounded-lg border border-line bg-mist px-4 py-2 text-[13px] md:flex" role="region" aria-label="Ações em lote">
+          <span className="font-semibold">{selecionadas.length === 1 ? '1 selecionado' : `${selecionadas.length} selecionados`}</span>
+          <Button variante="secundario" tamanho="pequeno" onClick={() => setEmLote(true)}>
+            Registrar baixa em lote
+          </Button>
+          <Button variante="terciario" tamanho="pequeno" onClick={() => setSelecionados(new Set())}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
       <Lista
         rotulo="Lançamentos"
         linhas={linhas}
         colunas={visiveis}
         chave={(titulo) => titulo.id}
+        aoAbrir={(titulo) => roteador.push(`/financeiro/${titulo.id}`)}
+        selecao={{ selecionados, aoMudar: setSelecionados, rotuloDaLinha: (titulo) => titulo.descricao }}
         filtrando={ativos.length > 0 || Boolean(filtros.busca.trim()) || filtros.arquivados || filtros.aba !== 'todos' || contexto.id !== 'consolidada'}
         aoLimparFiltros={() => setFiltros((atuais) => ({ ...FILTROS_LANCAMENTOS_INICIAIS, arquivados: atuais.arquivados }))}
         vazio={<EstadoVazio icone={Receipt} titulo="Nenhum lançamento ainda." texto="Que tal lançar a primeira despesa?" acao={<Button onClick={() => setCadastrando(true)}>Nova despesa</Button>} />}
@@ -355,6 +374,16 @@ export function TelaLancamentos() {
       />
       <p className="text-xs text-ink-soft">{formatarNumero(linhas.length)} de {formatarNumero(dados.titulos.filter((titulo) => !titulo.arquivado_em).length)} lançamentos.</p>
       <FormularioDeDespesa aberto={cadastrando} aoFechar={() => setCadastrando(false)} dados={dados} />
+      {emLote && (
+        <DialogoDeBaixaEmLote
+          titulos={selecionadas}
+          contas={dados.contas}
+          aoFechar={(feito) => {
+            setEmLote(false);
+            if (feito) setSelecionados(new Set());
+          }}
+        />
+      )}
     </div>
   );
 }

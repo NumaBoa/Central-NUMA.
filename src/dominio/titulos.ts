@@ -9,11 +9,11 @@ import { idDaPessoaAtual } from '@/dados/sessao';
 import { emTransacao } from '@/dados/transacao';
 import type { AssinaturaFerramenta, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
 import type { CategoriaFinanceira, ContaFinanceira } from '@/dados/tipos/financeiro';
-import type { Baixa, Titulo } from '@/dados/tipos/titulo';
+import type { Baixa, Titulo, TituloRateio } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { cobrancasPrevistas } from './cobrancas';
 import { ID_INSTITUCIONAL } from './contextos';
-import { lerValor } from './dinheiro';
+import { lerCambio, lerValor, valorParaCampo } from './dinheiro';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { AVISO_CREDENCIAL, pareceCredencial } from './segredos';
 
@@ -65,6 +65,11 @@ export async function vinculosDeTituloDaPessoa(id: string): Promise<string[]> {
   return abertos ? [abertos === 1 ? 'Responsável por 1 lançamento em aberto' : `Responsável por ${abertos} lançamentos em aberto`] : [];
 }
 
+/** T02.06, ficha da contraparte. */
+export async function titulosDaContraparte(id: string): Promise<Titulo[]> {
+  return (await repositorios.titulo.listar({ onde: { contraparte_id: id } })).sort((a, b) => b.vencimento.localeCompare(a.vencimento));
+}
+
 // ---------- Competência ----------
 
 export const competenciaDoDia = (dia: string) => `${dia.slice(0, 7)}-01`;
@@ -103,6 +108,16 @@ export function valoresDoRateio(valor: number, percentuais: readonly number[]): 
     somado = arredondar(somado + parte);
     return parte;
   });
+}
+
+/** O valor mudou: os percentuais ficam, e os valores acompanham. */
+export async function recalcularRateio(tituloId: string, valor: number): Promise<void> {
+  const linhas = await repositorios.titulo_rateio.listar({ onde: { titulo_id: tituloId } });
+  const valores = valoresDoRateio(
+    valor,
+    linhas.map((linha) => linha.percentual),
+  );
+  for (const [indice, linha] of linhas.entries()) await repositorios.titulo_rateio.atualizar(linha.id, { valor: valores[indice] as number });
 }
 
 const paraProduto = (contexto: string) => (contexto === ID_INSTITUCIONAL ? null : contexto);
@@ -244,6 +259,30 @@ export async function registrarPagamento(tituloId: string, dados: DadosDoPagamen
   });
 }
 
+/**
+ * RN-05.06: desfaz o aporte ou o reembolso que nasceu da baixa e, se houver outro tratamento, cria.
+ * Reembolso que já recebeu pagamento segura: é preciso estornar esse pagamento antes.
+ */
+export async function refazerTratamento(baixa: Baixa, novo: Baixa['tratamento'], vencimentoReembolso: string | null, motivo: string): Promise<Baixa> {
+  if (baixa.titulo_reembolso_id) {
+    const reembolso = await repositorios.titulo.obter(baixa.titulo_reembolso_id);
+    if (reembolso && reembolso.situacao !== 'cancelado') {
+      if (saldoDoTitulo(reembolso, await repositorios.baixa.listar({ onde: { titulo_id: reembolso.id } })) !== reembolso.valor) throw new ErroDeRegra('O reembolso já foi pago: estorne o pagamento dele antes.');
+      await repositorios.titulo.atualizar(reembolso.id, { situacao: 'cancelado', cancelado_motivo: motivo, ajustado_manualmente: true }, { motivo });
+    }
+  }
+  if (baixa.movimento_societario_id) await repositorios.movimento_societario.arquivar(baixa.movimento_societario_id, motivo);
+  const limpa = { tratamento: novo, movimento_societario_id: null, titulo_reembolso_id: null };
+  if (!novo) {
+    // O estorno guarda o tratamento original na baixa, para o histórico continuar dizendo o que houve.
+    return baixa;
+  }
+  const [titulo, conta] = await Promise.all([repositorios.titulo.obter(baixa.titulo_id), repositorios.conta_financeira.obter(baixa.conta_financeira_id)]);
+  if (!titulo || !conta) throw new ErroDeRegra('O título ou a conta desta baixa não existe mais.');
+  const ligacoes = await criarTratamento(titulo, baixa, conta, novo, vencimentoReembolso);
+  return repositorios.baixa.atualizar(baixa.id, { ...limpa, ...ligacoes }, { motivo });
+}
+
 // ---------- Nova despesa (T05.02) ----------
 
 const textoCurto = z.string().trim();
@@ -298,7 +337,7 @@ export function criarEsquemaDespesa(contas: readonly Pick<ContaFinanceira, 'id' 
     else if (dados.data_pagamento > hoje) falha('data_pagamento', 'A data do pagamento não pode ser futura.');
     if (!dados.conta_id) falha('conta_id', 'Escolha a conta usada.');
     if (dados.moeda !== 'BRL') {
-      if (!numeroPositivo(dados.cambio)) falha('cambio', 'Informe o câmbio pago.');
+      if (!(Number(lerCambio(dados.cambio)) > 0)) falha('cambio', 'Informe o câmbio pago.');
       if (dados.iof && lerValor(dados.iof) === null) falha('iof', 'Use só números, como 0,00.');
       if (!numeroPositivo(dados.valor_brl)) falha('valor_brl', 'Informe o valor efetivo em reais.');
     }
@@ -364,7 +403,7 @@ function pagamentoDoFormulario(formulario: FormularioDespesa, valor: number): Da
     data: formulario.data_pagamento,
     contaId: formulario.conta_id,
     valorMoeda: valor,
-    cambio: estrangeira ? lerValor(formulario.cambio) : null,
+    cambio: estrangeira ? lerCambio(formulario.cambio) : null,
     iofBrl: estrangeira ? lerValor(formulario.iof) : null,
     valorBrl: estrangeira ? (lerValor(formulario.valor_brl) as number) : valor,
     comprovanteUrl: formulario.sem_comprovante ? null : formulario.comprovante_url,
@@ -416,6 +455,23 @@ export async function criarDespesa(formulario: FormularioDespesa, responsavelId:
     if (formulario.pago) await registrarPagamento(titulo.id, pagamentoDoFormulario(formulario, valor), hoje);
     return (await repositorios.titulo.obter(titulo.id)) as Titulo;
   });
+}
+
+/** T05.03, "Duplicar": os mesmos dados, em aberto, sem data nem pagamento. */
+export function formularioParaDuplicar(titulo: Titulo & { rateio: readonly Pick<TituloRateio, 'produto_id' | 'percentual'>[] }, hoje: string = hojeISO()): FormularioDespesa {
+  const contextos = titulo.rateio.map((linha) => linha.produto_id ?? ID_INSTITUCIONAL);
+  return {
+    ...formularioDespesaVazio('consolidada', titulo.moeda, hoje),
+    descricao: titulo.descricao,
+    contraparte_id: titulo.contraparte_id ?? '',
+    valor: valorParaCampo(titulo.valor),
+    pago: false,
+    categoria_id: titulo.categoria_id,
+    contextos,
+    percentuais: Object.fromEntries(titulo.rateio.map((linha) => [linha.produto_id ?? ID_INSTITUCIONAL, valorParaCampo(linha.percentual)])),
+    ferramenta_id: titulo.ferramenta_id ?? '',
+    observacao: titulo.observacao ?? '',
+  };
 }
 
 // ---------- Sugestões de T05.02 ----------
@@ -474,7 +530,13 @@ export async function sincronizarTitulosDaAssinatura(ferramenta: Pick<Ferramenta
       if (titulo.situacao === 'previsto' && !titulo.ajustado_manualmente && titulo.vencimento >= hoje && !datas.includes(titulo.vencimento)) await repositorios.titulo.atualizar(titulo.id, { situacao: 'cancelado', cancelado_motivo: 'A cobrança da assinatura mudou.' });
     }
     for (const dia of datas) {
-      if (existentes.some((titulo) => titulo.situacao !== 'cancelado' && (titulo.chave_idempotencia === chaveDaCobranca(assinatura.id, dia) || pertoDe(titulo.vencimento, dia)))) continue;
+      const mesmaChave = existentes.find((titulo) => titulo.chave_idempotencia === chaveDaCobranca(assinatura.id, dia));
+      if (mesmaChave?.situacao === 'cancelado') {
+        // Cancelado à mão fica cancelado (RN-05.13); o que a própria geração cancelou volta, se a data voltou.
+        if (!mesmaChave.ajustado_manualmente) await repositorios.titulo.atualizar(mesmaChave.id, { situacao: 'previsto', cancelado_motivo: null, valor: assinatura.valor as number });
+        continue;
+      }
+      if (mesmaChave || existentes.some((titulo) => titulo.situacao !== 'cancelado' && pertoDe(titulo.vencimento, dia))) continue;
       const titulo = await repositorios.titulo.criar({
         natureza: 'pagar',
         descricao: assinatura.plano ? `${ferramenta.nome} · ${assinatura.plano}` : ferramenta.nome,
@@ -551,12 +613,7 @@ export async function aplicarReajuste(assinaturaId: string, valor: number, motiv
   const titulos = await titulosAfetadosPeloReajuste(assinaturaId, hoje);
   for (const titulo of titulos) {
     await repositorios.titulo.atualizar(titulo.id, { valor }, { motivo });
-    const rateio = await repositorios.titulo_rateio.listar({ onde: { titulo_id: titulo.id } });
-    const valores = valoresDoRateio(
-      valor,
-      rateio.map((linha) => linha.percentual),
-    );
-    for (const [indice, linha] of rateio.entries()) await repositorios.titulo_rateio.atualizar(linha.id, { valor: valores[indice] as number });
+    await recalcularRateio(titulo.id, valor);
   }
   return titulos.length;
 }

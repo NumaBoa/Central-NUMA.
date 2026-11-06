@@ -22,6 +22,7 @@ export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; hr
   produto: { rotulo: 'Produto', href: (id) => `/configuracoes/cadastros/marcas/produtos/${id}` },
   ferramenta: { rotulo: 'Ferramenta', href: (id) => `/ferramentas/${id}` },
   ativo_digital: { rotulo: 'Ativo digital', href: (id) => `/ferramentas/ativos/${id}` },
+  titulo: { rotulo: 'Lançamento', href: (id) => `/financeiro/${id}` },
 };
 
 export { CAMINHO_DA_ATIVIDADE };
@@ -271,6 +272,7 @@ async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
   if (tipo === 'produto') return (await repositorios.produto.obter(id))?.nome ?? 'Produto removido';
   if (tipo === 'ferramenta') return (await repositorios.ferramenta.obter(id))?.nome ?? 'Ferramenta removida';
   if (tipo === 'ativo_digital') return (await repositorios.ativo_digital.obter(id))?.identificador ?? 'Ativo removido';
+  if (tipo === 'titulo') return (await repositorios.titulo.obter(id))?.descricao ?? 'Lançamento removido';
   return 'Registro removido';
 }
 

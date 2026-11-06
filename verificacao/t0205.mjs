@@ -330,7 +330,7 @@ await passo('ficha da contraparte', async () => {
   await irFicha(ID_SOUZA, 'Souza Contabilidade');
   ok('o título da aba diz a tela', (await c.avaliar(`document.title`)).startsWith('Ficha da contraparte'), await c.avaliar(`document.title`));
   const abas = await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(t=>t.textContent).join('|')`);
-  ok('abas da F0a que já existem', abas === 'Resumo|Contatos (1)|Ferramentas fornecidas|Atividades|Histórico', abas);
+  ok('abas da F0a que já existem', abas === 'Resumo|Contatos (1)|Ferramentas fornecidas|Lançamentos|Atividades|Histórico', abas);
   const m = await painelAtivo();
   ok('resumo por extenso', m.includes('Souza Contabilidade Ltda') && m.includes('Pessoa jurídica') && m.includes('Rio de Janeiro, RJ') && m.includes('Kimberly Grebe') && m.includes('Fornecedor') && m.includes('Brasil'), m);
   ok('sem documento inventado', !/\d{2}\.\d{3}\.\d{3}/.test(m));
@@ -373,7 +373,7 @@ await passo('ficha da contraparte', async () => {
   await painelFechado();
   await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('(21) 98888-7777')`);
   ok('o resumo acompanha', (await painelAtivo()).includes('Institucional') && (await painelAtivo()).includes('11.444.777/0001-61'));
-  await aba(5);
+  await aba(6);
   await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('alterou')`);
   const hist = await painelAtivo();
   ok('o histórico diz o que mudou', hist.includes('Souza Contabilidade') && hist.includes('Telefone'), hist.slice(0, 400));
@@ -433,7 +433,7 @@ await passo('ficha da contraparte', async () => {
   await esperarAviso('Contraparte restaurada.');
   await c.ate(`!document.querySelector('main').textContent.includes('Esta contraparte está arquivada')`);
   ok('dá para restaurar', (await tabela('contraparte')).find((x) => x.id === ID_NUVEM).arquivado_em === null);
-  await aba(5);
+  await aba(6);
   await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('restaurou')`);
   ok('o histórico registra', (await painelAtivo()).includes('arquivou'));
 });

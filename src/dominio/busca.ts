@@ -6,7 +6,9 @@ import { repositorios } from '@/dados/repositorios';
 import type { Atividade } from '@/dados/tipos/atividade';
 import { CAMINHO_DA_ATIVIDADE, carregarMeuDia, contextosDaAtividade, estaAberta, ROTULOS_SITUACAO_ATIVIDADE, ROTULOS_TIPO_ATIVIDADE } from './atividades';
 import { nomeDaContraparte } from './contrapartes';
+import { formatarDiaISO } from '@/lib/formatacao';
 import { ROTULOS_TIPO_ATIVO } from './ativos';
+import { ROTULOS_SITUACAO_TITULO } from './titulos';
 import { normalizarTexto } from './duplicidade';
 import { ROTULOS_SITUACAO_FERRAMENTA } from './ferramentas';
 import { ROTULOS_TIPO } from './pessoas';
@@ -48,7 +50,7 @@ function detalheDaAtividade(atividade: Atividade, contextos: readonly string[]):
 export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
   const termo = normalizarTexto(busca).trim();
   if (termo.length < MINIMO_PARA_BUSCAR) return [];
-  const [meuDia, contrapartes, pessoas, produtos, marcas, ferramentas, ativos] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.ferramenta.listar(), repositorios.ativo_digital.listar()]);
+  const [meuDia, contrapartes, pessoas, produtos, marcas, ferramentas, ativos, titulos] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.ferramenta.listar(), repositorios.ativo_digital.listar(), repositorios.titulo.listar()]);
 
   const grupos = [
     montarGrupo(
@@ -107,6 +109,20 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
         href: `/ferramentas/${ferramenta.id}`,
         texto: `${ferramenta.codigo} ${ferramenta.nome} ${ferramenta.finalidade}`,
         peso: ferramenta.situacao === 'cancelada' ? 1 : 0,
+      })),
+      termo,
+    ),
+    montarGrupo(
+      'titulos',
+      'Lançamentos',
+      titulos.map((titulo) => ({
+        id: titulo.id,
+        codigo: titulo.codigo,
+        titulo: titulo.descricao,
+        detalhe: `${ROTULOS_SITUACAO_TITULO[titulo.situacao]} · ${formatarDiaISO(titulo.vencimento)}`,
+        href: `/financeiro/${titulo.id}`,
+        texto: `${titulo.codigo} ${titulo.descricao}`,
+        peso: titulo.situacao === 'cancelado' ? 1 : 0,
       })),
       termo,
     ),

@@ -402,6 +402,13 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
                             </option>
                           ))}
                         </optgroup>
+                        <optgroup label="Lançamentos">
+                          {(dados?.titulos ?? []).map((titulo) => (
+                            <option key={titulo.id} value={`titulo:${titulo.id}`}>
+                              {titulo.codigo} · {titulo.descricao}
+                            </option>
+                          ))}
+                        </optgroup>
                         <optgroup label="Ativos digitais">
                           {(dados?.ativos ?? []).map((ativo) => (
                             <option key={ativo.id} value={`ativo_digital:${ativo.id}`}>

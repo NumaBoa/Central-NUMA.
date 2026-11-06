@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Building2, Ellipsis, Pencil, Plus, Power, PowerOff, UserRound } from 'lucide-react';
 import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { AbaFerramentas } from '@/componentes/ferramentas/aba-ferramentas';
+import { AbaLancamentos } from '@/componentes/financeiro/aba-lancamentos';
+import { titulosDaContraparte } from '@/dominio/titulos';
 import { ferramentasDaContraparte } from '@/dominio/ferramentas';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
@@ -269,6 +271,7 @@ export function FichaContraparte() {
             ),
           },
           { id: 'ferramentas', rotulo: 'Ferramentas fornecidas', conteudo: <AbaFerramentas consultar={() => ferramentasDaContraparte(contraparte.id)} dependencia={contraparte.id} vazio="As ferramentas fornecidas por esta contraparte aparecem aqui." /> },
+          { id: 'lancamentos', rotulo: 'Lançamentos', conteudo: <AbaLancamentos consultar={() => titulosDaContraparte(contraparte.id)} dependencia={contraparte.id} vazio="As despesas com esta contraparte aparecem aqui." /> },
           { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('contraparte', contraparte.id)} dependencia={contraparte.id} vazio="As atividades vinculadas a esta contraparte aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={contraparte.id} /> },
         ]}

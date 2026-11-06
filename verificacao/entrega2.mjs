@@ -1,5 +1,5 @@
 // Verificação da entrega 2 (camada de dados e Configurações › Dados) no sistema real.
-import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { abrirChrome } from './cdp.mjs';
 
@@ -38,8 +38,10 @@ let baixados = 0;
 const NOMES_BAIXADOS = [];
 async function baixado() {
   for (let i = 0; i < 800; i++) {
-    const nome = readdirSync(downloads).find((n) => /^central-numa-.*\.json$/.test(n));
-    if (nome) {
+    const presentes = readdirSync(downloads);
+    const nome = presentes.find((n) => /^central-numa-.*\.json$/.test(n));
+    // O Chrome reserva o nome antes de terminar: só vale com conteúdo e sem `.crdownload` ao lado.
+    if (nome && !presentes.some((n) => n.endsWith('.crdownload')) && statSync(path.join(downloads, nome)).size > 0) {
       await c.espera(100);
       baixados += 1;
       const destino = path.join(downloads, `b${baixados}-${nome}`);
