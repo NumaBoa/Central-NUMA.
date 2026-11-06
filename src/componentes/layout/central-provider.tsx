@@ -2,12 +2,13 @@
 
 import { createContext, use, useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { aviso } from '@/componentes/padroes/aviso';
-import { acharContexto, ID_KIMBERLY, type Contexto } from '@/dados/exemplos/base';
+import { ID_KIMBERLY } from '@/dados/exemplos/base';
 import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { useConsulta } from '@/dados/use-consulta';
 import { VALORES_PADRAO } from '@/dados/tipos/configuracao';
 import { lerConfiguracoes } from '@/dominio/configuracoes';
+import { acharContexto, carregarContextos, CONTEXTOS_SEM_DADOS, type Contexto } from '@/dominio/contextos';
 import { existemDadosDeExemplo } from '@/dominio/dados';
 import type { Fase } from '@/dominio/navegacao';
 import { pessoasDoSeletor, resolverPessoaAtual } from '@/dominio/pessoa-atual';
@@ -25,6 +26,8 @@ type ValorCentral = {
   pessoas: readonly PessoaDoSeletor[];
   escolherPessoa: (id: string) => void;
   contexto: Contexto;
+  /** Os produtos ativos + as duas visões da Numa (CA-02.03). */
+  contextos: readonly Contexto[];
   escolherContexto: (id: string) => void;
   /** De T02.01 (RT-23). Enquanto os dados carregam, ou se estiverem danificados, a fase inicial. */
   faseAtiva: Fase;
@@ -41,6 +44,7 @@ export function CentralProvider({ children }: { children: ReactNode }) {
   const pessoas = useConsulta(() => repositorios.pessoa.listar());
   const exemplos = useConsulta(existemDadosDeExemplo);
   const configuracoes = useConsulta(lerConfiguracoes);
+  const consultaContextos = useConsulta(carregarContextos);
 
   // Rotinas do dia ao abrir (02 §0.5): aviso discreto só quando há novidade.
   useEffect(() => {
@@ -75,6 +79,7 @@ export function CentralProvider({ children }: { children: ReactNode }) {
   const listaDePessoas = pessoas.dados;
   const temExemplos = exemplos.dados ?? false;
   const faseAtiva = configuracoes.dados?.fase_ativa ?? VALORES_PADRAO.fase_ativa;
+  const contextos = consultaContextos.dados ?? CONTEXTOS_SEM_DADOS;
   const valor = useMemo<ValorCentral>(() => {
     const paraSeletor = (pessoa: { id: string; nome_completo: string }): PessoaDoSeletor => ({ id: pessoa.id, nome: pessoa.nome_completo });
     const atual = listaDePessoas ? resolverPessoaAtual(listaDePessoas, meta.pessoa_atual_id) : null;
@@ -82,13 +87,14 @@ export function CentralProvider({ children }: { children: ReactNode }) {
       pessoa: atual ? paraSeletor(atual) : PESSOA_PADRAO,
       pessoas: listaDePessoas ? pessoasDoSeletor(listaDePessoas).map(paraSeletor) : [PESSOA_PADRAO],
       escolherPessoa: (id) => gravarMeta({ pessoa_atual_id: id }),
-      contexto: acharContexto(meta.contexto_id),
+      contexto: acharContexto(contextos, meta.contexto_id),
+      contextos,
       escolherContexto: (id) => gravarMeta({ contexto_id: id }),
       faseAtiva,
       temDadosDeExemplo: temExemplos,
       alternarMenu,
     };
-  }, [listaDePessoas, temExemplos, faseAtiva, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
+  }, [listaDePessoas, temExemplos, faseAtiva, contextos, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
 
   return <ContextoCentral value={valor}>{children}</ContextoCentral>;
 }

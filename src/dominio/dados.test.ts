@@ -4,7 +4,7 @@ import { ID_CAMILA, ID_KIMBERLY } from '@/dados/exemplos/base';
 import { listarHistorico } from '@/dados/historico';
 import { esquecerMetaEmMemoria, gravarMeta, lerMeta } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
-import { VERSAO_DADOS } from '@/dados/tabelas';
+import { NOMES_TABELAS, VERSAO_DADOS } from '@/dados/tabelas';
 import { REGISTROS_INICIAIS } from './apoio-testes';
 import {
   aplicarImportacao,
@@ -65,7 +65,7 @@ describe('Configurações › Dados', () => {
       const arquivo = arquivoExportado(conteudo);
       expect(nome).toBe('central-numa-2026-11-05.json');
       expect(arquivo).toMatchObject({ formato: 'central-numa', versao_dados: VERSAO_DADOS, exportado_em: '2026-11-05T15:00:00.000Z', exportado_por: { id: ID_KIMBERLY, nome: 'Kimberly Grebe' } });
-      expect(Object.keys(arquivo.tabelas).sort()).toEqual(['area', 'auditoria', 'backup_registro', 'cambio_referencia', 'configuracao', 'pessoa', 'pessoa_area']);
+      expect(Object.keys(arquivo.tabelas).sort()).toEqual([...NOMES_TABELAS].sort());
       expect(arquivo.tabelas.pessoa).toHaveLength(4);
     });
 

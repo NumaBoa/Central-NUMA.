@@ -20,7 +20,8 @@ export interface Repositorio<T extends Controle> {
   listar(filtros?: FiltrosListagem<T>): Promise<T[]>;
   obter(id: string): Promise<T | null>;
   criar(dados: Novo<T>): Promise<T>;
-  atualizar(id: string, dados: Alteracao<T>): Promise<T>;
+  /** O motivo vai para o histórico, quando a regra exigir um (RT-16). */
+  atualizar(id: string, dados: Alteracao<T>, opcoes?: { motivo?: string }): Promise<T>;
   /** O motivo só é obrigatório quando a regra exigir (RT-16); quem exige é o domínio. */
   arquivar(id: string, motivo?: string): Promise<T>;
   restaurar(id: string): Promise<T>;

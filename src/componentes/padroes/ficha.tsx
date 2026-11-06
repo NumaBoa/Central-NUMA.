@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
+import { cn } from '@/lib/utils';
 import { Faixa } from './faixa';
 
 export type AbaFicha = { id: string; rotulo: string; conteudo: ReactNode };
@@ -11,6 +12,8 @@ type FichaProps = {
   titulo: string;
   /** A ficha é a página inteira: o título é o `h1` dela. */
   tituloDePagina?: boolean;
+  /** A fonte da marca, no nome do produto (18 §3.2). */
+  classeDoTitulo?: string;
   /** Situação e contexto. */
   etiquetas?: ReactNode;
   responsavel?: ReactNode;
@@ -26,7 +29,7 @@ type FichaProps = {
 };
 
 /** Ficha de um registro (P2). */
-export function Ficha({ codigo, titulo, tituloDePagina = false, etiquetas, responsavel, acoes, acoesCelular, abas, lateral, arquivado }: FichaProps) {
+export function Ficha({ codigo, titulo, tituloDePagina = false, classeDoTitulo, etiquetas, responsavel, acoes, acoesCelular, abas, lateral, arquivado }: FichaProps) {
   const Titulo = tituloDePagina ? 'h1' : 'h2';
   return (
     <article className={acoesCelular ? 'pb-20 md:pb-0' : undefined}>
@@ -38,7 +41,7 @@ export function Ficha({ codigo, titulo, tituloDePagina = false, etiquetas, respo
       <header className="flex flex-wrap items-start justify-between gap-x-5 gap-y-3">
         <div className="min-w-0">
           {codigo && <p className="text-xs font-semibold text-ink-soft tabular-nums">{codigo}</p>}
-          <Titulo className="mt-1">{titulo}</Titulo>
+          <Titulo className={cn('mt-1', classeDoTitulo)}>{titulo}</Titulo>
           {etiquetas && <div className="mt-2.5 flex flex-wrap items-center gap-1.5">{etiquetas}</div>}
           {responsavel && <div className="mt-2.5 text-[13px] text-ink-soft">{responsavel}</div>}
         </div>

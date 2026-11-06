@@ -6,8 +6,10 @@ import type { EventoAuditoria } from '@/dados/tipos/auditoria';
 import { CATALOGO_CONFIGURACAO, chaveConhecida } from '@/dados/tipos/configuracao';
 import { formatarDiaISO } from '@/lib/formatacao';
 import { avancouDeFase, rotuloDaFase } from './fases';
+import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
+import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 
 type Nomes = ReadonlyMap<string, string>;
 
@@ -106,6 +108,26 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     responsavel_padrao_id: { rotulo: 'Responsável padrão', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
     compartilhada: { rotulo: 'Compartilhada', valor: simNao },
   },
+  marca: {
+    nome: { rotulo: 'Nome' },
+    provisorio: { rotulo: 'Nome provisório', valor: simNao },
+    cor_hex: { rotulo: 'Cor principal' },
+    logo_url: { rotulo: 'Logotipo', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_MARCA[valor as keyof typeof ROTULOS_SITUACAO_MARCA] },
+  },
+  produto: {
+    nome: { rotulo: 'Nome' },
+    marca_id: { rotulo: 'Marca', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'marca removida' },
+    codigo_curto: { rotulo: 'Código curto' },
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_PRODUTO[valor as keyof typeof ROTULOS_TIPO_PRODUTO] },
+    descricao_curta: { rotulo: 'Descrição curta', semValores: true },
+    estagio: { rotulo: 'Estágio', valor: (valor) => ROTULOS_ESTAGIO[valor as keyof typeof ROTULOS_ESTAGIO] },
+    ordem_fila: { rotulo: 'Ordem na fila' },
+    responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    tem_usuarios_reais: { rotulo: 'Tem usuários reais', valor: simNao },
+    data_inicio: { rotulo: 'Data de início', valor: (valor) => formatarDiaISO(String(valor)) },
+    situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_PRODUTO[valor as keyof typeof ROTULOS_SITUACAO_PRODUTO] },
+  },
 };
 
 /** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
@@ -133,6 +155,10 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   if (evento.tabela === 'area') {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
     return nome && `a área ${nome}`;
+  }
+  if (evento.tabela === 'marca' || evento.tabela === 'produto') {
+    const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
+    return nome && `${evento.tabela === 'marca' ? 'a marca' : 'o produto'} ${nome}`;
   }
   return undefined;
 }
@@ -162,7 +188,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
         return `${quem} colocou ${pessoa} na área ${area}`;
       }
       if (evento.tabela === 'pessoa' && porExtenso) return `${quem} cadastrou ${porExtenso}`;
-      if (evento.tabela === 'area' && porExtenso) return `${quem} criou ${porExtenso}`;
+      if (porExtenso) return `${quem} criou ${porExtenso}`;
       return `${quem} criou um registro em ${onde}${registro}`;
     case 'alterou': {
       if (evento.tabela === 'configuracao') return `${quem} ${fraseDaConfiguracao(evento, nomes)}`;
@@ -170,7 +196,7 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
         return `${quem} ${evento.depois?.situacao === 'inativa' ? 'inativou' : 'reativou'} ${porExtenso}`;
       }
       const mudancas = mudancasLegiveis(evento, nomes);
-      if (porExtenso && mudancas) return `${quem} alterou ${porExtenso}: ${mudancas}`;
+      if (porExtenso && mudancas) return `${quem} alterou ${porExtenso}: ${mudancas}${motivo}`;
       return `${quem} alterou um registro em ${onde}${registro}`;
     }
     case 'arquivou':
@@ -193,8 +219,13 @@ export type LinhaHistorico = { id: string; texto: string; em: string };
 
 /** Os nomes usados nas frases, inclusive de quem já foi arquivado. */
 async function nomesDosRegistros(): Promise<Map<string, string>> {
-  const [pessoas, areas] = await Promise.all([repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.area.listar({ incluirArquivados: true })]);
-  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...areas.map((area): [string, string] => [area.id, area.nome])]);
+  const [pessoas, areas, marcas, produtos] = await Promise.all([
+    repositorios.pessoa.listar({ incluirArquivados: true }),
+    repositorios.area.listar({ incluirArquivados: true }),
+    repositorios.marca.listar({ incluirArquivados: true }),
+    repositorios.produto.listar({ incluirArquivados: true }),
+  ]);
+  return new Map([...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos].map((registro): [string, string] => [registro.id, registro.nome])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
@@ -211,6 +242,12 @@ export async function ultimaMudancaDeFase(): Promise<LinhaHistorico | null> {
   const [eventos, nomes] = await Promise.all([listarHistorico({ tabela: 'configuracao' }), nomesDosRegistros()]);
   const evento = eventos.find((item) => item.depois?.chave === 'fase_ativa');
   return evento ? paraLinha(evento, nomes) : null;
+}
+
+/** Aba Histórico de uma ficha (P2): tudo o que aconteceu com aquele registro. */
+export async function historicoDoRegistro(tabela: Tabela, id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes] = await Promise.all([listarHistorico({ tabela, registroId: id }), nomesDosRegistros()]);
+  return eventos.map((evento) => paraLinha(evento, nomes));
 }
 
 /** Aba Histórico da ficha da pessoa (P2): o cadastro dela e as áreas em que entrou ou de que saiu. */

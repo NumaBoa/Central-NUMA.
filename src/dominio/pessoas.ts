@@ -184,7 +184,7 @@ export async function salvarPessoa(formulario: FormularioPessoa, id?: string): P
 
 /** O que depende da pessoa. Cada módulo novo que apontar para ela acrescenta a sua linha aqui. */
 export async function vinculosDaPessoa(id: string): Promise<string[]> {
-  const [areas, ligacoes, configuracoes] = await Promise.all([repositorios.area.listar(), repositorios.pessoa_area.listar({ onde: { pessoa_id: id } }), repositorios.configuracao.ler()]);
+  const [areas, ligacoes, configuracoes, produtos] = await Promise.all([repositorios.area.listar(), repositorios.pessoa_area.listar({ onde: { pessoa_id: id } }), repositorios.configuracao.ler(), repositorios.produto.listar({ onde: { responsavel_id: id } })]);
   const nomeDaArea = new Map(areas.map((area) => [area.id, area.nome]));
   return [
     ...areas.filter((area) => area.responsavel_padrao_id === id).map((area) => `Responsável padrão de ${area.nome}`),
@@ -192,6 +192,7 @@ export async function vinculosDaPessoa(id: string): Promise<string[]> {
       const nome = nomeDaArea.get(ligacao.area_id);
       return nome ? [`Atua em ${nome}`] : [];
     }),
+    ...produtos.map((produto) => `Responsável pelo produto ${produto.nome}`),
     ...(configuracoes.responsavel_backup_id === id ? ['Responsável pelo backup semanal'] : []),
   ];
 }

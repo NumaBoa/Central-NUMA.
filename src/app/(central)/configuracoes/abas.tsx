@@ -20,6 +20,7 @@ export function AbasConfiguracoes({ ativa }: { ativa: 'geral' | 'cadastros' | 'd
 const CADASTROS = [
   { id: 'pessoas', rotulo: 'Pessoas', href: '/configuracoes/cadastros/pessoas' },
   { id: 'areas', rotulo: 'Áreas', href: '/configuracoes/cadastros/areas' },
+  { id: 'marcas', rotulo: 'Marcas e produtos', href: '/configuracoes/cadastros/marcas' },
 ] as const;
 
 export function SubabasCadastros({ ativa }: { ativa: (typeof CADASTROS)[number]['id'] }) {

@@ -4,6 +4,7 @@ import { AREAS_INICIAIS, ID_CAMILA, ID_KIMBERLY } from '@/dados/exemplos/base';
 import { esquecerMetaEmMemoria, gravarMeta, lerMeta } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { VERSAO_DADOS } from '@/dados/tabelas';
+import { REGISTROS_INICIAIS } from './apoio-testes';
 import { arquivarArea, carregarAreas, esquemaFormularioArea, FORMULARIO_AREA_VAZIO, nomeDeAreaRepetido, pessoasDaArea, responsavelForaDaLista, restaurarArea, salvarArea, type FormularioArea } from './areas';
 import { analisarArquivo, aplicarImportacao, contagensAtuais, exportarTudo, limparExemplos, restaurarExemplos, resumoDosDados, type ArquivoDeDados } from './dados';
 import { historicoRecente } from './historico';
@@ -187,7 +188,7 @@ describe('T02.03 Áreas', () => {
 
   describe('com os outros dados', () => {
     it('áreas contam como cadastros; as ligações, não', async () => {
-      expect((await resumoDosDados()).registros).toBe(11);
+      expect((await resumoDosDados()).registros).toBe(REGISTROS_INICIAIS);
     });
 
     it('restaurar exemplos volta às áreas iniciais', async () => {

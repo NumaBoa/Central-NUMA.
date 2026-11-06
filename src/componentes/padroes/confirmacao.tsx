@@ -93,7 +93,7 @@ export function Confirmacao({ aberto, aoFechar, titulo, texto, rotuloConfirmar, 
             )}
           </div>
         )}
-        <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
+        <div className="acoes-dialogo">
           {!soInforma && (
             <Button variante="secundario" onClick={() => aoMudarAberto(false)}>
               {rotuloCancelar}

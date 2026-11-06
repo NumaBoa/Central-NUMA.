@@ -3,7 +3,6 @@
 import type { CSSProperties } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
-import { CONTEXTOS } from '@/dados/exemplos/base';
 import { cn } from '@/lib/utils';
 import { useCentral } from './central-provider';
 
@@ -11,7 +10,7 @@ const PONTO = 'size-2 shrink-0 rounded-full bg-[var(--ponto)]';
 
 /** Seletor de contexto (02 §4 e CA-02.03). No celular, usa o nome curto quando houver. */
 export function SeletorContexto() {
-  const { contexto, escolherContexto } = useCentral();
+  const { contexto, contextos, escolherContexto } = useCentral();
   const sufixo = contexto.provisorio ? ' · provisório' : '';
   return (
     <MenuSobreposto
@@ -38,7 +37,7 @@ export function SeletorContexto() {
     >
       {(fechar) => (
         <ul className="grid gap-0.5">
-          {CONTEXTOS.map((opcao) => {
+          {contextos.map((opcao) => {
             const atual = opcao.id === contexto.id;
             return (
               <li key={opcao.id}>

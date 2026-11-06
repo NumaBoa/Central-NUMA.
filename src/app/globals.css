@@ -360,6 +360,28 @@
     }
   }
 
+  /* Ações do diálogo: no celular, fixas na base da folha, mesmo com conteúdo longo (18 §10.4) */
+  .acoes-dialogo {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  @media (max-width: 767.98px) {
+    .acoes-dialogo {
+      position: sticky;
+      bottom: 0;
+      margin-inline: -20px;
+      padding: 12px 20px;
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+    }
+    .acoes-dialogo > * {
+      flex: 1;
+    }
+  }
+
   /* Painel lateral: tela inteira no celular; entra pela direita a partir do tablet */
   .painel-lateral {
     position: fixed;

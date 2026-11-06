@@ -99,7 +99,7 @@ export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, pre
       return registro;
     },
 
-    async atualizar(id, dados: Alteracao<T>) {
+    async atualizar(id, dados: Alteracao<T>, { motivo } = {}) {
       const lista = linhas();
       const atual = exigir(lista, id);
       const combinado = { ...atual, ...dados };
@@ -115,7 +115,7 @@ export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, pre
       });
       gravar(
         lista.map((linha) => (linha.id === id ? registro : linha)),
-        novoEvento({ usuarioId: autor, acao: 'alterou', tabela, registroId: id, registroCodigo: codigoDe(registro), antes: mudancas.antes, depois: mudancas.depois, camposAlterados: mudancas.campos.filter((campo) => !CAMPOS_DE_CONTROLE.has(campo)) }),
+        novoEvento({ usuarioId: autor, acao: 'alterou', tabela, registroId: id, registroCodigo: codigoDe(registro), antes: mudancas.antes, depois: mudancas.depois, camposAlterados: mudancas.campos.filter((campo) => !CAMPOS_DE_CONTROLE.has(campo)), motivo: motivo ?? null }),
       );
       return registro;
     },

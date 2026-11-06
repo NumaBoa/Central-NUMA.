@@ -199,7 +199,7 @@ export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] 
                 {AVISO_CREDENCIAL}
               </Faixa>
             )}
-            <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
+            <div className="acoes-dialogo">
               <Button variante="secundario" onClick={() => setAdicionando(false)}>
                 Voltar
               </Button>

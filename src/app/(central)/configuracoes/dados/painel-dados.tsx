@@ -215,7 +215,7 @@ export function PainelDados() {
           titulo="Importar este arquivo?"
           texto={`Isso substitui tudo o que está neste navegador.${analise.copiaPossivel ? ' Antes, a Central baixa uma cópia do que há hoje.' : ''} Arquivo exportado em ${formatarDataHora(analise.arquivo.exportado_em)}${analise.arquivo.exportado_por ? `, por ${analise.arquivo.exportado_por.nome}` : ''}.`}
           colunas={['Dados', 'Neste navegador', 'No arquivo']}
-          linhas={analise.previa.map((linha) => [linha.rotulo, linha.neste === null ? 'Danificado' : formatarNumero(linha.neste), formatarNumero(linha.noArquivo)])}
+          linhas={analise.previa.filter((linha) => linha.neste !== 0 || linha.noArquivo !== 0).map((linha) => [linha.rotulo, linha.neste === null ? 'Danificado' : formatarNumero(linha.neste), formatarNumero(linha.noArquivo)])}
           avisos={analise.avisos}
           rotuloConfirmar={analise.copiaPossivel ? 'Baixar cópia e substituir' : 'Substituir os dados'}
           aoConfirmar={importar}

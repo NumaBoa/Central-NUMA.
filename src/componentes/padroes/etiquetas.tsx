@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { CheckCircle2, ChevronUp, ChevronsUp, CircleAlert, CircleDot, Minus, TriangleAlert, type LucideIcon } from 'lucide-react';
-import { acharContexto } from '@/dados/exemplos/base';
+import type { Contexto } from '@/dominio/contextos';
 import { cn } from '@/lib/utils';
 
 const BASE = 'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap [&_svg]:size-[13px] [&_svg]:shrink-0';
@@ -28,8 +28,7 @@ export function EtiquetaSituacao({ tipo, icone, children }: { tipo: TipoSituacao
 }
 
 /** Produto ou contexto: fundo na tinta, ponto na cor, nome em espresso (18 §9.4). */
-export function EtiquetaContexto({ contextoId, className }: { contextoId: string; className?: string }) {
-  const contexto = acharContexto(contextoId);
+export function EtiquetaContexto({ contexto, className }: { contexto: Contexto; className?: string }) {
   const cores = { '--tinta': contexto.tinta, '--ponto': contexto.cor } as CSSProperties;
   return (
     <span style={cores} className={cn(BASE, 'bg-[var(--tinta)] text-ink', className)}>

@@ -6,6 +6,7 @@ import { Archive, ArrowLeft, ArchiveRestore, Ellipsis, Pencil, UserCheck, UserMi
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
+import { Dado, ListaDeDados } from '@/componentes/padroes/dado';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { Ficha } from '@/componentes/padroes/ficha';
@@ -25,15 +26,6 @@ const CAMINHO_DA_LISTA = '/configuracoes/cadastros/pessoas';
 /** Toque de 44px no celular (CA-18.05), sem aumentar o texto. */
 const CLASSE_LINK = 'inline-flex min-h-11 items-center underline md:min-h-0';
 
-function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-0.5 border-t border-line py-3 first:border-t-0 first:pt-0 md:grid-cols-[200px_1fr] md:gap-4">
-      <dt className="text-[13px] text-ink-soft">{rotulo}</dt>
-      <dd className="min-w-0 text-sm break-words">{children ?? <span className="text-ink-soft">Não informado</span>}</dd>
-    </div>
-  );
-}
-
 async function carregarFicha(id: string) {
   const [dados, vinculos] = await Promise.all([carregarPessoas(), vinculosDaPessoa(id)]);
   return { dados, vinculos, pessoa: dados.pessoas.find((item) => item.id === id) ?? null };
@@ -43,7 +35,7 @@ type AcaoEmConfirmacao = 'inativar' | 'arquivar' | null;
 
 function Resumo({ pessoa, areas }: { pessoa: Pessoa; areas: readonly string[] }) {
   return (
-    <dl className="rounded-lg border border-line bg-paper p-4 md:p-5">
+    <ListaDeDados>
       <Dado rotulo="Nome de exibição">{pessoa.nome_exibicao ?? nomeDeExibicaoPadrao(pessoa.nome_completo)}</Dado>
       <Dado rotulo="Tipo">{ROTULOS_TIPO[pessoa.tipo]}</Dado>
       {pessoa.tipo === 'interna' ? <Dado rotulo="Áreas em que atua">{areas.length ? areas.join(', ') : null}</Dado> : <Dado rotulo="Papel do contato">{pessoa.papeis_contato.length ? pessoa.papeis_contato.map((papel) => ROTULOS_PAPEL[papel]).join(', ') : null}</Dado>}
@@ -52,7 +44,7 @@ function Resumo({ pessoa, areas }: { pessoa: Pessoa; areas: readonly string[] })
       <Dado rotulo="Telefone / WhatsApp">{pessoa.telefone && <a className={CLASSE_LINK} href={`tel:+55${pessoa.telefone}`}>{formatarTelefone(pessoa.telefone)}</a>}</Dado>
       <Dado rotulo="CPF">{pessoa.cpf && formatarCpf(pessoa.cpf)}</Dado>
       <Dado rotulo="Observações">{pessoa.observacoes && <span className="whitespace-pre-wrap">{pessoa.observacoes}</span>}</Dado>
-    </dl>
+    </ListaDeDados>
   );
 }
 

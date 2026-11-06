@@ -52,7 +52,7 @@ export function Previa({ aberto, aoFechar, titulo, texto, colunas, linhas, aviso
             {aviso}
           </Faixa>
         ))}
-        <div className="mt-6 flex flex-wrap justify-end gap-2 max-md:[&>*]:flex-1">
+        <div className="acoes-dialogo">
           <Button variante="secundario" onClick={aoFechar}>
             Voltar
           </Button>

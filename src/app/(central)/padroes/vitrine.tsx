@@ -22,7 +22,19 @@ import { Secao } from '@/componentes/padroes/secao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
-import { CONTEXTOS } from '@/dados/exemplos/base';
+import type { Contexto } from '@/dominio/contextos';
+
+/** Só para demonstrar os padrões: os contextos de verdade vêm dos dados (T02.04). */
+const CONTEXTOS: readonly [Contexto, ...Contexto[]] = [
+  { id: 'consolidada', nome: 'Numa consolidada', cor: 'var(--c-numa)', tinta: 'var(--t-numa)' },
+  { id: 'institucional', nome: 'Numa institucional', cor: 'var(--c-numa)', tinta: 'var(--t-numa)' },
+  { id: 'urb', nome: 'Sobrevivência Urbana', curto: 'S. Urbana', cor: 'var(--c-urb)', tinta: 'var(--t-urb)' },
+  { id: 'kipi', nome: 'Kipi', cor: 'var(--c-kipi)', tinta: 'var(--t-kipi)' },
+  { id: 'zupi', nome: 'Zupi', cor: 'var(--c-zupi)', tinta: 'var(--t-zupi)' },
+  { id: 'zarpa', nome: 'Zarpa', provisorio: true, cor: 'var(--c-zarpa)', tinta: 'var(--t-zarpa)' },
+  { id: 'mimo', nome: 'Mimo', provisorio: true, cor: 'var(--c-mimo)', tinta: 'var(--t-mimo)' },
+];
+const acharContexto = (id: string): Contexto => CONTEXTOS.find((contexto) => contexto.id === id) ?? CONTEXTOS[0];
 
 type AtividadeExemplo = {
   codigo: string;
@@ -47,7 +59,7 @@ const COLUNAS: readonly Coluna<AtividadeExemplo>[] = [
   { id: 'titulo', titulo: 'Título', essencial: true, ordenar: (a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'), celula: (l) => <span className="font-semibold">{l.titulo}</span> },
   { id: 'codigo', titulo: 'Código', celula: (l) => <span className="whitespace-nowrap text-ink-soft tabular-nums">{l.codigo}</span> },
   { id: 'responsavel', titulo: 'Responsável', essencial: true, ordenar: (a, b) => a.responsavel.localeCompare(b.responsavel, 'pt-BR'), celula: (l) => <Pessoa nome={l.responsavel} /> },
-  { id: 'contexto', titulo: 'Contexto', celula: (l) => <EtiquetaContexto contextoId={l.contexto} /> },
+  { id: 'contexto', titulo: 'Contexto', celula: (l) => <EtiquetaContexto contexto={acharContexto(l.contexto)} /> },
   { id: 'prazo', titulo: 'Prazo', celula: (l) => <span className="whitespace-nowrap">{l.prazo}</span> },
   { id: 'prioridade', titulo: 'Prioridade', celula: (l) => <EtiquetaPrioridade prioridade={l.prioridade} /> },
   { id: 'situacao', titulo: 'Situação', essencial: true, celula: (l) => <EtiquetaSituacao tipo={l.situacao.tipo}>{l.situacao.rotulo}</EtiquetaSituacao> },
@@ -64,7 +76,7 @@ function CartaoAtividade({ atividade }: { atividade: AtividadeExemplo }) {
         {atividade.codigo} · {atividade.prazo}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
-        <EtiquetaContexto contextoId={atividade.contexto} />
+        <EtiquetaContexto contexto={acharContexto(atividade.contexto)} />
         <EtiquetaSituacao tipo={atividade.situacao.tipo}>{atividade.situacao.rotulo}</EtiquetaSituacao>
       </div>
       <Pessoa nome={atividade.responsavel} className="text-[13px]" />
@@ -185,7 +197,7 @@ function DemoFicha() {
       etiquetas={
         <>
           <EtiquetaSituacao tipo="erro">Atrasada há 2 dias</EtiquetaSituacao>
-          <EtiquetaContexto contextoId="kipi" />
+          <EtiquetaContexto contexto={acharContexto('kipi')} />
           <EtiquetaPrioridade prioridade="alta" />
         </>
       }
@@ -431,7 +443,7 @@ export function Vitrine() {
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {CONTEXTOS.map((c) => (
-            <EtiquetaContexto key={c.id} contextoId={c.id} />
+            <EtiquetaContexto key={c.id} contexto={c} />
           ))}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
