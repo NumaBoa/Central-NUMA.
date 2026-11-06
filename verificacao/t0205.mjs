@@ -738,7 +738,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await irContrapartes();
   ok('as contrapartes entram', (await tabela('contraparte')).length === 3);
   ok('a entidade planejada entra', (await tabela('entidade')).length === 1 && (await tabela('entidade'))[0].id === ID_PLANEJADA);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 13);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 14);
   const r = (await tabela('pessoa')).find((x) => x.id === ID_RAFAEL);
   ok('o que existia continua como estava', r.funcao === 'Dado que precisa continuar' && r.contraparte_id === null, JSON.stringify(r));
   await restaurarExemplos();

@@ -177,6 +177,9 @@ export async function arquivarConta(id: string): Promise<void> {
   if (vinculos.length) throw new ErroDeRegra(`Esta conta está em uso: ${vinculos.join(', ')}. Troque a conta antes.`);
   // Conta com baixas só encerra: o extrato precisa continuar existindo.
   if ((await repositorios.baixa.listar({ onde: { conta_financeira_id: id } })).length) throw new ErroDeRegra('Esta conta tem pagamentos registrados. Em vez de arquivar, encerre a conta.');
+  const [transferencias, aportes] = await Promise.all([repositorios.transferencia.listar(), repositorios.movimento_societario.listar({ onde: { conta_financeira_id: id } })]);
+  if (transferencias.some((item) => item.conta_origem_id === id || item.conta_destino_id === id)) throw new ErroDeRegra('Esta conta tem transferências registradas. Em vez de arquivar, encerre a conta.');
+  if (aportes.length) throw new ErroDeRegra('Esta conta tem aportes registrados. Em vez de arquivar, encerre a conta.');
   await repositorios.conta_financeira.arquivar(id);
 }
 

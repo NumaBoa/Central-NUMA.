@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAvisoDeCredencial } from '@/componentes/campos/aviso-credencial';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Pilulas } from '@/componentes/campos/pilulas';
@@ -29,6 +30,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
   const [tratamento, setTratamento] = useState<'' | 'aporte' | 'reembolso'>('');
   const [vencimento, setVencimento] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  const credencial = useAvisoDeCredencial([motivo]);
   const ativas = contas.filter((conta) => !conta.arquivado_em && conta.situacao === 'ativa');
   const deSocia = ativas.find((conta) => conta.id === contaId)?.tipo === 'pessoal_socia';
   const impedimento = erroDoLote(titulos, deSocia);
@@ -41,6 +43,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
     if (semComprovante && !motivo.trim()) return setErro('Diga por que não tem comprovante.');
     if (!semComprovante && !comprovante.trim()) return setErro('Cole o link do comprovante, ou marque que não tem.');
     if (!semComprovante && !linkDoDriveValido(comprovante)) return setErro(MENSAGEM_LINK_DRIVE);
+    if (!credencial.podeGravar()) return setErro(null);
     try {
       const feitos = await registrarBaixaEmLote(
         titulos.map((titulo) => titulo.id),
@@ -99,6 +102,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
               {(controle) => <Input autoComplete="off" {...controle} value={motivo} onChange={(evento) => setMotivo(evento.target.value)} />}
             </Campo>
           )}
+          {credencial.aviso}
           {(impedimento || erro) && <MensagemErro>{impedimento ?? erro}</MensagemErro>}
         </div>
         <div className="acoes-dialogo">

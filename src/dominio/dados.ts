@@ -19,7 +19,8 @@ import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
 import type { ContaFinanceira } from '@/dados/tipos/financeiro';
 import type { AtivoDigital } from '@/dados/tipos/ativo';
-import type { Baixa, Titulo, TituloRateio } from '@/dados/tipos/titulo';
+import type { Baixa, MovimentoSocietario, Titulo, TituloRateio } from '@/dados/tipos/titulo';
+import type { ConferenciaSaldo, Transferencia } from '@/dados/tipos/transferencia';
 import type { AssinaturaFerramenta, AssinaturaValorHistorico, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
 import type { Notificacao } from '@/dados/tipos/notificacao';
 import type { Pessoa } from '@/dados/tipos/pessoa';
@@ -49,7 +50,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico', 'titulo_rateio', 'baixa'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['conferencia_saldo', 'backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico', 'titulo_rateio', 'baixa'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -336,12 +337,17 @@ export async function limparExemplos(): Promise<number> {
   novasLinhas.comentario = (novasLinhas.comentario as Comentario[]).filter((comentario) => !idsRemovidos.has(comentario.registro_id));
   novasLinhas.anexo_link = (novasLinhas.anexo_link as AnexoLink[]).filter((anexo) => !idsRemovidos.has(anexo.registro_id));
   novasLinhas.vinculo = (novasLinhas.vinculo as Vinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.origem_id) && !idsRemovidos.has(vinculo.destino_id));
-  // Conta de exemplo com pagamento de verdade fica, e deixa de ser exemplo: uma baixa não existe sem a conta.
-  const contasComBaixaReal = new Set((novasLinhas.baixa as Baixa[]).map((baixa) => baixa.conta_financeira_id));
+  // Conta de exemplo com movimento de verdade fica, e deixa de ser exemplo: baixa, transferência e aporte não existem sem a conta.
+  const contasComBaixaReal = new Set<string | null>([
+    ...(novasLinhas.baixa as Baixa[]).map((baixa) => baixa.conta_financeira_id),
+    ...(novasLinhas.transferencia as Transferencia[]).flatMap((transferencia) => [transferencia.conta_origem_id, transferencia.conta_destino_id]),
+    ...(novasLinhas.movimento_societario as MovimentoSocietario[]).map((movimento) => movimento.conta_financeira_id),
+  ]);
   novasLinhas.conta_financeira = [...(novasLinhas.conta_financeira as ContaFinanceira[]), ...lerTabela<ContaFinanceira>('conta_financeira').filter((conta) => conta.exemplo && contasComBaixaReal.has(conta.id)).map((conta) => ({ ...conta, exemplo: false }))];
   // Ferramenta de verdade continua: o que era fictício sai dela (fornecedor, conta), e quem saiu passa a responsabilidade.
   const contrapartesDasFerramentas = new Set((novasLinhas.contraparte as Controle[]).map((contraparte) => contraparte.id));
   const contasQueFicam = new Set((novasLinhas.conta_financeira as Controle[]).map((conta) => conta.id));
+  novasLinhas.conferencia_saldo = (novasLinhas.conferencia_saldo as ConferenciaSaldo[]).filter((conferencia) => contasQueFicam.has(conferencia.conta_id));
   novasLinhas.ferramenta = (novasLinhas.ferramenta as Ferramenta[]).map((ferramenta) => {
     const saiuTitular = ferramenta.titular_atual_pessoa_id && !pessoasQueFicam.has(ferramenta.titular_atual_pessoa_id);
     return {

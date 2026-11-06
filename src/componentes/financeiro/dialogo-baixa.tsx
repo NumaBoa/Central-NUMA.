@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
+import { useAvisoDeCredencial } from '@/componentes/campos/aviso-credencial';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Pilulas } from '@/componentes/campos/pilulas';
@@ -27,6 +28,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
   const { register, handleSubmit, control, watch, setValue, trigger, formState } = useForm<Formulario>({ resolver: resolvedor, defaultValues: { ...formularioBaixaVazio(titulo, titulo.saldo, hoje), tipo: tipoInicial }, mode: 'onTouched' });
   const { errors, isSubmitting } = formState;
   const valores = watch();
+  const credencial = useAvisoDeCredencial([valores.motivo, valores.sem_comprovante_motivo]);
   const estrangeira = titulo.moeda !== 'BRL';
   const conta = contasAtivas.find((item) => item.id === valores.conta_id);
   const deSocia = conta?.tipo === 'pessoal_socia' && titulo.origem !== 'reembolso';
@@ -55,6 +57,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
   }, [base]);
 
   const enviar = handleSubmit(async (formulario) => {
+    if (!credencial.podeGravar()) return;
     try {
       await registrarBaixa(titulo, formulario, hoje);
       aviso(formulario.tipo === 'estorno' ? 'Pagamento estornado.' : formulario.tipo === 'ajuste' ? 'Ajuste registrado.' : 'Baixa registrada.');
@@ -189,6 +192,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
                 )}
               </>
             )}
+            {credencial.aviso}
           </div>
           <div className="acoes-dialogo">
             <Button variante="secundario" onClick={aoFechar}>

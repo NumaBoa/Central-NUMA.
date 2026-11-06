@@ -50,7 +50,7 @@ await passo('T05.01: lista', async () => {
   await pularAbertura();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('o menu leva à tela, sem "Em breve"', await c.avaliar(`(()=>{const a=document.querySelector('[data-menu-lateral] a[href="/financeiro"]');return Boolean(a)&&!a.textContent.includes('Em breve')})()`));
-  ok('as outras seções ainda dizem "Em breve"', (await texto('nav[aria-label="Seções do financeiro"]')).includes('Em breve'));
+  ok('as outras seções do Financeiro têm link', await c.avaliar(`['/financeiro/socias','/financeiro/transferencias','/financeiro/contas'].every(h=>document.querySelector('nav[aria-label="Seções do financeiro"] a[href="'+h+'"]'))`));
   ok('12 lançamentos de exemplo', (await nomes()).length === 12, (await nomes()).length);
   const t = await totais();
   ok('totais em reais; USD sem câmbio fica de fora e diz', t[0].includes('R$ 1.151,95') && t[0].includes('sem câmbio'), t[0]);
@@ -334,7 +334,7 @@ await passo('Limpar exemplos, estado vazio e migração', async () => {
   await ir('/financeiro');
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum lançamento ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', (await texto('main')).includes('Que tal lançar a primeira despesa?'));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 13);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 14);
   await c.foto('g-vazio');
 });
 

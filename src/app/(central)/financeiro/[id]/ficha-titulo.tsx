@@ -475,7 +475,7 @@ export function FichaTitulo() {
         {(fechar) => (
           <ul className="grid gap-0.5">
             {titulo.situacao === 'previsto' && linhaDoMenu(fechar, 'Confirmar', <Check aria-hidden />, () => void executar(() => confirmarTitulo(titulo.id), 'Lançamento confirmado.'))}
-            {titulo.origem !== 'reembolso' && linhaDoMenu(fechar, 'Duplicar', <Copy aria-hidden />, () => setDuplicando(true))}
+            {titulo.origem !== 'reembolso' && titulo.origem !== 'ajuste' && linhaDoMenu(fechar, 'Duplicar', <Copy aria-hidden />, () => setDuplicando(true))}
             {temPagamentoAtivo && linhaDoMenu(fechar, 'Estornar baixa', <Undo2 aria-hidden />, () => setBaixando('estorno'))}
             {titulo.situacao !== 'cancelado' && linhaDoMenu(fechar, 'Cancelar', <span aria-hidden className="size-4" />, () => setCancelando(true))}
           </ul>

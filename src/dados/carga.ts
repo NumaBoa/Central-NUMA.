@@ -194,6 +194,10 @@ function migrar(versao: number) {
     alteracoes.baixa = exemplos?.baixa ?? [];
     alteracoes.movimento_societario = exemplos?.movimento_societario ?? [];
   }
+  if (versao < 14 && driver().getItem(chaveDaTabela('transferencia')) === null) {
+    alteracoes.transferencia = [];
+    alteracoes.conferencia_saldo = [];
+  }
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

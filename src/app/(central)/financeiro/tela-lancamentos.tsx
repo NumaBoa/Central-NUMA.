@@ -285,7 +285,7 @@ export function TelaLancamentos() {
               {(controle) => (
                 <Selecao {...controle} value={filtros.origem} onChange={(evento) => mudar({ origem: evento.target.value })}>
                   <option value="">Todas</option>
-                  {(['manual', 'assinatura', 'reembolso'] as const).map((valor) => (
+                  {(['manual', 'assinatura', 'reembolso', 'ajuste'] as const).map((valor) => (
                     <option key={valor} value={valor}>
                       {ROTULOS_ORIGEM_TITULO[valor]}
                     </option>

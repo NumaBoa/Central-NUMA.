@@ -17,6 +17,7 @@ import { ROTULOS_SITUACAO_MARCA } from './marcas';
 import { FASES, type Fase } from './navegacao';
 import { formatarTelefone, ROTULOS_PAPEL, ROTULOS_SITUACAO, ROTULOS_TIPO, type PapelContato } from './pessoas';
 import { ROTULOS_TIPO_ATIVO, ROTULOS_TRANSFERENCIA } from './ativos';
+import { ROTULOS_FORMA_MOVIMENTO, ROTULOS_TIPO_MOVIMENTO } from './socias';
 import { rotuloDaCompetencia, ROTULOS_SITUACAO_TITULO, ROTULOS_TIPO_BAIXA, ROTULOS_TRATAMENTO } from './titulos';
 import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
@@ -272,6 +273,35 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     tratamento: { rotulo: 'Tratamento', valor: (valor) => ROTULOS_TRATAMENTO[valor as keyof typeof ROTULOS_TRATAMENTO] },
     motivo: { rotulo: 'Motivo' },
   },
+  movimento_societario: {
+    tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_MOVIMENTO[valor as keyof typeof ROTULOS_TIPO_MOVIMENTO] },
+    socia_id: { rotulo: 'Sócia', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
+    data: { rotulo: 'Data', valor: (valor) => formatarDiaISO(String(valor)) },
+    valor_brl: { rotulo: 'Valor em reais', valor: (valor) => String(valor).replace('.', ',') },
+    forma: { rotulo: 'Forma', valor: (valor) => ROTULOS_FORMA_MOVIMENTO[valor as keyof typeof ROTULOS_FORMA_MOVIMENTO] },
+    conta_financeira_id: { rotulo: 'Conta', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    comprovante_url: { rotulo: 'Comprovante' },
+    observacao: { rotulo: 'Observação' },
+  },
+  transferencia: {
+    data: { rotulo: 'Data', valor: (valor) => formatarDiaISO(String(valor)) },
+    conta_origem_id: { rotulo: 'Conta de origem', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    conta_destino_id: { rotulo: 'Conta de destino', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    valor_origem: { rotulo: 'Valor que saiu', valor: (valor) => String(valor).replace('.', ',') },
+    moeda_origem: { rotulo: 'Moeda de origem' },
+    valor_destino: { rotulo: 'Valor que chegou', valor: (valor) => String(valor).replace('.', ',') },
+    moeda_destino: { rotulo: 'Moeda de destino' },
+    cambio: { rotulo: 'Câmbio', valor: (valor) => String(valor).replace('.', ',') },
+    comprovante_url: { rotulo: 'Comprovante' },
+    observacao: { rotulo: 'Observação' },
+  },
+  conferencia_saldo: {
+    conta_id: { rotulo: 'Conta', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'conta removida' },
+    data: { rotulo: 'Data', valor: (valor) => formatarDiaISO(String(valor)) },
+    saldo_informado: { rotulo: 'Saldo no banco', valor: (valor) => String(valor).replace('.', ',') },
+    saldo_sistema: { rotulo: 'Saldo no sistema', valor: (valor) => String(valor).replace('.', ',') },
+    diferenca: { rotulo: 'Diferença', valor: (valor) => String(valor).replace('.', ',') },
+  },
   ativo_digital: {
     tipo: { rotulo: 'Tipo', valor: (valor) => ROTULOS_TIPO_ATIVO[valor as keyof typeof ROTULOS_TIPO_ATIVO] },
     identificador: { rotulo: 'Identificador' },
@@ -365,6 +395,8 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
     return `o rateio${titulo ? ` de ${titulo}` : ''}`;
   }
   if (evento.tabela === 'movimento_societario') return 'um movimento societário';
+  if (evento.tabela === 'transferencia') return 'uma transferência';
+  if (evento.tabela === 'conferencia_saldo') return 'uma conferência de saldo';
   if (evento.tabela === 'ativo_digital') {
     const identificador = textoDe(evento.depois?.identificador) ?? textoDe(evento.antes?.identificador) ?? nomes.get(id);
     return identificador && `o ativo ${identificador}`;
@@ -583,6 +615,13 @@ export async function historicoDoTitulo(id: string): Promise<LinhaHistorico[]> {
   const [eventos, nomes, rateio, baixas, movimentos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.titulo_rateio.listar({ onde: { titulo_id: id }, incluirArquivados: true }), repositorios.baixa.listar({ onde: { titulo_id: id }, incluirArquivados: true }), repositorios.movimento_societario.listar({ onde: { titulo_origem_id: id }, incluirArquivados: true })]);
   const dele = new Set([id, ...[...rateio, ...baixas, ...movimentos].map((linha) => linha.id)]);
   return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** A conta, as conferências dela e as transferências que passaram por ela. */
+export async function historicoDaConta(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, conferencias, transferencias] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.conferencia_saldo.listar({ onde: { conta_id: id }, incluirArquivados: true }), repositorios.transferencia.listar({ incluirArquivados: true })]);
+  const dela = new Set([id, ...conferencias.map((linha) => linha.id), ...transferencias.filter((item) => item.conta_origem_id === id || item.conta_destino_id === id).map((linha) => linha.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
 }
 
 export async function historicoDaPessoa(id: string): Promise<LinhaHistorico[]> {
