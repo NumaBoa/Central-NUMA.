@@ -3,6 +3,7 @@ import { registrarEvento } from '@/dados/historico';
 import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
 import { gerarAlertas } from './alertas';
+import { notificarFalhasDasRotinas } from './notificacoes';
 import { gerarOcorrencias } from './recorrencias';
 
 /** Uma rotina diz quantos itens novos gerou. Rodar de novo não duplica (RT-09). */
@@ -78,6 +79,7 @@ async function rodarRotinas({ manual = false, rotinas = ROTINAS_DO_DIA }: Opcoes
   }
 
   if (!falhas.length) gravarMeta({ ultima_rotina_em: agora.toISOString() });
+  else await notificarFalhasDasRotinas(falhas, hoje).catch(() => undefined);
   if (manual || novos > 0 || falhas.length > 0) {
     registrarEvento({ usuarioId: manual ? idDaPessoaAtual() : null, acao: 'executou_acao', depois: { funcao: 'rodar_rotinas', novos, falhas } });
   }

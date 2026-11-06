@@ -8,11 +8,13 @@ import type { Atividade } from '@/dados/tipos/atividade';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { Recorrencia } from '@/dados/tipos/recorrencia';
 import { diaEHoraNoFuso, instanteNoFuso } from '@/lib/datas';
-import { estaAberta, MAXIMO_NO_TITULO } from './atividades';
+import { CAMINHO_DA_ATIVIDADE, estaAberta, MAXIMO_NO_TITULO } from './atividades';
 import { normalizarTexto } from './duplicidade';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
+import { notificarMencoes } from './notificacoes';
 
 const TIPO_DO_REGISTRO = 'atividade';
+export const TEXTO_DO_COMENTARIO_REMOVIDO = 'Comentário removido';
 
 /** Registros que dá para vincular hoje. Cada módulo novo acrescenta o seu (ferramenta, ativo, título…). */
 export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; href: (id: string) => string }>> = {
@@ -20,7 +22,7 @@ export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; hr
   produto: { rotulo: 'Produto', href: (id) => `/configuracoes/cadastros/marcas/produtos/${id}` },
 };
 
-export const CAMINHO_DA_ATIVIDADE = (id: string) => `/meu-dia?atividade=${id}`;
+export { CAMINHO_DA_ATIVIDADE };
 
 /** Encerrada fica só para leitura: para mudar, primeiro reabre. Comentar continua valendo. */
 async function atividadeAberta(id: string): Promise<Atividade> {
@@ -150,21 +152,39 @@ export function extrairMencoes(texto: string, pessoas: readonly Pick<Pessoa, 'id
   return [...achadas];
 }
 
+/** "Edição até 15 min" (02 §6): passado esse tempo, só dá para remover. */
+export const MINUTOS_PARA_EDITAR_COMENTARIO = 15;
+
+export function podeEditarComentario(comentario: Pick<Comentario, 'autor_id' | 'criado_em' | 'removido_em'>, pessoaId: string, agora: Date = new Date()): boolean {
+  if (comentario.autor_id !== pessoaId || comentario.removido_em) return false;
+  return agora.getTime() - new Date(comentario.criado_em).getTime() <= MINUTOS_PARA_EDITAR_COMENTARIO * 60_000;
+}
+
 export async function comentar(atividadeId: string, texto: string, autorId: string, pessoas: readonly Pick<Pessoa, 'id' | 'nome_completo'>[]): Promise<Comentario> {
   const limpo = texto.trim();
   if (!limpo) throw new ErroDeRegra('Escreva o comentário.');
-  return repositorios.comentario.criar({ registro_tipo: TIPO_DO_REGISTRO, registro_id: atividadeId, autor_id: autorId, texto: limpo, mencoes: extrairMencoes(limpo, pessoas), editado_em: null, removido_em: null });
+  return emTransacao(async () => {
+    const comentario = await repositorios.comentario.criar({ registro_tipo: TIPO_DO_REGISTRO, registro_id: atividadeId, autor_id: autorId, texto: limpo, mencoes: extrairMencoes(limpo, pessoas), editado_em: null, removido_em: null });
+    await notificarMencoes(comentario, pessoas);
+    return comentario;
+  });
 }
 
-export async function editarComentario(id: string, texto: string, pessoas: readonly Pick<Pessoa, 'id' | 'nome_completo'>[]): Promise<void> {
+export async function editarComentario(id: string, texto: string, pessoas: readonly Pick<Pessoa, 'id' | 'nome_completo'>[], pessoaId: string): Promise<void> {
   const limpo = texto.trim();
   if (!limpo) throw new ErroDeRegra('Escreva o comentário.');
-  await repositorios.comentario.atualizar(id, { texto: limpo, mencoes: extrairMencoes(limpo, pessoas), editado_em: new Date().toISOString() });
+  const atual = await repositorios.comentario.obter(id);
+  if (!atual) throw new ErroDeRegra('Este comentário não existe mais.');
+  if (!podeEditarComentario(atual, pessoaId)) throw new ErroDeRegra(`Só dá para editar um comentário seu, até ${MINUTOS_PARA_EDITAR_COMENTARIO} minutos depois de publicar.`);
+  await emTransacao(async () => {
+    const comentario = await repositorios.comentario.atualizar(id, { texto: limpo, mencoes: extrairMencoes(limpo, pessoas), editado_em: new Date().toISOString() });
+    await notificarMencoes(comentario, pessoas);
+  });
 }
 
-/** O comentário sai da lista; o histórico guarda que ele existiu. */
+/** Vira "comentário removido" na lista (02 §6), sem o texto. O histórico guarda que ele existiu. */
 export async function removerComentario(id: string): Promise<void> {
-  await repositorios.comentario.atualizar(id, { removido_em: new Date().toISOString() });
+  await repositorios.comentario.atualizar(id, { texto: TEXTO_DO_COMENTARIO_REMOVIDO, mencoes: [], removido_em: new Date().toISOString() });
 }
 
 // ---------- Vínculos e arquivos ----------
@@ -283,7 +303,7 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
     produtos: produtos.map((ligacao) => ligacao.produto_id),
     participantes: participantes.map((ligacao) => ligacao.pessoa_id),
     itens: itens.sort((a, b) => a.ordem - b.ordem),
-    comentarios: comentarios.filter((comentario) => !comentario.removido_em).sort((a, b) => a.criado_em.localeCompare(b.criado_em)),
+    comentarios: comentarios.sort((a, b) => a.criado_em.localeCompare(b.criado_em)),
     vinculos,
     anexos,
     quemBloqueou: bloqueio?.usuario_id ?? null,

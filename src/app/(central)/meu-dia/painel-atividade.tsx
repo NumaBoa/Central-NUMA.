@@ -42,6 +42,7 @@ import {
   duplicarAtividade,
   editarComentario,
   marcarItem,
+  podeEditarComentario,
   removerAnexo,
   removerComentario,
   removerItem,
@@ -730,6 +731,7 @@ function SecaoComentarios({ atividade, painel, dados, aoMudarRascunho }: { ativi
   const [editando, setEditando] = useState<{ id: string; texto: string } | null>(null);
   const internas = pessoasDoSeletor(dados.pessoas);
   const nome = (id: string) => dados.pessoas.find((item) => item.id === id)?.nome_completo ?? 'Pessoa removida';
+  const ativos = painel.comentarios.filter((comentario) => !comentario.removido_em);
 
   async function enviar() {
     const limpo = texto.trim();
@@ -746,7 +748,7 @@ function SecaoComentarios({ atividade, painel, dados, aoMudarRascunho }: { ativi
   }
 
   return (
-    <Secao titulo={painel.comentarios.length ? `Comentários (${painel.comentarios.length})` : 'Comentários'}>
+    <Secao titulo={ativos.length ? `Comentários (${ativos.length})` : 'Comentários'}>
       <ul className="grid gap-3">
         {painel.comentarios.map((comentario) => (
           <li key={comentario.id} className="flex items-start gap-2.5">
@@ -763,7 +765,7 @@ function SecaoComentarios({ atividade, painel, dados, aoMudarRascunho }: { ativi
                     <Button
                       tamanho="pequeno"
                       onClick={() => {
-                        void salvar(() => editarComentario(comentario.id, editando.texto, internas)).then((falha) => {
+                        void salvar(() => editarComentario(comentario.id, editando.texto, internas, pessoa.id)).then((falha) => {
                           setErro(falha);
                           if (!falha) setEditando(null);
                         });
@@ -777,13 +779,15 @@ function SecaoComentarios({ atividade, painel, dados, aoMudarRascunho }: { ativi
                   </div>
                 </div>
               ) : (
-                <p className="mt-0.5 text-[13px] leading-[20px] whitespace-pre-wrap break-words">{comentario.texto}</p>
+                <p className={cn('mt-0.5 text-[13px] leading-[20px] whitespace-pre-wrap break-words', comentario.removido_em && 'text-ink-soft italic')}>{comentario.texto}</p>
               )}
-              {comentario.autor_id === pessoa.id && editando?.id !== comentario.id && (
+              {comentario.autor_id === pessoa.id && !comentario.removido_em && editando?.id !== comentario.id && (
                 <div className="mt-0.5 flex gap-1">
-                  <Button variante="terciario" tamanho="pequeno" onClick={() => setEditando({ id: comentario.id, texto: comentario.texto })}>
-                    Editar
-                  </Button>
+                  {podeEditarComentario(comentario, pessoa.id) && (
+                    <Button variante="terciario" tamanho="pequeno" onClick={() => setEditando({ id: comentario.id, texto: comentario.texto })}>
+                      Editar
+                    </Button>
+                  )}
                   <Button variante="terciario" tamanho="pequeno" onClick={() => salvarComAviso(() => removerComentario(comentario.id))}>
                     Remover
                   </Button>

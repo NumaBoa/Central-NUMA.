@@ -1,3 +1,4 @@
+import { esquemaNotificacao, type Notificacao } from './tipos/notificacao';
 import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
 import type { Repositorio, RepositorioConfiguracao } from './repositorio';
 import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-local';
@@ -40,6 +41,7 @@ export const repositorios: {
   vinculo: Repositorio<Vinculo>;
   anexo_link: Repositorio<AnexoLink>;
   recorrencia: Repositorio<Recorrencia>;
+  notificacao: Repositorio<Notificacao>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -65,4 +67,5 @@ export const repositorios: {
   vinculo: criarRepositorioLocal({ tabela: 'vinculo', esquema: esquemaVinculo }),
   anexo_link: criarRepositorioLocal({ tabela: 'anexo_link', esquema: esquemaAnexoLink }),
   recorrencia: criarRepositorioLocal({ tabela: 'recorrencia', esquema: esquemaRecorrencia }),
+  notificacao: criarRepositorioLocal({ tabela: 'notificacao', esquema: esquemaNotificacao, semHistorico: true }),
 };

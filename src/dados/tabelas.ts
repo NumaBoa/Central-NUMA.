@@ -11,6 +11,7 @@ import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } fro
 import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
+import { esquemaNotificacao } from './tipos/notificacao';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 
@@ -40,6 +41,7 @@ export const TABELAS = {
   vinculo: { rotulo: 'Vínculos', esquema: esquemaVinculo },
   anexo_link: { rotulo: 'Links do Drive', esquema: esquemaAnexoLink },
   recorrencia: { rotulo: 'Rotinas', esquema: esquemaRecorrencia },
+  notificacao: { rotulo: 'Notificações', esquema: esquemaNotificacao },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -60,5 +62,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 7: T03.01 acrescenta `atividade`, `atividade_produto` e `atividade_participante`.
  * 8: T03.02 e T03.03 acrescentam `checklist_item`, `comentario`, `vinculo` e `anexo_link`.
  * 9: T03.05 acrescenta `recorrencia`.
+ * 10: T13.04 acrescenta `notificacao`.
  */
-export const VERSAO_DADOS = 9;
+export const VERSAO_DADOS = 10;

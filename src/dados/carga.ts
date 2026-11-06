@@ -172,6 +172,7 @@ function migrar(versao: number) {
       if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = exemplos ? exemplos[tabela] : [];
     }
   }
+  if (versao < 10 && driver().getItem(chaveDaTabela('notificacao')) === null) alteracoes.notificacao = [];
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

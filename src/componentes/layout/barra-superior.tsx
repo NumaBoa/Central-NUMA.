@@ -5,9 +5,11 @@ import { Plus } from 'lucide-react';
 import { Logo } from '@/componentes/marca/logo';
 import { EtiquetaDadosExemplo } from '@/componentes/padroes/etiquetas';
 import { Button } from '@/componentes/ui/button';
-import { BotaoBuscaIcone, DialogoBusca, MenuAlertas, MenuNovo, PilulaBusca } from './acoes-globais';
+import { MenuNovo } from './acoes-globais';
+import { BotaoBuscaIcone, DialogoBusca, PilulaBusca } from './busca-global';
 import { useCentral } from './central-provider';
 import { SeletorContexto } from './seletor-contexto';
+import { MenuNotificacoes } from './sino';
 
 /** Barra superior "vidro" (18 §5.3 e §10.2). No celular: logotipo, contexto, busca e sino. */
 export function BarraSuperior() {
@@ -32,7 +34,7 @@ export function BarraSuperior() {
             </Button>
           }
         />
-        <MenuAlertas />
+        <MenuNotificacoes />
       </div>
       <DialogoBusca aberta={buscaAberta} aoMudar={setBuscaAberta} />
     </header>

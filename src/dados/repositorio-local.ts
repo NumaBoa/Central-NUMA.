@@ -16,6 +16,8 @@ type OpcoesRepositorio<T extends Controle> = {
   esquema: z.ZodType<T>;
   /** Tabelas acionáveis têm código legível: `ATV-2026-0001` (RT-01). */
   prefixoCodigo?: string;
+  /** `notificacao` fica fora da auditoria (16 §0). */
+  semHistorico?: boolean;
 };
 
 /**
@@ -51,7 +53,7 @@ function diferencas(antes: Record<string, unknown>, depois: Record<string, unkno
 const CAMPOS_DE_CONTROLE = new Set(['atualizado_em', 'atualizado_por', 'versao_registro', 'arquivado_em', 'arquivado_por']);
 
 /** Implementação sobre o localStorage (02 §0.3): preenche controles e grava o histórico. */
-export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, prefixoCodigo }: OpcoesRepositorio<T>): Repositorio<T> {
+export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, prefixoCodigo, semHistorico = false }: OpcoesRepositorio<T>): Repositorio<T> {
   function linhas(): T[] {
     garantirCarga();
     return lerTabela<T>(tabela);
@@ -65,7 +67,7 @@ export function criarRepositorioLocal<T extends Controle>({ tabela, esquema, pre
 
   /** O registro e o evento são gravados juntos: ou os dois, ou nenhum. */
   function gravar(novasLinhas: readonly T[], evento: EventoAuditoria) {
-    gravarTabelas({ [tabela]: novasLinhas, auditoria: [...lerTabela<EventoAuditoria>('auditoria'), evento] });
+    gravarTabelas(semHistorico ? { [tabela]: novasLinhas } : { [tabela]: novasLinhas, auditoria: [...lerTabela<EventoAuditoria>('auditoria'), evento] });
   }
 
   function codigoDe(registro: T): string | null {

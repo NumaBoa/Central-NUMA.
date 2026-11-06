@@ -17,6 +17,7 @@ import type { Controle } from '@/dados/tipos/controle';
 import type { AnexoLink, ChecklistItem, Comentario, Vinculo } from '@/dados/tipos/apoio';
 import type { Atividade, AtividadeParticipante } from '@/dados/tipos/atividade';
 import type { EtiquetaVinculo } from '@/dados/tipos/etiqueta';
+import type { Notificacao } from '@/dados/tipos/notificacao';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { ModeloDaRecorrencia, Recorrencia } from '@/dados/tipos/recorrencia';
 import { hojeISO } from '@/lib/datas';
@@ -44,7 +45,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link'];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao'];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({
@@ -331,6 +332,8 @@ export async function limparExemplos(): Promise<number> {
   novasLinhas.comentario = (novasLinhas.comentario as Comentario[]).filter((comentario) => !idsRemovidos.has(comentario.registro_id));
   novasLinhas.anexo_link = (novasLinhas.anexo_link as AnexoLink[]).filter((anexo) => !idsRemovidos.has(anexo.registro_id));
   novasLinhas.vinculo = (novasLinhas.vinculo as Vinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.origem_id) && !idsRemovidos.has(vinculo.destino_id));
+  // Notificação é de uma pessoa, sobre um registro: sai junto com qualquer um dos dois.
+  novasLinhas.notificacao = (novasLinhas.notificacao as Notificacao[]).filter((notificacao) => pessoasQueFicam.has(notificacao.usuario_id) && !idsRemovidos.has(notificacao.registro_id ?? ''));
   // Etiqueta é de quem a usa: o registro fictício sai, e a etiqueta fica sem esse vínculo.
   novasLinhas.etiqueta_vinculo = (novasLinhas.etiqueta_vinculo as EtiquetaVinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.registro_id));
   // Contraparte fictícia que saiu não fica pendurada em registro de verdade.

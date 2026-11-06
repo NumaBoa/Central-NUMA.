@@ -12,6 +12,7 @@ import { acharContexto, carregarContextos, CONTEXTOS_SEM_DADOS, type Contexto } 
 import { existemDadosDeExemplo } from '@/dominio/dados';
 import type { Fase } from '@/dominio/navegacao';
 import { pessoasDoSeletor, resolverPessoaAtual } from '@/dominio/pessoa-atual';
+import { sincronizarNotificacoes } from '@/dominio/notificacoes';
 import { executarRotinas, mensagemDasRotinas } from '@/dominio/rotinas';
 
 export type PessoaDoSeletor = { id: string; nome: string };
@@ -47,14 +48,23 @@ export function CentralProvider({ children }: { children: ReactNode }) {
   const consultaContextos = useConsulta(carregarContextos);
 
   // Rotinas do dia ao abrir (02 §0.5): aviso discreto só quando há novidade.
+  // Depois, a cada minuto, os lembretes que chegaram na hora e os alertas novos vão para o sino (RN-03.21).
   useEffect(() => {
+    const sincronizar = () => {
+      sincronizarNotificacoes().catch(() => {
+        // dados danificados: a tela de Dados mostra o problema e o caminho de saída
+      });
+    };
     executarRotinas()
       .then((resultado) => {
         if (resultado.novos > 0 || resultado.falhas.length > 0) aviso(mensagemDasRotinas(resultado));
       })
       .catch(() => {
         // dados danificados: a tela de Dados mostra o problema e o caminho de saída
-      });
+      })
+      .finally(sincronizar);
+    const relogio = setInterval(sincronizar, 60_000);
+    return () => clearInterval(relogio);
   }, []);
 
   useEffect(() => {

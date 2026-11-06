@@ -31,6 +31,8 @@ export const ROTULOS_ORIGEM_ALERTA: Readonly<Record<string, string>> = { titulo:
 
 export const MAXIMO_NO_TITULO = 140;
 
+export const CAMINHO_DA_ATIVIDADE = (id: string) => `/meu-dia?atividade=${id}`;
+
 // ---------- O que é derivado (RN-03.04 a RN-03.06) ----------
 
 /** O dia, no fuso configurado, de um instante gravado (RT-06). */

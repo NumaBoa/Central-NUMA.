@@ -44,6 +44,7 @@ import {
   editarComentario,
   extrairMencoes,
   marcarItem,
+  podeEditarComentario,
   removerAnexo,
   removerComentario,
   removerItem,
@@ -379,16 +380,31 @@ describe('T03.02 e T03.03', () => {
       expect(extrairMencoes('sem menção', pessoas)).toEqual([]);
     });
 
-    it('comenta, edita e remove; o comentário removido sai da lista e do contador', async () => {
+    it('edição até 15 minutos, só de quem escreveu (02 §6)', async () => {
+      const { id } = await criarAtividade(novo());
+      const feito = (await comentar(id, 'Fala @camila', ID_KIMBERLY, pessoas)) as Comentario;
+      expect(podeEditarComentario(feito, ID_KIMBERLY)).toBe(true);
+      expect(podeEditarComentario(feito, ID_CAMILA)).toBe(false);
+      await expect(editarComentario(feito.id, 'De outra pessoa', pessoas, ID_CAMILA)).rejects.toThrow('Só dá para editar um comentário seu');
+      vi.setSystemTime(new Date('2026-11-06T15:15:00.000Z'));
+      expect(podeEditarComentario(feito, ID_KIMBERLY)).toBe(true);
+      vi.setSystemTime(new Date('2026-11-06T15:15:01.000Z'));
+      expect(podeEditarComentario(feito, ID_KIMBERLY)).toBe(false);
+      await expect(editarComentario(feito.id, 'Tarde demais', pessoas, ID_KIMBERLY)).rejects.toThrow('até 15 minutos depois de publicar');
+      expect((await repositorios.comentario.obter(feito.id))?.texto).toBe('Fala @camila');
+    });
+
+    it('comenta, edita e remove; o removido fica na lista como "comentário removido", fora do contador', async () => {
       const { id } = await criarAtividade(novo());
       await expect(comentar(id, ' ', ID_KIMBERLY, pessoas)).rejects.toThrow('Escreva o comentário.');
       const feito = (await comentar(id, 'Fala @camila', ID_KIMBERLY, pessoas)) as Comentario;
       expect(feito.mencoes).toEqual([ID_CAMILA]);
-      await editarComentario(feito.id, 'Corrigindo', pessoas);
+      await editarComentario(feito.id, 'Corrigindo', pessoas, ID_KIMBERLY);
       expect((await carregarPainel(id))?.comentarios[0]).toMatchObject({ texto: 'Corrigindo', mencoes: [], editado_em: '2026-11-06T15:00:00.000Z' });
       expect((await carregarMeuDia()).atividades.find((item) => item.id === id)?.comentarios).toBe(1);
       await removerComentario(feito.id);
-      expect((await carregarPainel(id))?.comentarios).toEqual([]);
+      expect((await carregarPainel(id))?.comentarios[0]).toMatchObject({ texto: 'Comentário removido', mencoes: [], removido_em: '2026-11-06T15:00:00.000Z' });
+      expect(podeEditarComentario({ ...feito, removido_em: '2026-11-06T15:00:00.000Z' }, ID_KIMBERLY)).toBe(false);
       expect((await carregarMeuDia()).atividades.find((item) => item.id === id)?.comentarios).toBe(0);
       const historico = await textos(id);
       expect(historico).toContain('Kimberly Grebe comentou');
