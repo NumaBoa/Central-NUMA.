@@ -118,9 +118,11 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
   return VALORES_INICIAIS[tabela](agora);
 }
 
+const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico', 'objetivo', 'oferta', 'oferta_recurso', 'canal_venda', 'simulacao', 'preco_versao', 'concorrente_referencia', 'kpi_definicao', 'kpi_mensal'] as const;
+
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora) };
+  return { ...gerarExemplos(agora), ...(Object.fromEntries(TABELAS_DO_M07.map((tabela) => [tabela, []])) as Record<(typeof TABELAS_DO_M07)[number], never[]>), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora) };
 }
 
 /**
@@ -206,6 +208,8 @@ function migrar(versao: number) {
       // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
     }
   }
+  // M07: tudo começa vazio (M07 §6: nenhum preço), para quem já usa a Central e para a primeira abertura.
+  if (versao < 16) for (const tabela of TABELAS_DO_M07) if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = [];
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

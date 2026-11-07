@@ -18,6 +18,8 @@ import { esquemaEtiqueta, esquemaEtiquetaVinculo, type Etiqueta, type EtiquetaVi
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira, type CategoriaFinanceira, type ContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto, type Marca, type Produto } from './tipos/marca';
 import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
+import { esquemaDecisao, esquemaDecisaoDecisor, type Decisao, type DecisaoDecisor } from './tipos/decisao';
+import { esquemaCanalVenda, esquemaConcorrente, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao, type CanalVenda, type Concorrente, type EstagioHistorico, type KpiDefinicao, type KpiMensal, type Objetivo, type Oferta, type OfertaRecurso, type PrecoVersao, type Simulacao } from './tipos/precificacao';
 
 /** Ponto de acesso aos dados. Na etapa com servidor, só estas implementações mudam (02 §0.3). */
 export const repositorios: {
@@ -58,6 +60,18 @@ export const repositorios: {
   movimento_societario: Repositorio<MovimentoSocietario>;
   transferencia: Repositorio<Transferencia>;
   conferencia_saldo: Repositorio<ConferenciaSaldo>;
+  decisao: Repositorio<Decisao>;
+  decisao_decisor: Repositorio<DecisaoDecisor>;
+  produto_estagio_historico: Repositorio<EstagioHistorico>;
+  objetivo: Repositorio<Objetivo>;
+  oferta: Repositorio<Oferta>;
+  oferta_recurso: Repositorio<OfertaRecurso>;
+  canal_venda: Repositorio<CanalVenda>;
+  simulacao: Repositorio<Simulacao>;
+  preco_versao: Repositorio<PrecoVersao>;
+  concorrente_referencia: Repositorio<Concorrente>;
+  kpi_definicao: Repositorio<KpiDefinicao>;
+  kpi_mensal: Repositorio<KpiMensal>;
 } = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
@@ -96,4 +110,16 @@ export const repositorios: {
   movimento_societario: criarRepositorioLocal({ tabela: 'movimento_societario', esquema: esquemaMovimentoSocietario, prefixoCodigo: 'MOV' }),
   transferencia: criarRepositorioLocal({ tabela: 'transferencia', esquema: esquemaTransferencia }),
   conferencia_saldo: criarRepositorioLocal({ tabela: 'conferencia_saldo', esquema: esquemaConferenciaSaldo }),
+  decisao: criarRepositorioLocal({ tabela: 'decisao', esquema: esquemaDecisao, prefixoCodigo: 'DEC' }),
+  decisao_decisor: criarRepositorioLocal({ tabela: 'decisao_decisor', esquema: esquemaDecisaoDecisor }),
+  produto_estagio_historico: criarRepositorioLocal({ tabela: 'produto_estagio_historico', esquema: esquemaEstagioHistorico }),
+  objetivo: criarRepositorioLocal({ tabela: 'objetivo', esquema: esquemaObjetivo }),
+  oferta: criarRepositorioLocal({ tabela: 'oferta', esquema: esquemaOferta, prefixoCodigo: 'OFE' }),
+  oferta_recurso: criarRepositorioLocal({ tabela: 'oferta_recurso', esquema: esquemaOfertaRecurso }),
+  canal_venda: criarRepositorioLocal({ tabela: 'canal_venda', esquema: esquemaCanalVenda }),
+  simulacao: criarRepositorioLocal({ tabela: 'simulacao', esquema: esquemaSimulacao, prefixoCodigo: 'SIM' }),
+  preco_versao: criarRepositorioLocal({ tabela: 'preco_versao', esquema: esquemaPrecoVersao }),
+  concorrente_referencia: criarRepositorioLocal({ tabela: 'concorrente_referencia', esquema: esquemaConcorrente }),
+  kpi_definicao: criarRepositorioLocal({ tabela: 'kpi_definicao', esquema: esquemaKpiDefinicao }),
+  kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),
 };

@@ -2,6 +2,7 @@
 
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { useEffect, useMemo, useState } from 'react';
+import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Campo } from '@/componentes/campos/campo';
@@ -23,6 +24,7 @@ import {
   exigeMotivo,
   formularioDoProduto,
   formularioProdutoVazio,
+  MENSAGEM_ESTAGIO_COM_DECISAO,
   pessoasParaProduto,
   responsavelDisponivel,
   ROTULOS_ESTAGIO,
@@ -122,7 +124,7 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
 
   return (
     <>
-      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={produto ? 'Editar produto' : 'Novo produto'} descricao="O cadastro básico. A ficha completa chega com a fase 0b." alterado={isDirty} aoEnviar={enviar} rotuloSalvar={produto ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={produto ? 'Editar produto' : 'Novo produto'} descricao="O cadastro básico. A ficha completa fica em Produtos." alterado={isDirty} aoEnviar={enviar} rotuloSalvar={produto ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Controller
             control={control}
@@ -174,24 +176,38 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
           <Campo id={ID_DO_CAMPO.descricao_curta} rotulo="Descrição curta" erro={errors.descricao_curta?.message} ajuda={`${descricao.length} de 200 caracteres.`}>
             {(controle) => <Textarea {...controle} {...register('descricao_curta')} />}
           </Campo>
-          <Controller
-            control={control}
-            name="estagio"
-            render={({ field }) => (
-              <Campo rotulo="Estágio" obrigatorio>
-                {(controle) => (
-                  <Selecao {...controle} {...field}>
-                    {Object.entries(ROTULOS_ESTAGIO).map(([valor, rotulo]) => (
-                      <option key={valor} value={valor}>
-                        {rotulo}
-                      </option>
-                    ))}
-                  </Selecao>
-                )}
-              </Campo>
-            )}
-          />
-          {usaFila(estagio) && (
+          {produto && (
+            <Faixa
+              acao={
+                <LinkCentral href={`/produtos/${produto.id}?aba=estagio`} className="inline-flex min-h-11 items-center underline md:min-h-0">
+                  Abrir em Produtos
+                </LinkCentral>
+              }
+            >
+              {ROTULOS_ESTAGIO[produto.estagio]}
+              {produto.ordem_fila !== null && ` · fila ${produto.ordem_fila}`} · {ROTULOS_SITUACAO_PRODUTO[produto.situacao]}. {MENSAGEM_ESTAGIO_COM_DECISAO}
+            </Faixa>
+          )}
+          {!produto && (
+            <Controller
+              control={control}
+              name="estagio"
+              render={({ field }) => (
+                <Campo rotulo="Estágio" obrigatorio>
+                  {(controle) => (
+                    <Selecao {...controle} {...field}>
+                      {Object.entries(ROTULOS_ESTAGIO).map(([valor, rotulo]) => (
+                        <option key={valor} value={valor}>
+                          {rotulo}
+                        </option>
+                      ))}
+                    </Selecao>
+                  )}
+                </Campo>
+              )}
+            />
+          )}
+          {!produto && usaFila(estagio) && (
             <Campo id={ID_DO_CAMPO.ordem_fila} rotulo="Ordem na fila" erro={errors.ordem_fila?.message} ajuda="Para produtos em Ideia ou Validação.">
               {(controle) => <Input inputMode="numeric" autoComplete="off" {...controle} {...register('ordem_fila')} />}
             </Campo>
@@ -239,11 +255,13 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
             render={({ field }) => <Pilulas rotulo="Tem usuários reais" obrigatorio valor={field.value ? 'sim' : 'nao'} aoMudar={(valor) => field.onChange(valor === 'sim')} opcoes={SIM_NAO} />}
           />
           <Campo rotulo="Data de início">{(controle) => <EntradaData {...controle} {...register('data_inicio')} />}</Campo>
-          <Controller
-            control={control}
-            name="situacao"
-            render={({ field }) => <Pilulas rotulo="Situação" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={SITUACOES} />}
-          />
+          {!produto && (
+            <Controller
+              control={control}
+              name="situacao"
+              render={({ field }) => <Pilulas rotulo="Situação" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={SITUACOES} />}
+            />
+          )}
           {pedeMotivo && (
             <Campo id={ID_DO_CAMPO.motivo} rotulo="Motivo" obrigatorio erro={errors.motivo?.message} ajuda="Fica no histórico do produto.">
               {(controle) => <Textarea {...controle} {...register('motivo')} />}

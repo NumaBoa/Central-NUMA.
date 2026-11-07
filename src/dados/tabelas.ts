@@ -8,8 +8,10 @@ import { esquemaBackupRegistro } from './tipos/backup-registro';
 import { esquemaCambioReferencia } from './tipos/cambio-referencia';
 import { esquemaConfiguracao } from './tipos/configuracao';
 import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } from './tipos/contraparte';
+import { esquemaDecisao, esquemaDecisaoDecisor } from './tipos/decisao';
 import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
 import { esquemaAtivoDigital } from './tipos/ativo';
+import { esquemaCanalVenda, esquemaConcorrente, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao } from './tipos/precificacao';
 import { esquemaBaixa, esquemaMovimentoSocietario, esquemaTitulo, esquemaTituloRateio } from './tipos/titulo';
 import { esquemaConferenciaSaldo, esquemaTransferencia } from './tipos/transferencia';
 import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto } from './tipos/ferramenta';
@@ -58,6 +60,18 @@ export const TABELAS = {
   movimento_societario: { rotulo: 'Movimentos societários', esquema: esquemaMovimentoSocietario },
   transferencia: { rotulo: 'Transferências', esquema: esquemaTransferencia },
   conferencia_saldo: { rotulo: 'Conferências de saldo', esquema: esquemaConferenciaSaldo },
+  decisao: { rotulo: 'Decisões', esquema: esquemaDecisao },
+  decisao_decisor: { rotulo: 'Quem decidiu', esquema: esquemaDecisaoDecisor },
+  produto_estagio_historico: { rotulo: 'Estágios dos produtos', esquema: esquemaEstagioHistorico },
+  objetivo: { rotulo: 'Objetivos dos produtos', esquema: esquemaObjetivo },
+  oferta: { rotulo: 'Ofertas', esquema: esquemaOferta },
+  oferta_recurso: { rotulo: 'Recursos das ofertas', esquema: esquemaOfertaRecurso },
+  canal_venda: { rotulo: 'Canais de venda', esquema: esquemaCanalVenda },
+  simulacao: { rotulo: 'Simulações', esquema: esquemaSimulacao },
+  preco_versao: { rotulo: 'Versões de preço', esquema: esquemaPrecoVersao },
+  concorrente_referencia: { rotulo: 'Concorrentes de referência', esquema: esquemaConcorrente },
+  kpi_definicao: { rotulo: 'Indicadores próprios', esquema: esquemaKpiDefinicao },
+  kpi_mensal: { rotulo: 'KPIs mensais', esquema: esquemaKpiMensal },
   configuracao: { rotulo: 'Configurações', esquema: esquemaConfiguracao },
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
@@ -84,5 +98,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 13: T05.01 e T05.02 acrescentam `titulo`, `titulo_rateio`, `baixa` e `movimento_societario`.
  * 14: T05.06 e T05.07 acrescentam `transferencia` e `conferencia_saldo`.
  * 15: a transferência ganha `transferencia_original_id`, para o estorno.
+ * 16: M07 acrescenta `decisao`, `decisao_decisor`, `produto_estagio_historico`, `objetivo`, `oferta`, `oferta_recurso`, `canal_venda`, `simulacao`, `preco_versao`, `concorrente_referencia`, `kpi_definicao` e `kpi_mensal`.
  */
-export const VERSAO_DADOS = 15;
+export const VERSAO_DADOS = 16;

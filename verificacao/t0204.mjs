@@ -216,37 +216,14 @@ await passo('editar produto e descontinuar', async () => {
   await c.espera(450);
   ok('avisa e pede a responsável', (await texto('.janela')).includes('Escolha uma pessoa') && (await valor('produto-responsavel')) === '');
   await escolher('produto-responsavel', ID_KIMBERLY);
-  await marcarPilula('Situação', 'Descontinuado');
-  await c.ate(`document.getElementById('produto-motivo')`);
-  ok('descontinuar pede motivo', true);
-  await salvarPainel();
-  await c.ate(`document.getElementById('produto-motivo-erro')`);
-  ok('sem motivo, não salva', (await h.erroDe('produto-motivo')).includes('Informe o motivo'));
-  await preencher('produto-motivo', 'Mudança de foco');
-  await c.espera(60);
+  // M07 (RN-07.08): estágio, fila e situação mudam em Produtos, com critério e decisão. Descontinuar é coberto em m07.mjs.
+  ok('estágio e situação ficam fora do cadastro básico', (await texto('.janela')).includes('mudam em Produtos') && !(await h.existeGrupo('Situação')));
   await salvarPainel();
   await esperarAviso('Produto atualizado.');
   await painelFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Descontinuado')`);
   await c.clicar('main [role=tab]:nth-child(4)');
-  await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('Motivo: Mudança de foco')`);
-  const hist = await texto('main [role=tabpanel][data-state=active]');
-  ok('o histórico registra o que mudou e o motivo', hist.includes('Situação: de Ativo para Descontinuado') && hist.includes('Responsável: de não informado para Kimberly Grebe'), hist.slice(0, 220));
-  const lista = await opcoesDoContexto();
-  ok('sai do seletor de contexto (CA-02.03)', !lista.includes('Kipi'), lista.join('|'));
-  ok('o contexto que era Kipi volta à visão consolidada', await c.avaliar(`document.querySelector('[aria-label^="Contexto"]').getAttribute('aria-label')==='Contexto: Numa consolidada'`));
-  // volta ao que era
-  await c.clicar('texto=Editar');
-  await painelAberto();
-  await c.espera(450);
-  await marcarPilula('Situação', 'Ativo');
-  await c.espera(60);
-  ok('voltar a Ativo não pede motivo', !(await c.avaliar(`Boolean(document.getElementById('produto-motivo'))`)));
-  await salvarPainel();
-  await esperarAviso('Produto atualizado.');
-  await painelFechado();
-  await c.ate(`document.querySelector('[aria-label^="Contexto"]').getAttribute('aria-label')==='Contexto: Kipi'`);
-  ok('volta ao seletor, e o contexto volta com ele', true);
+  await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('Responsável: de não informado para Kimberly Grebe')`);
+  ok('o histórico registra o que mudou', true);
 });
 
 await passo('vínculo com a responsável', async () => {
@@ -320,7 +297,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:marca');localStorage.removeItem('numa-central:v1:produto');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=3;m.contexto_id='zupi';localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMarcas();
   ok('marcas e produtos entram', (await tabela('marca')).length === 6);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 15);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 16);
   await c.ate(`document.querySelector('[aria-label^="Contexto"]').getAttribute('aria-label')==='Contexto: Zupi'`);
   ok('quem estava em um produto continua nele', true);
   await c.clicar('[aria-label^="Contexto"]');

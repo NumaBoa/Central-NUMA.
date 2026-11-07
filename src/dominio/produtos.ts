@@ -94,6 +94,8 @@ export function dadosDoProduto(formulario: FormularioProdutoValidado) {
   };
 }
 
+export const MENSAGEM_ESTAGIO_COM_DECISAO = 'Estágio, fila e situação mudam em Produtos, com critério e decisão.';
+
 export type ConferenciaProduto = { erroNome: string | null; erroCodigo: string | null; avisos: readonly string[] };
 
 /** Nome único na marca e código único em todo o sistema (16 §4.2). Texto livre passa pela RT-14. */
@@ -120,8 +122,9 @@ export async function salvarProduto(formulario: FormularioProdutoValidado, id?: 
   const dados = dadosDoProduto(formulario);
   if (!id) return repositorios.produto.criar(dados);
   const atual = await repositorios.produto.obter(id);
-  if (exigeMotivo(formulario.situacao, atual?.situacao) && !formulario.motivo) throw new ErroDeRegra('Informe o motivo para descontinuar.');
-  return repositorios.produto.atualizar(id, dados, { motivo: formulario.motivo || undefined });
+  // RN-07.08: estágio, fila e situação só mudam em Produtos, com critério e decisão (T07.01 e T07.03).
+  if (atual && (dados.estagio !== atual.estagio || dados.ordem_fila !== atual.ordem_fila || dados.situacao !== atual.situacao)) throw new ErroDeRegra(MENSAGEM_ESTAGIO_COM_DECISAO);
+  return repositorios.produto.atualizar(id, dados);
 }
 
 /** Cada módulo novo que apontar para o produto bloqueia aqui, como a marca faz com os produtos. */
@@ -134,6 +137,8 @@ export async function arquivarProduto(id: string): Promise<void> {
   if (lancamentos) throw new ErroDeRegra(`Este produto tem ${lancamentos === 1 ? '1 lançamento' : `${lancamentos} lançamentos`} no rateio. Se não for mais usado, descontinue.`);
   const ativos = (await ativosDoProduto(id)).length;
   if (ativos) throw new ErroDeRegra(`Este produto tem ${ativos === 1 ? '1 ativo digital' : `${ativos} ativos digitais`}. Troque o contexto deles antes.`);
+  const [ofertas, simulacoes, kpis] = await Promise.all([repositorios.oferta.listar({ onde: { produto_id: id } }), repositorios.simulacao.listar({ onde: { produto_id: id } }), repositorios.kpi_mensal.listar({ onde: { produto_id: id } })]);
+  if (ofertas.length || simulacoes.length || kpis.length) throw new ErroDeRegra('Este produto tem ofertas, simulações ou indicadores. Se não for mais usado, descontinue em Produtos.');
   await repositorios.produto.arquivar(id);
 }
 
