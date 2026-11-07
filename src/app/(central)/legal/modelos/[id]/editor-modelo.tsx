@@ -35,7 +35,7 @@ function EditorDeBloco({ bloco, dados, somenteLeitura, aoMudar, aoMover, aoRemov
   const versaoLigada = dados.versoesDeClausula.find((versao) => versao.id === bloco.clausula_versao_id);
   const ultimaDaClausula = versaoLigada ? dados.clausulas.find((clausula) => clausula.id === versaoLigada.clausula_id)?.atual : null;
   return (
-    <li className="rounded-md border border-line bg-paper">
+    <li className="min-w-0 overflow-hidden rounded-md border border-line bg-paper">
       <div className="flex flex-wrap items-center gap-2 px-3 py-1.5">
         <button type="button" aria-expanded={aberto} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left text-[13px] font-semibold md:min-h-9" onClick={() => setAberto((atual) => !atual)}>
           <span className="truncate">{rotulo}</span>
@@ -176,7 +176,7 @@ function EditorDaVersao({ versao, dados, pessoas }: { versao: ModeloVersao; dado
             {erro}
           </Faixa>
         ))}
-        <Tabs defaultValue="estrutura">
+        <Tabs defaultValue="estrutura" className="min-w-0">
           <TabsList aria-label="Editor do modelo">
             <TabsTrigger value="estrutura">Estrutura</TabsTrigger>
             <TabsTrigger value="previa">Prévia</TabsTrigger>
