@@ -18,9 +18,9 @@ import { formatarDiaISO } from '@/lib/formatacao';
 
 const ORIGENS: readonly Titulo['origem'][] = ['manual', 'assinatura', 'reembolso', 'ajuste'];
 
-function textoDoVencimento({ vencimentoDe, vencimentoAte }: Pick<FiltrosLancamentos, 'vencimentoDe' | 'vencimentoAte'>): string {
-  if (vencimentoDe && vencimentoAte) return `${formatarDiaISO(vencimentoDe)} a ${formatarDiaISO(vencimentoAte)}`;
-  return vencimentoDe ? `a partir de ${formatarDiaISO(vencimentoDe)}` : `até ${formatarDiaISO(vencimentoAte)}`;
+function textoDoIntervalo(de: string, ate: string): string {
+  if (de && ate) return `${formatarDiaISO(de)} a ${formatarDiaISO(ate)}`;
+  return de ? `a partir de ${formatarDiaISO(de)}` : `até ${formatarDiaISO(ate)}`;
 }
 
 export const rotuloDaCompetenciaDoFiltro = (competencia: string) => (competencia ? rotuloDoMes(competencia) : 'Todas as competências');
@@ -45,18 +45,20 @@ function CamposMaisFiltros({ filtros, mudar, dados, hoje, arquivados }: { filtro
   const emProximos = filtros.vencimentoDe === proximos.vencimentoDe && filtros.vencimentoAte === proximos.vencimentoAte;
   return (
     <div className="grid gap-x-3 gap-y-3.5 md:grid-cols-3">
-      <div className="grid grid-cols-2 gap-3 md:col-span-3 md:grid-cols-3 md:items-end">
+      <div className="grid grid-cols-2 gap-3 md:col-span-3 md:grid-cols-4 md:items-end">
         <Campo rotulo="Vence de" id="filtro-vencimento-de">
           {(controle) => <Input type="date" {...controle} value={filtros.vencimentoDe} onChange={(evento) => mudar({ vencimentoDe: evento.target.value })} />}
         </Campo>
         <Campo rotulo="até" id="filtro-vencimento-ate">
           {(controle) => <Input type="date" {...controle} value={filtros.vencimentoAte} onChange={(evento) => mudar({ vencimentoAte: evento.target.value })} />}
         </Campo>
-        <div className="col-span-2 -mt-1 md:col-span-1 md:mt-0">
-          <Button variante="terciario" tamanho="pequeno" aria-pressed={emProximos} onClick={() => mudar(emProximos ? { vencimentoDe: '', vencimentoAte: '' } : proximos)}>
-            {emProximos ? 'Tirar próximos 30 dias' : 'Próximos 30 dias'}
-          </Button>
-        </div>
+        {/* Data da baixa: recorta a lista e muda o período do cartão Pago (decisão de 07/11/2026). */}
+        <Campo rotulo="Pago de" id="filtro-pagamento-de">
+          {(controle) => <Input type="date" {...controle} value={filtros.pagamentoDe} onChange={(evento) => mudar({ pagamentoDe: evento.target.value })} />}
+        </Campo>
+        <Campo rotulo="até" id="filtro-pagamento-ate">
+          {(controle) => <Input type="date" {...controle} value={filtros.pagamentoAte} onChange={(evento) => mudar({ pagamentoAte: evento.target.value })} />}
+        </Campo>
       </div>
       <Campo rotulo="Categoria" id="filtro-categoria">
         {(controle) => (
@@ -130,7 +132,12 @@ function CamposMaisFiltros({ filtros, mudar, dados, hoje, arquivados }: { filtro
           </Selecao>
         )}
       </Campo>
-      <div className="grid gap-x-3 md:col-span-3 md:grid-cols-3">
+      <div className="grid gap-x-3 md:col-span-3 md:grid-cols-3 md:items-center">
+        <div>
+          <Button variante="terciario" tamanho="pequeno" aria-pressed={emProximos} onClick={() => mudar(emProximos ? { vencimentoDe: '', vencimentoAte: '' } : proximos)}>
+            {emProximos ? 'Tirar os 30 dias' : 'Vence em 30 dias'}
+          </Button>
+        </div>
         <Marcar rotulo="Sem comprovante" marcado={filtros.semComprovante} aoMudar={(semComprovante) => mudar({ semComprovante })} />
         <Marcar rotulo="Reembolsos a sócias" marcado={filtros.reembolsos} aoMudar={(reembolsos) => mudar({ reembolsos })} />
         {arquivados > 0 && <Marcar rotulo={`Ver arquivados (${arquivados})`} marcado={filtros.arquivados} aoMudar={(valor) => mudar({ arquivados: valor })} />}
@@ -199,7 +206,8 @@ export function BarraDeLancamentos({ filtros, aoMudar, dados, hoje, colunas }: B
   const ativos: FiltroAtivo[] = [
     ...(filtros.competencia ? [{ id: 'competencia', rotulo: `Competência: ${rotuloDoMes(filtros.competencia)}` }] : []),
     ...(filtros.situacao ? [{ id: 'situacao', rotulo: `Situação: ${rotuloDaSituacao(filtros.situacao)}` }] : []),
-    ...(filtros.vencimentoDe || filtros.vencimentoAte ? [{ id: 'vencimento', rotulo: `Vencimento: ${textoDoVencimento(filtros)}` }] : []),
+    ...(filtros.vencimentoDe || filtros.vencimentoAte ? [{ id: 'vencimento', rotulo: `Vencimento: ${textoDoIntervalo(filtros.vencimentoDe, filtros.vencimentoAte)}` }] : []),
+    ...(filtros.pagamentoDe || filtros.pagamentoAte ? [{ id: 'pagamento', rotulo: `Pago: ${textoDoIntervalo(filtros.pagamentoDe, filtros.pagamentoAte)}` }] : []),
     ...(filtros.categoria ? [{ id: 'categoria', rotulo: `Categoria: ${nomeDaCategoria}` }] : []),
     ...(filtros.contraparte ? [{ id: 'contraparte', rotulo: `Contraparte: ${contraparte ? nomeDaContraparte(contraparte) : 'Removida'}` }] : []),
     ...(filtros.conta ? [{ id: 'conta', rotulo: `Conta: ${dados.contas.find((conta) => conta.id === filtros.conta)?.nome ?? 'Removida'}` }] : []),
@@ -213,6 +221,7 @@ export function BarraDeLancamentos({ filtros, aoMudar, dados, hoje, colunas }: B
 
   function remover(id: string) {
     if (id === 'vencimento') return aoMudar({ vencimentoDe: '', vencimentoAte: '' });
+    if (id === 'pagamento') return aoMudar({ pagamentoDe: '', pagamentoAte: '' });
     if (id === 'semComprovante' || id === 'reembolsos' || id === 'arquivados') return aoMudar({ [id]: false });
     aoMudar({ [id]: '' });
   }

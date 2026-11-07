@@ -89,6 +89,9 @@ export type FiltrosLancamentos = {
   situacao: string;
   vencimentoDe: string;
   vencimentoAte: string;
+  /** Data da baixa: recorta a lista e o cartão "Pago". Vazio, o cartão fica no mês corrente (decisão de 07/11/2026). */
+  pagamentoDe: string;
+  pagamentoAte: string;
   competencia: string;
   categoria: string;
   contraparte: string;
@@ -101,11 +104,11 @@ export type FiltrosLancamentos = {
   arquivados: boolean;
 };
 
-export const FILTROS_LANCAMENTOS_INICIAIS: FiltrosLancamentos = { busca: '', situacao: '', vencimentoDe: '', vencimentoAte: '', competencia: '', categoria: '', contraparte: '', conta: '', origem: '', moeda: '', responsavel: '', semComprovante: false, reembolsos: false, arquivados: false };
+export const FILTROS_LANCAMENTOS_INICIAIS: FiltrosLancamentos = { busca: '', situacao: '', vencimentoDe: '', vencimentoAte: '', pagamentoDe: '', pagamentoAte: '', competencia: '', categoria: '', contraparte: '', conta: '', origem: '', moeda: '', responsavel: '', semComprovante: false, reembolsos: false, arquivados: false };
 
 /** Os filtros que ficam dentro de "Mais filtros": é o número que o botão mostra. */
 export function quantosMaisFiltros(filtros: FiltrosLancamentos): number {
-  return [filtros.vencimentoDe || filtros.vencimentoAte, filtros.categoria, filtros.contraparte, filtros.conta, filtros.origem, filtros.moeda, filtros.responsavel, filtros.semComprovante, filtros.reembolsos, filtros.arquivados].filter(Boolean).length;
+  return [filtros.vencimentoDe || filtros.vencimentoAte, filtros.pagamentoDe || filtros.pagamentoAte, filtros.categoria, filtros.contraparte, filtros.conta, filtros.origem, filtros.moeda, filtros.responsavel, filtros.semComprovante, filtros.reembolsos, filtros.arquivados].filter(Boolean).length;
 }
 
 export const somarDias = (dia: string, dias: number) => {
@@ -113,6 +116,8 @@ export const somarDias = (dia: string, dias: number) => {
   data.setUTCDate(data.getUTCDate() + dias);
   return data.toISOString().slice(0, 10);
 };
+
+const dentroDoPeriodo = (dia: string, de: string, ate: string) => (!de || dia >= de) && (!ate || dia <= ate);
 
 const emAberto = (titulo: Pick<Titulo, 'situacao'>) => titulo.situacao === 'previsto' || titulo.situacao === 'aberto' || titulo.situacao === 'parcial';
 
@@ -133,6 +138,7 @@ function passaNosFiltros(titulo: LinhaDoTitulo, filtros: FiltrosLancamentos, { c
   if (!passaNaSituacao(titulo, filtros.situacao)) return false;
   if (filtros.vencimentoDe && titulo.vencimento < filtros.vencimentoDe) return false;
   if (filtros.vencimentoAte && titulo.vencimento > filtros.vencimentoAte) return false;
+  if ((filtros.pagamentoDe || filtros.pagamentoAte) && !titulo.baixas.some((baixa) => !baixa.arquivado_em && baixa.tipo === 'pagamento' && dentroDoPeriodo(baixa.data, filtros.pagamentoDe, filtros.pagamentoAte))) return false;
   if (filtros.competencia && titulo.competencia.slice(0, 7) !== filtros.competencia) return false;
   if (contexto && !titulo.rateio.some((linha) => (linha.produto_id ?? ID_INSTITUCIONAL) === contexto)) return false;
   if (filtros.categoria && titulo.categoria_id !== filtros.categoria) return false;
@@ -209,25 +215,31 @@ export function comprovanteDoTitulo(titulo: Pick<LinhaDoTitulo, 'baixas'>): Comp
 export type ValorPorMoeda = { moeda: string; valor: number };
 
 export type TotaisDosLancamentos = {
-  /** Previstos, em aberto e parciais (decisão de 06/11/2026, a revisar). */
+  /** Em aberto e parciais, já confirmados. Os previstos ficam à parte (decisão de 07/11/2026, a revisar). */
   emAbertoPagar: number;
   /** Parte do em aberto. */
   vencido: number;
-  /** Parte do em aberto: previstos, ainda não confirmados. */
+  /** À parte do em aberto: previstos, ainda não confirmados. */
   previsto: number;
+  /** Pela data da baixa, no período. Sem o pagamento de reembolso à sócia, que repetiria a despesa (RN-05.07). */
   pagoNoPeriodo: number;
+  /** Os reembolsos à sócia pagos no período, mostrados à parte. */
+  reembolsosNoPeriodo: number;
+  /** O que foi pago dos títulos da lista, em qualquer data: a leitura "títulos da competência". */
+  pagoDosTitulos: number;
   /** Quantos títulos entraram na conta. */
   quantos: number;
   /** Há moeda estrangeira no total: o valor é estimado, pelo câmbio de referência (RN-05.05). */
   estimado: boolean;
-  /** Moeda sem câmbio informado: fica de fora, em vez de somar moedas diferentes. */
+  /** Moeda sem câmbio informado, fora dos previstos: fica de fora, em vez de somar moedas diferentes. */
   naoIncluidos: number;
   /** O que ficou de fora de cada total, na moeda do título. */
   semConversao: ValorPorMoeda[];
   vencidoSemConversao: ValorPorMoeda[];
   previstoSemConversao: ValorPorMoeda[];
-  /** O que entrou em reais por estimativa, na moeda do título. */
+  /** O que entrou em reais por estimativa, na moeda do título: no em aberto e nos previstos. */
   estimados: ValorPorMoeda[];
+  previstoEstimados: ValorPorMoeda[];
 };
 
 function emReais(titulo: Pick<Titulo, 'moeda'>, valor: number, cambios: readonly Pick<CambioReferencia, 'moeda' | 'valor_brl' | 'data_referencia'>[]): number | null {
@@ -244,47 +256,72 @@ function acumular(lista: ValorPorMoeda[], moeda: string, valor: number) {
   else lista.push({ moeda, valor: redondo(valor) });
 }
 
-export function totaisDosLancamentos(titulos: readonly LinhaDoTitulo[], cambios: readonly Pick<CambioReferencia, 'moeda' | 'valor_brl' | 'data_referencia'>[], periodo: { de: string; ate: string }): TotaisDosLancamentos {
+/**
+ * RN-05.09: com um produto (ou a Numa institucional) no contexto, o título conta pela parte do rateio desse contexto.
+ * Na Numa consolidada, conta inteiro, e cada baixa entra uma vez só. Sem rateio informado, é 100% do título (RN-05.08).
+ */
+export function parteDoContexto(titulo: Pick<LinhaDoTitulo, 'rateio'>, contextoId: string): number {
+  if (!contextoId || contextoId === ID_CONSOLIDADA || !titulo.rateio.length) return 1;
+  const percentual = titulo.rateio.filter((linha) => (linha.produto_id ?? ID_INSTITUCIONAL) === contextoId).reduce((soma, linha) => soma + linha.percentual, 0);
+  return percentual / 100;
+}
+
+const valorDaBaixa = (baixa: Pick<Baixa, 'tipo' | 'valor_brl'>) => (baixa.tipo === 'estorno' ? -baixa.valor_brl : baixa.valor_brl);
+
+export function totaisDosLancamentos(titulos: readonly LinhaDoTitulo[], cambios: readonly Pick<CambioReferencia, 'moeda' | 'valor_brl' | 'data_referencia'>[], periodo: { de: string; ate: string }, contextoId: string = ID_CONSOLIDADA): TotaisDosLancamentos {
   let emAbertoPagar = 0;
   let vencido = 0;
   let previsto = 0;
   let pagoNoPeriodo = 0;
+  let reembolsosNoPeriodo = 0;
+  let pagoDosTitulos = 0;
   let quantos = 0;
   let naoIncluidos = 0;
   const semConversao: ValorPorMoeda[] = [];
   const vencidoSemConversao: ValorPorMoeda[] = [];
   const previstoSemConversao: ValorPorMoeda[] = [];
   const estimados: ValorPorMoeda[] = [];
+  const previstoEstimados: ValorPorMoeda[] = [];
   for (const titulo of titulos) {
     if (titulo.natureza !== 'pagar') continue;
     quantos += 1;
+    const parte = parteDoContexto(titulo, contextoId);
     if (emAberto(titulo)) {
-      const valor = emReais(titulo, titulo.saldo, cambios);
+      const saldo = titulo.saldo * parte;
+      const ePrevisto = titulo.situacao === 'previsto';
+      const valor = emReais(titulo, saldo, cambios);
       if (valor === null) {
-        naoIncluidos += 1;
-        acumular(semConversao, titulo.moeda, titulo.saldo);
-        if (titulo.vencido) acumular(vencidoSemConversao, titulo.moeda, titulo.saldo);
-        if (titulo.situacao === 'previsto') acumular(previstoSemConversao, titulo.moeda, titulo.saldo);
+        if (ePrevisto) acumular(previstoSemConversao, titulo.moeda, saldo);
+        else {
+          naoIncluidos += 1;
+          acumular(semConversao, titulo.moeda, saldo);
+        }
+        if (titulo.vencido) acumular(vencidoSemConversao, titulo.moeda, saldo);
       } else {
-        if (titulo.moeda !== 'BRL') acumular(estimados, titulo.moeda, titulo.saldo);
-        emAbertoPagar += valor;
+        if (titulo.moeda !== 'BRL') acumular(ePrevisto ? previstoEstimados : estimados, titulo.moeda, saldo);
+        if (ePrevisto) previsto += valor;
+        else emAbertoPagar += valor;
         if (titulo.vencido) vencido += valor;
-        if (titulo.situacao === 'previsto') previsto += valor;
       }
     }
+    const reembolso = titulo.origem === 'reembolso';
     for (const baixa of titulo.baixas) {
-      if (baixa.data < periodo.de || baixa.data > periodo.ate) continue;
-      pagoNoPeriodo += baixa.tipo === 'estorno' ? -baixa.valor_brl : baixa.valor_brl;
+      if (baixa.arquivado_em) continue;
+      const valor = valorDaBaixa(baixa) * parte;
+      if (!reembolso) pagoDosTitulos += valor;
+      if (!dentroDoPeriodo(baixa.data, periodo.de, periodo.ate)) continue;
+      if (reembolso) reembolsosNoPeriodo += valor;
+      else pagoNoPeriodo += valor;
     }
   }
-  return { emAbertoPagar: redondo(emAbertoPagar), vencido: redondo(vencido), previsto: redondo(previsto), pagoNoPeriodo: redondo(pagoNoPeriodo), quantos, estimado: estimados.length > 0, naoIncluidos, semConversao, vencidoSemConversao, previstoSemConversao, estimados };
+  return { emAbertoPagar: redondo(emAbertoPagar), vencido: redondo(vencido), previsto: redondo(previsto), pagoNoPeriodo: redondo(pagoNoPeriodo), reembolsosNoPeriodo: redondo(reembolsosNoPeriodo), pagoDosTitulos: redondo(pagoDosTitulos), quantos, estimado: estimados.length + previstoEstimados.length > 0, naoIncluidos, semConversao, vencidoSemConversao, previstoSemConversao, estimados, previstoEstimados };
 }
 
 /**
- * Sem período nos filtros, "pago" é o mês corrente. Com vencimento nos filtros, usa essas datas para ler a data
- * da baixa. É o comportamento de 06/11/2026, mantido até Kimberly decidir o recorte (ver Mapa): a tela diz o critério.
+ * O período do cartão "Pago", sempre pela data da baixa (decisão de 07/11/2026, a revisar). Sem "Data do pagamento"
+ * nos filtros, é o mês corrente. O vencimento não muda mais esse período: ele recorta só a lista.
  */
-export function periodoDosTotais(filtros: Pick<FiltrosLancamentos, 'vencimentoDe' | 'vencimentoAte'>, hoje: string): { de: string; ate: string; doMes: boolean } {
-  if (filtros.vencimentoDe || filtros.vencimentoAte) return { de: filtros.vencimentoDe || '0000-01-01', ate: filtros.vencimentoAte || '9999-12-31', doMes: false };
+export function periodoDosTotais(filtros: Pick<FiltrosLancamentos, 'pagamentoDe' | 'pagamentoAte'>, hoje: string): { de: string; ate: string; doMes: boolean } {
+  if (filtros.pagamentoDe || filtros.pagamentoAte) return { de: filtros.pagamentoDe || '0000-01-01', ate: filtros.pagamentoAte || '9999-12-31', doMes: false };
   return { de: `${hoje.slice(0, 7)}-01`, ate: hoje, doMes: true };
 }

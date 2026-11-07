@@ -20,10 +20,10 @@ import { BotaoExportarCsv, MenuColunas, MenuVisoes, usePreferenciasDaLista } fro
 import { Button } from '@/componentes/ui/button';
 import type { Titulo } from '@/dados/tipos/titulo';
 import { useConsulta } from '@/dados/use-consulta';
-import { ID_INSTITUCIONAL } from '@/dominio/contextos';
+import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { nomeDaContraparte } from '@/dominio/contrapartes';
 import { tintaDaCor } from '@/dominio/cores';
-import { carregarLancamentos, comprovanteDoTitulo, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, pagoDoTitulo, periodoDosTotais, ROTULO_ORDEM_PADRAO, totaisDosLancamentos, type DadosDosLancamentos, type FiltrosLancamentos, type LinhaDoTitulo, type ValorPorMoeda } from '@/dominio/lancamentos';
+import { carregarLancamentos, comprovanteDoTitulo, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, pagoDoTitulo, periodoDosTotais, ROTULO_ORDEM_PADRAO, rotuloDoMes, totaisDosLancamentos, type DadosDosLancamentos, type FiltrosLancamentos, type LinhaDoTitulo, type ValorPorMoeda } from '@/dominio/lancamentos';
 import { salvarColunas } from '@/dominio/preferencias-lista';
 import { ROTULOS_ORIGEM_TITULO, ROTULOS_SITUACAO_TITULO, rotuloDaCompetencia } from '@/dominio/titulos';
 import { hojeISO } from '@/lib/datas';
@@ -83,6 +83,15 @@ export function nomeDoFavorecido(titulo: Pick<Titulo, 'contraparte_id' | 'benefi
   const contraparte = dados.contrapartes.find((item) => item.id === titulo.contraparte_id);
   if (contraparte) return nomeDaContraparte(contraparte);
   return dados.pessoas.find((item) => item.id === titulo.beneficiario_pessoa_id)?.nome_completo ?? '';
+}
+
+function somarPorMoeda(valores: readonly ValorPorMoeda[]): ValorPorMoeda[] {
+  return valores.reduce<ValorPorMoeda[]>((lista, { moeda, valor }) => {
+    const item = lista.find((atual) => atual.moeda === moeda);
+    if (item) item.valor = Math.round((item.valor + valor) * 100) / 100;
+    else lista.push({ moeda, valor });
+    return lista;
+  }, []);
 }
 
 const textoDosValores = (valores: readonly ValorPorMoeda[]) => valores.map(({ valor, moeda }) => formatarDinheiro(valor, moeda)).join(' + ');
@@ -204,7 +213,7 @@ function Nota({ children }: { children: ReactNode }) {
 
 type Totais = ReturnType<typeof totaisDosLancamentos>;
 
-function CartoesDeTotais({ totais, periodo }: { totais: Totais; periodo: ReturnType<typeof periodoDosTotais> }) {
+function CartoesDeTotais({ totais, periodo, competencia }: { totais: Totais; periodo: ReturnType<typeof periodoDosTotais>; competencia: string }) {
   const foraDosReais = (valores: readonly ValorPorMoeda[]) => (valores.length ? <span className="block">+ {textoDosValores(valores)} sem conversão</span> : null);
   return (
     <section className="grid grid-cols-2 gap-2 min-[1200px]:grid-cols-4" aria-label="Totais dos lançamentos">
@@ -217,7 +226,7 @@ function CartoesDeTotais({ totais, periodo }: { totais: Totais; periodo: ReturnT
           <>
             {totais.estimados.length ? <span className="block">Inclui {textoDosValores(totais.estimados)}: estimado</span> : null}
             {foraDosReais(totais.semConversao)}
-            {!totais.estimados.length && !totais.semConversao.length && <span className="block">Saldo dos títulos em reais</span>}
+            <span className="block">Sem os previstos</span>
           </>
         }
       />
@@ -233,14 +242,31 @@ function CartoesDeTotais({ totais, periodo }: { totais: Totais; periodo: ReturnT
           </>
         }
       />
-      <Indicador titulo={periodo.doMes ? 'Pago no mês' : 'Pago no período'} valor={formatarDinheiro(totais.pagoNoPeriodo, 'BRL')} icone={CircleCheck} tom="sucesso" contexto={<span className="block">Pela data da baixa, {textoDoPeriodoDoPago(periodo)}</span>} />
+      <Indicador
+        titulo={periodo.doMes ? `Pago em ${rotuloDoMes(periodo.de.slice(0, 7)).toLowerCase()}` : 'Pago no período'}
+        valor={formatarDinheiro(totais.pagoNoPeriodo, 'BRL')}
+        icone={CircleCheck}
+        tom="sucesso"
+        contexto={
+          <>
+            <span className="block">{periodo.doMes ? 'Pela data da baixa' : `Pela data da baixa, ${textoDoPeriodoDoPago(periodo)}`}</span>
+            {competencia && (
+              <span className="block" data-pago-da-competencia>
+                Títulos de {rotuloDoMes(competencia).toLowerCase()}: {formatarDinheiro(totais.pagoDosTitulos, 'BRL')} pagos, em qualquer data
+              </span>
+            )}
+            {totais.reembolsosNoPeriodo !== 0 && <span className="block">Reembolsos às sócias, à parte: {formatarDinheiro(totais.reembolsosNoPeriodo, 'BRL')}</span>}
+          </>
+        }
+      />
       <Indicador
         titulo="Previstos"
         valor={formatarDinheiro(totais.previsto, 'BRL')}
         icone={CalendarClock}
         contexto={
           <>
-            <span className="block">Incluídos no em aberto</span>
+            <span className="block">À parte do em aberto, ainda sem confirmação</span>
+            {totais.previstoEstimados.length ? <span className="block">Inclui {textoDosValores(totais.previstoEstimados)}: estimado</span> : null}
             {foraDosReais(totais.previstoSemConversao)}
           </>
         }
@@ -384,7 +410,10 @@ export function TelaLancamentos() {
   const { arquivados: _semArquivados, ...filtrosDaVisao } = filtros;
   const selecionadas = linhas.filter((linha) => selecionados.has(linha.id));
   const periodo = periodoDosTotais(filtros, hoje);
-  const totais = totaisDosLancamentos(linhas, dados.cambios, periodo);
+  const totais = totaisDosLancamentos(linhas, dados.cambios, periodo, contexto.id);
+  // Em aberto e previstos somados por moeda: as notas dizem tudo o que ficou fora dos reais ou entrou por estimativa.
+  const foraDosTotais = somarPorMoeda([...totais.semConversao, ...totais.previstoSemConversao]);
+  const estimadosNosTotais = somarPorMoeda([...totais.estimados, ...totais.previstoEstimados]);
   const nomeDaCompetencia = rotuloDaCompetenciaDoFiltro(filtros.competencia);
   const abrirBaixa = (titulo: LinhaDoTitulo) => () => setBaixando(titulo);
   const filtrando = JSON.stringify(filtros) !== JSON.stringify(FILTROS_LANCAMENTOS_INICIAIS);
@@ -418,9 +447,9 @@ export function TelaLancamentos() {
       />
       <AbasFinanceiro ativa="lancamentos" />
       <div className="space-y-2">
-        <CartoesDeTotais totais={totais} periodo={periodo} />
+        <CartoesDeTotais totais={totais} periodo={periodo} competencia={filtros.competencia} />
         <p className="text-[13px] leading-[18px] text-ink-soft" data-base-dos-totais>
-          Base dos totais: {formatarNumero(totais.quantos)} {totais.quantos === 1 ? 'título' : 'títulos'} · {nomeDaCompetencia} · {contexto.nome}. Título rateado conta pelo valor inteiro. Pagamentos em reais, pelo valor efetivo.
+          Base dos totais: {formatarNumero(totais.quantos)} {totais.quantos === 1 ? 'título' : 'títulos'} · {nomeDaCompetencia} · {contexto.nome}. {contexto.id === ID_CONSOLIDADA ? 'Cada título e cada pagamento contam uma vez.' : `Título rateado conta pela parte de ${contexto.nome}.`} Pagamentos em reais, pelo valor efetivo.
         </p>
       </div>
       <BarraDeLancamentos filtros={filtros} aoMudar={mudar} dados={dados} hoje={hoje} colunas={<MenuColunas pessoaId={pessoa.id} lista={LISTA} colunas={colunas} visiveis={colunasVisiveis} padrao={COLUNAS_PADRAO} />} />
@@ -456,16 +485,15 @@ export function TelaLancamentos() {
         }}
       />
       <div className="grid gap-1.5" data-notas-dos-lancamentos>
-        {totais.semConversao.length > 0 && (
+        {foraDosTotais.length > 0 && (
           <Nota>
-            {textoDosValores(totais.semConversao)} {totais.semConversao.length === 1 && totais.semConversao[0]?.valor === 1 ? 'não incluído' : 'não incluídos'} nos totais em reais: câmbio de referência não informado.{' '}
+            {textoDosValores(foraDosTotais)} {foraDosTotais.length === 1 && foraDosTotais[0]?.valor === 1 ? 'não incluído' : 'não incluídos'} nos totais em reais: câmbio de referência não informado.{' '}
             <LinkCentral href="/configuracoes" className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-0">
               Informar câmbio
             </LinkCentral>
           </Nota>
         )}
-        {totais.estimados.length > 0 && <Nota>{textoDosValores(totais.estimados)} em aberto {totais.estimados.length === 1 ? 'entra' : 'entram'} nos totais pelo câmbio de referência, como estimativa.</Nota>}
-        <Nota>Critério atual, a confirmar: previstos entram em “Em aberto a pagar”; o cartão Previstos mostra essa parte.</Nota>
+        {estimadosNosTotais.length > 0 && <Nota>{textoDosValores(estimadosNosTotais)} {estimadosNosTotais.length === 1 ? 'entra' : 'entram'} nos totais pelo câmbio de referência, como estimativa.</Nota>}
       </div>
       <FormularioDeDespesa aberto={cadastrando} aoFechar={() => setCadastrando(false)} dados={dados} />
       {baixando && <DialogoDeBaixa titulo={baixando} contas={dados.contas} aoFechar={() => setBaixando(null)} />}

@@ -11,7 +11,7 @@ import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { arquivarConta } from './contas';
 import { limparExemplos, resumoDosDados } from './dados';
 import { cancelarFerramenta, criarFerramenta, formularioDaFerramenta, formularioFerramentaVazio, salvarFerramenta, type FormularioFerramenta } from './ferramentas';
-import { carregarLancamentos, comprovanteDoTitulo, competenciasDosTitulos, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, pagoDoTitulo, periodoDosTotais, quantosMaisFiltros, rotuloDoMes, totaisDosLancamentos, type LinhaDoTitulo } from './lancamentos';
+import { carregarLancamentos, comprovanteDoTitulo, competenciasDosTitulos, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, pagoDoTitulo, parteDoContexto, periodoDosTotais, quantosMaisFiltros, rotuloDoMes, totaisDosLancamentos, type LinhaDoTitulo } from './lancamentos';
 import { vinculosDaPessoa } from './pessoas';
 import { executarRotinas } from './rotinas';
 import {
@@ -650,20 +650,21 @@ describe('T05.01 e T05.02: títulos', () => {
   describe('T05.01: totais', () => {
     const dados = () => carregarLancamentos(HOJE);
 
-    it('em aberto soma o saldo, e vencido é parte dele', async () => {
+    it('em aberto soma o saldo confirmado, e vencido é parte dele', async () => {
       const { titulos, cambios } = await dados();
       const totais = totaisDosLancamentos(titulos, cambios, { de: '2026-11-01', ate: HOJE });
-      // Em reais: 112,05 + 200 (parcial) + 150 + 180 + 300 + 89,90 + 120 = 1.151,95; USD sem câmbio fica de fora.
-      expect(totais.emAbertoPagar).toBe(1151.95);
+      // Decisão de 07/11/2026: os previstos (R$ 209,90 e US$ 20) ficam à parte; 1.151,95 − 209,90 = 942,05.
+      expect(totais.emAbertoPagar).toBe(942.05);
       expect(totais.vencido).toBe(380);
-      expect(totais.naoIncluidos).toBe(1);
+      expect(totais.naoIncluidos).toBe(0);
       expect(totais.estimado).toBe(false);
     });
 
     it('com câmbio, entra como estimado', async () => {
       const { titulos } = await dados();
       const totais = totaisDosLancamentos(titulos, [{ moeda: 'USD', valor_brl: 5, data_referencia: '2026-11-01' }], { de: '2026-11-01', ate: HOJE });
-      expect(totais.emAbertoPagar).toBe(1251.95);
+      expect(totais.emAbertoPagar).toBe(942.05);
+      expect(totais.previsto).toBe(309.9);
       expect(totais.estimado).toBe(true);
       expect(totais.naoIncluidos).toBe(0);
     });
@@ -676,29 +677,31 @@ describe('T05.01 e T05.02: títulos', () => {
       expect(estorno.pagoNoPeriodo).toBe(0);
     });
 
-    it('previstos são parte do em aberto, sem mudar a conta: em aberto = confirmados + previstos', async () => {
+    it('previstos ficam à parte do em aberto: ainda não são obrigação confirmada', async () => {
       const { titulos, cambios } = await dados();
       const totais = totaisDosLancamentos(titulos, cambios, { de: '2026-11-01', ate: HOJE });
       expect(totais.previsto).toBe(209.9);
-      expect(totais.emAbertoPagar - totais.previsto).toBeCloseTo(942.05);
+      expect(totais.emAbertoPagar).toBe(942.05);
       expect(totais.quantos).toBe(TITULOS_INICIAIS);
     });
 
     it('moeda sem câmbio fica de fora com o valor à vista, nunca somada aos reais', async () => {
       const { titulos, cambios } = await dados();
       const totais = totaisDosLancamentos(titulos, cambios, { de: '2026-11-01', ate: HOJE });
-      expect(totais.semConversao).toEqual([{ moeda: 'USD', valor: 20 }]);
+      // O único título em USD sem câmbio é previsto: aparece no cartão Previstos, não no em aberto.
+      expect(totais.semConversao).toEqual([]);
       expect(totais.previstoSemConversao).toEqual([{ moeda: 'USD', valor: 20 }]);
       expect(totais.vencidoSemConversao).toEqual([]);
       expect(totais.estimados).toEqual([]);
       const comCambio = totaisDosLancamentos(titulos, [{ moeda: 'USD', valor_brl: 5, data_referencia: '2026-11-01' }], { de: '2026-11-01', ate: HOJE });
       expect(comCambio.semConversao).toEqual([]);
-      expect(comCambio.estimados).toEqual([{ moeda: 'USD', valor: 20 }]);
+      expect(comCambio.estimados).toEqual([]);
+      expect(comCambio.previstoEstimados).toEqual([{ moeda: 'USD', valor: 20 }]);
       expect(comCambio.previsto).toBe(309.9);
     });
 
     it('moedas diferentes sem câmbio ficam separadas, e o vencido sem câmbio também aparece', () => {
-      const linha = (moeda: string, saldo: number, vencido: boolean) => ({ natureza: 'pagar', situacao: 'aberto', moeda, saldo, vencido, baixas: [] }) as unknown as LinhaDoTitulo;
+      const linha = (moeda: string, saldo: number, vencido: boolean) => ({ natureza: 'pagar', situacao: 'aberto', moeda, saldo, vencido, baixas: [], rateio: [] }) as unknown as LinhaDoTitulo;
       const totais = totaisDosLancamentos([linha('USD', 20, true), linha('EUR', 5, false), linha('USD', 1.5, false), linha('BRL', 100, true)], [], { de: '2026-11-01', ate: HOJE });
       expect(totais.emAbertoPagar).toBe(100);
       expect(totais.vencido).toBe(100);
@@ -712,9 +715,56 @@ describe('T05.01 e T05.02: títulos', () => {
       expect(totaisDosLancamentos(nuvem, cambios, { de: '2026-01-01', ate: HOJE }).pagoNoPeriodo).toBe(112.05);
     });
 
-    it('sem período nos filtros, é o mês corrente', () => {
-      expect(periodoDosTotais({ vencimentoDe: '', vencimentoAte: '' }, HOJE)).toEqual({ de: '2026-11-01', ate: HOJE, doMes: true });
-      expect(periodoDosTotais({ vencimentoDe: '2026-01-01', vencimentoAte: '' }, HOJE).doMes).toBe(false);
+    it('o pago é pela data da baixa: sem "Data do pagamento", é o mês corrente; o vencimento não muda o período', () => {
+      expect(periodoDosTotais({ pagamentoDe: '', pagamentoAte: '' }, HOJE)).toEqual({ de: '2026-11-01', ate: HOJE, doMes: true });
+      const comVencimento = { ...FILTROS_LANCAMENTOS_INICIAIS, vencimentoDe: '2026-01-01' };
+      expect(periodoDosTotais(comVencimento, HOJE).doMes).toBe(true);
+      expect(periodoDosTotais({ pagamentoDe: '2026-10-01', pagamentoAte: '' }, HOJE)).toEqual({ de: '2026-10-01', ate: '9999-12-31', doMes: false });
+    });
+
+    it('títulos da competência: o que foi pago deles, em qualquer data', async () => {
+      const { titulos, cambios } = await dados();
+      const novembro = titulos.filter((titulo) => titulo.competencia.startsWith('2026-11'));
+      const totais = totaisDosLancamentos(novembro, cambios, { de: '2026-11-01', ate: HOJE });
+      const esperado = novembro.filter((titulo) => titulo.origem !== 'reembolso').flatMap((titulo) => titulo.baixas).filter((baixa) => !baixa.arquivado_em).reduce((soma, baixa) => soma + (baixa.tipo === 'estorno' ? -baixa.valor_brl : baixa.valor_brl), 0);
+      expect(totais.pagoDosTitulos).toBeCloseTo(esperado);
+      // Os honorários foram pagos em parte (R$ 100) antes do mês corrente: não entram no "Pago em novembro", mas contam como pago do título.
+      const honorarios = titulos.filter((titulo) => titulo.descricao === 'Honorários de contabilidade');
+      expect(honorarios[0]!.baixas[0]!.data < '2026-11-01').toBe(true);
+      expect(totaisDosLancamentos(honorarios, cambios, { de: '2026-11-01', ate: HOJE })).toMatchObject({ pagoNoPeriodo: 0, pagoDosTitulos: 100 });
+    });
+
+    it('RN-05.07: o pagamento do reembolso à sócia fica fora do pago e aparece à parte', async () => {
+      const { titulos, cambios } = await dados();
+      const reembolsos = titulos.filter((titulo) => titulo.origem === 'reembolso');
+      expect(reembolsos.length).toBeGreaterThan(0);
+      const pagoDoReembolso = reembolsos.flatMap((titulo) => titulo.baixas).filter((baixa) => !baixa.arquivado_em).reduce((soma, baixa) => soma + (baixa.tipo === 'estorno' ? -baixa.valor_brl : baixa.valor_brl), 0);
+      const totais = totaisDosLancamentos(reembolsos, cambios, { de: '0000-01-01', ate: '9999-12-31' });
+      expect(totais.pagoNoPeriodo).toBe(0);
+      expect(totais.pagoDosTitulos).toBe(0);
+      expect(totais.reembolsosNoPeriodo).toBeCloseTo(pagoDoReembolso);
+    });
+
+    it('RN-05.09: com um produto no contexto, o rateado conta pela parte do produto', () => {
+      const rateio = [
+        { produto_id: ID_PRODUTO_ZUPI, percentual: 25 },
+        { produto_id: null, percentual: 75 },
+      ];
+      const linha = { natureza: 'pagar', situacao: 'aberto', moeda: 'BRL', saldo: 400, vencido: false, origem: 'manual', rateio, baixas: [{ tipo: 'pagamento', valor_brl: 200, data: '2026-11-02', arquivado_em: null }] } as unknown as LinhaDoTitulo;
+      expect(parteDoContexto(linha, ID_PRODUTO_ZUPI)).toBe(0.25);
+      expect(parteDoContexto(linha, ID_INSTITUCIONAL)).toBe(0.75);
+      expect(parteDoContexto(linha, ID_CONSOLIDADA)).toBe(1);
+      expect(parteDoContexto({ rateio: [] }, ID_PRODUTO_ZUPI)).toBe(1);
+      expect(totaisDosLancamentos([linha], [], { de: '2026-11-01', ate: HOJE }, ID_PRODUTO_ZUPI)).toMatchObject({ emAbertoPagar: 100, pagoNoPeriodo: 50 });
+      expect(totaisDosLancamentos([linha], [], { de: '2026-11-01', ate: HOJE })).toMatchObject({ emAbertoPagar: 400, pagoNoPeriodo: 200 });
+    });
+
+    it('"Pago de/até" recorta a lista pela data da baixa e conta em "Mais filtros"', async () => {
+      const { titulos } = await dados();
+      const outubro = filtrarTitulos(titulos, { ...FILTROS_LANCAMENTOS_INICIAIS, pagamentoDe: '2026-10-01', pagamentoAte: '2026-10-31' }, { contextoGlobalId: ID_CONSOLIDADA, hoje: HOJE, nomeDaContraparte: () => '' });
+      expect(outubro.length).toBeGreaterThan(0);
+      expect(outubro.every((titulo) => titulo.baixas.some((baixa) => baixa.tipo === 'pagamento' && baixa.data >= '2026-10-01' && baixa.data <= '2026-10-31'))).toBe(true);
+      expect(quantosMaisFiltros({ ...FILTROS_LANCAMENTOS_INICIAIS, pagamentoDe: '2026-10-01', pagamentoAte: '2026-10-31' })).toBe(1);
     });
   });
 
