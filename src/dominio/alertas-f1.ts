@@ -28,18 +28,6 @@ export const MOTIVOS_F1 = {
   programacao: 'Programação da renovação',
 } as const;
 
-/** Ações de alerta que esta frente acrescenta a `ACOES_DE_ALERTA` (`atividades.ts`). */
-export const ACOES_DE_ALERTA_F1: Readonly<Record<string, { rotulo: string; caminho: (origemId: string) => string }>> = {
-  revisar_documento_legal: { rotulo: 'Revisar', caminho: (id) => `/legal/documentos/${id}` },
-  responder_titular: { rotulo: 'Responder', caminho: () => '/legal/privacidade/solicitacoes' },
-  abrir_proposta: { rotulo: 'Renovar validade', caminho: (id) => `/comercial/propostas/${id}` },
-  abrir_contrato: { rotulo: 'Abrir contrato', caminho: (id) => `/contratos/${id}` },
-  decidir_renovacao: { rotulo: 'Decidir renovação', caminho: () => '/contratos/renovacao' },
-};
-
-/** Origens que esta frente acrescenta a `ROTULOS_ORIGEM_ALERTA`. */
-export const ROTULOS_ORIGEM_ALERTA_F1: Readonly<Record<string, string>> = { documento_legal: 'Legal', solicitacao_titular: 'Legal', proposta: 'Comercial', contrato: 'Contratos', obrigacao_contratual: 'Contratos' };
-
 export async function sincronizarAlertasLegais(hoje: string = hojeISO()): Promise<number> {
   return comoSistema(async () => {
     const [documentos, solicitacoes, produtos] = await Promise.all([repositorios.documento_legal.listar(), repositorios.solicitacao_titular.listar(), repositorios.produto.listar({ incluirArquivados: true })]);
@@ -63,4 +51,9 @@ export async function sincronizarAlertasLegais(hoje: string = hojeISO()): Promis
     novos += await sincronizarAlertas(ORIGEM_ALERTA_SOLICITACAO, desejadosSolicitacoes, 'Concluído: a solicitação foi respondida.');
     return novos;
   });
+}
+
+/** A rotina do dia desta frente: M10 e M11 acrescentam as origens deles aqui. */
+export async function gerarAlertasF1(hoje: string = hojeISO()): Promise<number> {
+  return sincronizarAlertasLegais(hoje);
 }
