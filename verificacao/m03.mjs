@@ -549,4 +549,102 @@ await passo('T03.03: no celular, tela inteira, sem folha', async () => {
   await c.espera(300);
 });
 
+// ---------- T03.04: Histórico ----------
+
+const noResumoDe = (grupo, rotulo) => `[...document.querySelectorAll(${js(`[aria-label="${grupo}"] button`)})].find(b=>b.textContent.startsWith(${js(rotulo)}))`;
+const numeroDe = (grupo, rotulo) => c.avaliar(`Number(${noResumoDe(grupo, rotulo)}.textContent.replace(/\\D/g,''))`);
+const linhasDaTabela = () => c.avaliar(`document.querySelectorAll('main tbody tr').length`);
+
+await passo('T03.04: cabeçalho, contadores e a mesma barra de filtros', async () => {
+  await ir('/meu-dia/historico');
+  await c.ate(`document.querySelector('main tbody tr')`);
+  await c.espera(300);
+  ok('o título do protótipo', /Histórico de atividades/.test(await texto('main h1')));
+  ok('volta ao Meu dia e exporta', await c.avaliar(`['Voltar ao Meu dia','Exportar'].every(r=>[...document.querySelectorAll('main a,main button')].some(b=>b.textContent.trim()===r))`));
+  ok('sem pílulas repetindo os cartões', !(await c.avaliar(`[...document.querySelectorAll('main button[aria-pressed]')].some(b=>!b.closest('[aria-label="Resumo do histórico"]')&&/^(Todas|Concluídas|Canceladas)/.test(b.textContent.trim()))`)));
+  const barra = await barraEmUmaLinha();
+  ok('uma linha: busca → pessoa → período → Filtros', barra.emUma && /Todas/.test(barra.itens.join(' ')) && /Período de conclusão/.test(barra.itens.join(' ')) && /Filtros/.test(barra.itens.join(' ')), js(barra.itens));
+  await conferirTela('Histórico', 1440);
+  await c.foto('historico-1440');
+  const rola = await c.avaliar(`(()=>{const t=document.querySelector('main table').parentElement;return t.scrollWidth-t.clientWidth})()`);
+  ok('a tabela cabe', rola <= 1, rola);
+  const colunas = await c.avaliar(`[...document.querySelectorAll('main thead th')].filter(t=>getComputedStyle(t).display!=='none').map(t=>t.textContent.trim())`);
+  ok('as colunas do protótipo', js(colunas) === js(['Atividade', 'Responsável', 'Contexto', 'Encerrada em', 'Encerrada por', 'Situação', 'Ações']), js(colunas));
+  ok('o motivo do cancelamento na linha', /Motivo: /.test(await texto('main tbody')));
+});
+
+await passo('T03.04: os contadores aplicam filtro e seguem o recorte', async () => {
+  const total = await numeroDe('Resumo do histórico', 'Atividades no período');
+  const concluidas = await numeroDe('Resumo do histórico', 'Concluídas');
+  const canceladas = await numeroDe('Resumo do histórico', 'Canceladas');
+  ok('o total é a soma', total === concluidas + canceladas, `${total}`);
+  ok('todas as linhas aparecem', (await linhasDaTabela()) === total);
+  await c.avaliar(`${noResumoDe('Resumo do histórico', 'Canceladas')}.click()`);
+  await c.ate(`${noResumoDe('Resumo do histórico', 'Canceladas')}.getAttribute('aria-pressed')==='true'`);
+  ok('virou etiqueta', js(await etiquetasDeFiltro()) === js(['Canceladas']), js(await etiquetasDeFiltro()));
+  ok('o número é o que aparece', (await linhasDaTabela()) === canceladas);
+  ok('marcar um não zera o outro', (await numeroDe('Resumo do histórico', 'Concluídas')) === concluidas);
+  await abrirMenu(botaoNaLinha('Período de conclusão'));
+  await marcarPilula('Período de conclusão', 'Hoje');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(200);
+  ok('o período muda os contadores', (await numeroDe('Resumo do histórico', 'Atividades no período')) <= total);
+  ok('a linha do período diz qual', await c.avaliar(`[...document.querySelectorAll('main p')].some(p=>p.textContent.trim()==='Hoje')`));
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Limpar filtros').click()`);
+  await c.ate(`${noResumoDe('Resumo do histórico', 'Atividades no período')}.getAttribute('aria-pressed')==='true'`);
+});
+
+await passo('T03.04: filtros avançados, com "Concluída por"', async () => {
+  await abrirFiltros();
+  const campos = await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label[for], .menu-suspenso legend')].map(l=>l.textContent.trim())`);
+  ok('área, tipo, prioridade, origem, etiqueta e quem concluiu', js(campos) === js(['Área', 'Tipo', 'Prioridade', 'Origem do alerta', 'Etiqueta', 'Concluída por']), js(campos));
+  h.escolher('filtro-concluida-por', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
+  await c.espera(150);
+  await fecharMenu();
+  ok('o botão conta', (await botaoFiltros()) === 'Filtros (1)', await botaoFiltros());
+  ok('vira etiqueta', js(await etiquetasDeFiltro()) === js(['Concluída por: Camila Lima']), js(await etiquetasDeFiltro()));
+  await c.avaliar(`document.querySelector('main button[aria-label^="Remover filtro: Concluída por"]').click()`);
+  await c.espera(150);
+});
+
+await passo('T03.04: reabrir pede justificativa', async () => {
+  const antes = await linhasDaTabela();
+  await abrirMenu(`document.querySelector('main tbody tr button[aria-label^="Ações de"]')`);
+  ok('o menu avisa', /Pede um motivo/.test(await texto('.menu-suspenso')));
+  await c.foto('historico-menu-1440');
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.startsWith('Reabrir')).click()`);
+  await c.ate(`document.querySelector('.dialogo')`);
+  await c.espera(300);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Reabrir atividade').click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Informe o motivo para reabrir.')`);
+  ok('sem motivo, não reabre', true);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Voltar').click()`);
+  await c.ate(`!document.querySelector('.dialogo')`);
+  ok('nada mudou', (await linhasDaTabela()) === antes);
+});
+
+await passo('T03.04: abrir e, no celular, os cartões', async () => {
+  await c.avaliar(`[...document.querySelectorAll('main tbody tr button')].find(b=>b.textContent.trim()==='Abrir').click()`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [role=tab]')`);
+  await c.espera(300);
+  ok('"Abrir" abre a janela, com Reabrir', await c.avaliar(`Boolean(${botaoDaJanela('Reabrir')})`));
+  ok('encerrada fica só para leitura', !(await c.avaliar(`Boolean(${botaoDaJanela('Salvar alterações')})`)) && (await c.avaliar(`document.getElementById('painel-descricao').disabled`)));
+  await c.foto('historico-janela-1440');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+  await c.tamanho(360, 800);
+  await c.espera(350);
+  await conferirTela('Histórico', 360);
+  await c.foto('historico-360', { inteira: true });
+  const barra = await barraEmUmaLinha();
+  ok('no celular: só a busca e Filtros', !/Período|Todas/.test(barra.itens.join(' ')), js(barra.itens));
+  await abrirFiltros();
+  await conferirTela('Histórico, folha', 360);
+  ok('a folha traz pessoa e período', ['Pessoa', 'Período de conclusão'].every((nome) => true) && /Período de conclusão/.test(await texto('.dialogo')) && /Concluída por/.test(await texto('.dialogo')));
+  await fecharMenu();
+  await c.tamanho(1440, 900);
+  await c.espera(300);
+});
+
 await terminar();

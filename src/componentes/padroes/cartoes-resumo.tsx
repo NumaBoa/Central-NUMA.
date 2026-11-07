@@ -10,7 +10,11 @@ export type CartaoDeResumo<I extends string = string> = {
   icone?: LucideIcon;
   /** O número pede atenção, como atrasadas e bloqueadas. */
   atencao?: boolean;
+  /** A cor do chip do ícone. */
+  tom?: 'sucesso' | 'atencao';
 };
+
+const TONS: Readonly<Record<NonNullable<CartaoDeResumo['tom']>, string>> = { sucesso: 'bg-ok-wash text-ok', atencao: 'bg-warn-wash text-warn' };
 
 type CartoesDeResumoProps<I extends string> = {
   rotulo: string;
@@ -25,7 +29,7 @@ type CartoesDeResumoProps<I extends string> = {
 export function CartoesDeResumo<I extends string>({ rotulo, cartoes, ativo, aoEscolher, className }: CartoesDeResumoProps<I>) {
   return (
     <div role="group" aria-label={rotulo} className={cn('faixa-rolagem flex gap-1.5 py-0.5 md:grid md:gap-2', className)}>
-      {cartoes.map(({ id, rotulo: nome, valor, icone: Icone, atencao = false }) => {
+      {cartoes.map(({ id, rotulo: nome, valor, icone: Icone, atencao = false, tom }) => {
         const marcado = ativo(id);
         return (
           <button
@@ -39,7 +43,7 @@ export function CartoesDeResumo<I extends string>({ rotulo, cartoes, ativo, aoEs
             )}
           >
             {Icone && (
-              <span aria-hidden className={cn('hidden size-10 shrink-0 place-items-center rounded-full md:grid [&_svg]:size-5', marcado ? 'bg-[var(--sobre-espresso)]' : 'bg-mist text-ink-soft')}>
+              <span aria-hidden className={cn('hidden size-10 shrink-0 place-items-center rounded-full md:grid [&_svg]:size-5', marcado ? 'bg-[var(--sobre-espresso)]' : tom ? TONS[tom] : 'bg-mist text-ink-soft')}>
                 <Icone />
               </span>
             )}
