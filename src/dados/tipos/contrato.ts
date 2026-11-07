@@ -78,7 +78,6 @@ export const CONDICOES_VAZIAS: CondicoesContrato = { forma_pagamento: null, dia_
 /** O que T11.14 preenche além do contrato comum (19 §5). Limites legais em `contrato-saas.ts`. */
 export const esquemaDadosSaas = z.object({
   produto_id: texto,
-  representante_contraparte_id: texto,
   oferta_id: texto,
   periodicidade: z.enum(['mensal', 'anual']).nullable(),
   canal_id: texto,
@@ -125,6 +124,10 @@ export const esquemaContratoVersao = esquemaControle.extend({
   numero: z.number().int().positive(),
   tipo: z.enum(['original', 'aditivo', 'renovacao']),
   situacao: z.enum(['em_elaboracao', 'publicada', 'cancelada']),
+  /** O fluxo documental desta versão (§3): o original e cada aditivo passam pelo mesmo caminho. */
+  fluxo: z.enum(SITUACOES_DOCUMENTAIS),
+  /** Quem assina pela contraparte PJ (T11.03 e T11.14). */
+  representante_contraparte_id: texto,
   data_efeito: dia,
   retroatividade_justificativa: texto,
   resumo_mudancas: texto,
@@ -162,12 +165,15 @@ export type ContratoSignatario = z.infer<typeof esquemaContratoSignatario>;
 export const esquemaItemContrato = esquemaControle.extend({
   versao_id: z.string().min(1),
   produto_id: texto,
+  tipo_item: z.enum(['oferta', 'sob_medida']),
   oferta_id: texto,
   preco_versao_id: texto,
   canal_id: texto,
   descricao: z.string().trim().min(1),
   quantidade: z.number().positive(),
   valor_unitario: valor,
+  justificativa_valor: texto,
+  desconto_percentual: z.number().min(0).max(100).nullable(),
   desconto: valor,
   desconto_justificativa: texto,
   desconto_por: texto,

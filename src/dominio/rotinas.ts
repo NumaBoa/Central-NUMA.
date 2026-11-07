@@ -3,7 +3,8 @@ import { registrarEvento } from '@/dados/historico';
 import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
 import { gerarAlertas } from './alertas';
-import { gerarAlertasF1 } from './alertas-f1';
+import { atualizarSituacoesF1, gerarAlertasF1 } from './alertas-f1';
+import { estenderProgramacaoDosContratos } from './contratos';
 import { atualizarSituacoesDasFerramentas } from './ferramentas';
 import { atualizarSituacoesDosTitulos, estenderProgramacao } from './titulos';
 import { notificarFalhasDasRotinas } from './notificacoes';
@@ -26,8 +27,8 @@ export type Rotina = {
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
   { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: async () => (await gerarAlertas()) + (await gerarAlertasF1()) },
   { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: () => gerarOcorrencias() },
-  { nome: 'Atualizar situações', executar: async () => (await atualizarSituacoesDasFerramentas()) + (await atualizarSituacoesDosTitulos()) },
-  { nome: 'Estender programação', soNoDiaPrimeiro: true, novidade: ['lançamento previsto', 'lançamentos previstos'], executar: () => estenderProgramacao() },
+  { nome: 'Atualizar situações', executar: async () => (await atualizarSituacoesDasFerramentas()) + (await atualizarSituacoesDosTitulos()) + (await atualizarSituacoesF1()) },
+  { nome: 'Estender programação', soNoDiaPrimeiro: true, novidade: ['lançamento previsto', 'lançamentos previstos'], executar: async () => (await estenderProgramacao()) + (await estenderProgramacaoDosContratos()) },
 ];
 
 export type ResultadoRotinas = { executou: boolean; novos: number; falhas: string[]; novidades: string[] };

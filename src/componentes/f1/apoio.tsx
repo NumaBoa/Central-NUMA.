@@ -11,6 +11,7 @@ import type { SeletorEmLinha } from '@/componentes/padroes/filtros-em-linha';
 import { Button } from '@/componentes/ui/button';
 import { mensagemDoErro } from '@/dados/erros';
 import { catalogoComercial } from '@/dominio/integracoes/conexoes';
+import type { Pendencia } from '@/dominio/pendencias';
 import { cn } from '@/lib/utils';
 
 /** Roda uma ação da tela: a mensagem de sucesso, ou a da regra que barrou. */
@@ -34,10 +35,10 @@ export function errosDoFormulario<T extends FieldValues>(errors: FieldErrors<T>,
   });
 }
 
-export type Pendencia = { id: string; mensagem: string; bloqueia?: string; href?: string; aoClicar?: () => void; tipo: 'bloqueia' | 'aviso' };
+export type { Pendencia };
 
 /** Pendências navegáveis (T10.05 e T11.04): dizem o que falta e levam até onde corrigir. */
-export function ListaDePendencias({ pendencias, vazio = 'Nenhuma pendência.', rotulo = 'Pendências' }: { pendencias: readonly Pendencia[]; vazio?: string; rotulo?: string }) {
+export function ListaDePendencias({ pendencias, vazio = 'Nenhuma pendência.', rotulo = 'Pendências', aoIrParaEtapa }: { pendencias: readonly Pendencia[]; vazio?: string; rotulo?: string; aoIrParaEtapa?: (etapa: string) => void }) {
   if (!pendencias.length) return <Faixa tipo="sucesso">{vazio}</Faixa>;
   return (
     <ul aria-label={rotulo} className="grid gap-2">
@@ -50,7 +51,7 @@ export function ListaDePendencias({ pendencias, vazio = 'Nenhuma pendência.', r
               <span className="block">{pendencia.mensagem}</span>
               <span className="mt-0.5 block text-xs text-ink-soft">{pendencia.tipo === 'bloqueia' ? `Bloqueia: ${pendencia.bloqueia ?? 'emissão final'}` : 'Aviso: não bloqueia'}</span>
             </span>
-            {(pendencia.href || pendencia.aoClicar) && <ArrowRight className="mt-0.5 size-4 shrink-0 text-ink-soft" aria-hidden />}
+            {(pendencia.href || (pendencia.etapa && aoIrParaEtapa)) && <ArrowRight className="mt-0.5 size-4 shrink-0 text-ink-soft" aria-hidden />}
           </>
         );
         const classe = 'flex w-full min-h-11 items-start gap-2.5 rounded-md border border-line bg-paper px-3.5 py-2.5 text-left';
@@ -60,8 +61,8 @@ export function ListaDePendencias({ pendencias, vazio = 'Nenhuma pendência.', r
               <LinkCentral href={pendencia.href} className={cn(classe, 'hover:border-ink-soft')}>
                 {corpo}
               </LinkCentral>
-            ) : pendencia.aoClicar ? (
-              <button type="button" onClick={pendencia.aoClicar} className={cn(classe, 'hover:border-ink-soft')}>
+            ) : pendencia.etapa && aoIrParaEtapa ? (
+              <button type="button" onClick={() => aoIrParaEtapa(pendencia.etapa as string)} className={cn(classe, 'hover:border-ink-soft')}>
                 {corpo}
               </button>
             ) : (

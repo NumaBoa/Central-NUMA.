@@ -53,7 +53,7 @@ function AbaVersaoAtual({ documento, dados }: { documento: LinhaDocumentoLegal; 
 
   useEffect(() => {
     if (versao.situacao !== 'validado') return;
-    void pendenciasParaPublicar({ ...versao, url_publica: url || null }, documento, dataPublicacao).then((lista) => setPendencias(lista.map((item, indice) => ({ id: String(indice), mensagem: item.mensagem, bloqueia: 'publicação', tipo: 'bloqueia' as const, href: item.href.startsWith('/') ? item.href : undefined }))));
+    void pendenciasParaPublicar({ ...versao, url_publica: url || null }, documento, dataPublicacao).then((lista) => setPendencias(lista.map((item, indice) => ({ id: String(indice), mensagem: item.mensagem, bloqueia: 'publicação', tipo: 'bloqueia' as const, ...(item.href.startsWith('/') ? { href: item.href } : {}) }))));
   }, [versao, documento, url, dataPublicacao]);
 
   const alterado = (versao.texto ?? '') !== texto || (versao.resumo_mudancas ?? '') !== resumo || (versao.arquivo_url ?? '') !== arquivo || (versao.url_publica ?? '') !== url;
