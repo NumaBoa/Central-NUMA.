@@ -64,14 +64,24 @@ const abrirFicha = async (nome) => {
   return f;
 };
 const aba = async (rotulo) => {
-  const i = await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].findIndex(a=>a.textContent.trim()===${js(rotulo)})`);
-  await c.clicar(`main [role=tab]:nth-child(${i + 1})`);
+  const achar = `[...document.querySelectorAll('main [role=tab]')].find(a=>a.textContent.trim()===${js(rotulo)})`;
+  const abrir = (alvo) => c.avaliar(`(()=>{const a=${alvo};a.focus();a.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))})()`);
+  if (!(await c.avaliar(`Boolean(${achar})`))) {
+    await abrir(`[...document.querySelectorAll('main [role=tab]')].find(a=>a.textContent.trim()==='Mais áreas')`);
+    await c.ate(`Boolean(${achar})`);
+  }
+  await abrir(achar);
   await c.espera(160);
 };
 const abrirMenuDaFicha = async () => {
   await clicarBotao('Mais ações da ferramenta');
   await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`);
   await c.espera(160);
+};
+/** Trocar plano, cancelar, vincular e arquivar ficam em "Mais ações" (revisão de 07/11/2026). */
+const acaoDoMenu = async (rotulo) => {
+  await abrirMenuDaFicha();
+  await clicarBotao(rotulo, '.menu-suspenso');
 };
 // O foco volta ao botão depois que o menu fecha: abrir outro antes disso fecharia o novo.
 const fecharMenu = async () => {
@@ -143,23 +153,32 @@ await passo('RN-04.05: indicadores no contexto do produto', async () => {
 
 await passo('T04.01: filtros', async () => {
   await irLista();
+  const escolherNaLinha = async (rotulo, opcao) => {
+    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>(b.getAttribute('aria-label')||'').startsWith(${js(rotulo + ':')})).click()`);
+    await c.ate(`document.querySelector('.menu-suspenso')`);
+    await c.espera(120);
+    await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.trim()===${js(opcao)}).querySelector('input').click()`);
+    await c.ate(`!document.querySelector('.menu-suspenso')`);
+    await c.espera(120);
+  };
   const abrirFiltros = async () => {
-    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Filtros/.test(b.textContent.trim())).click()`);
+    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Mais filtros/.test(b.textContent.trim())).click()`);
     await c.ate(`document.querySelector('.menu-suspenso')`);
     await c.espera(120);
   };
+  ok('categoria, produto e situação ficam na linha', await c.avaliar(`['Categoria:','Produto ou contexto:','Situação:'].every(r=>[...document.querySelectorAll('main button')].some(b=>(b.getAttribute('aria-label')||'').startsWith(r)))`));
   await abrirFiltros();
   ok('D14: sem filtro de duas chaves', !(await texto('.menu-suspenso')).toLowerCase().includes('chaves'));
-  await escolher('filtro-situacao', 'teste');
+  ok('Mais filtros reúne os outros', await c.avaliar(`['filtro-modalidade','filtro-critica','filtro-titular','filtro-dados','filtro-vence','filtro-etiqueta'].every(id=>document.getElementById(id))`));
   await fecharMenu();
+  await escolherNaLinha('Situação', 'Teste');
   ok('situação: teste', js(await nomes()) === js(['Luma IA']), js(await nomes()));
-  ok('o filtro aparece como etiqueta, com o contador', (await texto('main')).includes('Situação: Teste') && (await texto('main')).includes('Filtros (1)'));
+  ok('o filtro aparece como etiqueta, e o botão mostra a escolha', (await texto('main')).includes('Situação: Teste') && (await c.avaliar(`Boolean(document.querySelector('main button[aria-label="Situação: Teste"]'))`)));
+  ok('a contagem de resultados acompanha', (await texto('[data-quantas-ferramentas]')).trim() === '1 ferramenta', await texto('[data-quantas-ferramentas]'));
   await c.avaliar(`document.querySelector('button[aria-label^="Remover filtro: Situação"]').click()`);
   await c.espera(100);
   ok('tirar a etiqueta tira o filtro', (await nomes()).length === 6);
-  await abrirFiltros();
-  await escolherTexto('filtro-contexto', 'Zupi');
-  await fecharMenu();
+  await escolherNaLinha('Produto ou contexto', 'Zupi');
   ok('produto: a compartilhada aparece uma vez', js(await nomes()) === js(['Nuvem Clara Hosting']), js(await nomes()));
   await clicarBotao('Limpar filtros');
   await c.espera(100);
@@ -168,6 +187,7 @@ await passo('T04.01: filtros', async () => {
   await escolher('filtro-critica', 'sim');
   await fecharMenu();
   ok('combina filtros', js(await nomes()) === js(['Repositório Aberto']), js(await nomes()));
+  ok('Mais filtros conta os aplicados', (await texto('main')).includes('Mais filtros (2)'));
   await clicarBotao('Limpar filtros');
   await c.espera(100);
   await abrirFiltros();
@@ -215,7 +235,7 @@ await passo('T04.01: colunas configuráveis (P1)', async () => {
 
 await passo('T04.01: visões salvas (P1)', async () => {
   await irLista();
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Filtros/.test(b.textContent.trim())).click()`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Mais filtros/.test(b.textContent.trim())).click()`);
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(120);
   await escolher('filtro-critica', 'sim');
@@ -306,7 +326,7 @@ await passo('T04.03: etapas e erros', async () => {
   ok('titular padrão: pessoa física de quem cadastra', (await pilulaMarcada('Titular atual', 'Pessoa física')) && (await valor('ferramenta-titular-pessoa')) === ID_KIMBERLY);
   ok('titular desejado padrão: Numa', (await valor('ferramenta-titular-desejado')) === 'Numa');
   ok('responsáveis vêm das áreas', (await valor('ferramenta-tecnica')) === ID_CAMILA && (await valor('ferramenta-financeira')) === ID_KIMBERLY, await valor('ferramenta-tecnica'));
-  ok('o login avisa que não é senha', (await texto('.janela')).includes('Senha nunca fica aqui'));
+  ok('o login avisa que não é senha', (await texto('.janela')).includes('senha, token e cartão nunca ficam aqui'));
   await marcarPilula('Titular atual', 'Terceiro');
   await c.espera(60);
   ok('terceiro pede o nome', await c.avaliar(`Boolean(document.getElementById('ferramenta-titular-texto'))&&!document.getElementById('ferramenta-titular-pessoa')`));
@@ -319,11 +339,12 @@ await passo('T04.03: etapas e erros', async () => {
   await c.espera(120);
   ok('avança para a etapa 3', (await etapaAtual()) === 3);
   ok('sem Continuar na última', !(await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Continuar')`)));
-  ok('sem modalidade, o custo fica a definir', (await texto('.janela')).includes('fica “a definir”'));
+  ok('sem modalidade, o custo fica a definir', (await texto('.janela')).includes('Custo a definir') && !(await texto('.janela')).includes('Definir custo depois'));
   await c.foto('c-nova-etapa3');
   await marcarPilula('Modalidade', 'Gratuita');
   await c.espera(60);
-  ok('gratuita avisa que não gera títulos', (await texto('.janela')).includes('não gera títulos'));
+  ok('gratuita avisa que não gera lançamento, nem de zero', (await texto('.janela')).includes('não gera lançamento no Financeiro, nem de valor zero'));
+  ok('"Definir custo depois" é uma ação, e não uma quarta modalidade', (await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Definir custo depois')`)) && (await c.avaliar(`[...[...document.querySelectorAll('fieldset')].find(f=>f.querySelector('legend')?.textContent.startsWith('Modalidade')).querySelectorAll('label')].map(l=>l.textContent).join()`)) === 'Gratuita,Paga,Teste');
   ok('gratuita não pede valor', !(await c.avaliar(`Boolean(document.getElementById('ferramenta-valor'))`)));
   await clicarNoDialogo('Salvar ferramenta');
   await esperarAviso('Ferramenta criada.');
@@ -381,7 +402,7 @@ await passo('T04.03: conferências', async () => {
   await irParaEtapa(1);
   await marcarPilula('Crítica', 'Sim');
   await irParaEtapa(2);
-  await marcarPilula('Segunda etapa', 'Não');
+  await marcarPilula('Autenticação em duas etapas', 'Não');
   await clicarNoDialogo('Salvar ferramenta');
   await dialogoAberto();
   await c.espera(120);
@@ -401,7 +422,7 @@ await passo('T04.03: paga, com prévia', async () => {
   await marcarPilula('Modalidade', 'Paga');
   await c.espera(100);
   ok('a categoria financeira vem sugerida', (await c.avaliar(`(()=>{const s=document.getElementById('ferramenta-categoria-financeira');return s.options[s.selectedIndex].textContent})()`)) === 'IA');
-  ok('gerar títulos vem ligado', await pilulaMarcada('Gerar títulos', 'Sim'));
+  ok('gerar lançamentos vem ligado', await pilulaMarcada('Gerar lançamentos', 'Sim'));
   ok('moedas com BRL, USD e EUR no topo', (await opcoes('ferramenta-moeda')).slice(0, 3).map((o) => o.slice(0, 3)).join() === 'BRL,USD,EUR');
   ok('periodicidades da especificação', js(await opcoes('ferramenta-periodicidade')) === js(['Escolha', 'Mensal', 'Trimestral', 'Semestral', 'Anual', 'Por uso']));
   await c.foto('d-paga');
@@ -434,7 +455,8 @@ await passo('T04.03: paga, com prévia', async () => {
   const previa = await c.avaliar(`[...document.querySelectorAll('.dialogo tbody tr')].map(tr=>tr.textContent)`);
   ok('P6: mensal mostra as cobranças de até 3 meses', previa.length === 3 || previa.length === 4, js(previa));
   ok('com a data e o valor', previa[0].startsWith(dataBr(diaISO(10))) && previa[0].includes('US$') && previa[0].includes('50,00'), previa[0]);
-  ok('diz que salvar de novo não duplica', (await texto('.dialogo')).includes('Salvar de novo não duplica'));
+  ok('diz que o que já existe é vinculado, e não criado de novo', (await texto('.dialogo')).includes('não criado de novo'));
+  ok('cada cobrança diz o que acontece', previa.every((linha) => linha.endsWith('A gerar')), js(previa));
   await c.foto('e-previa');
   await clicarNoDialogo('Voltar');
   await dialogoFechado();
@@ -442,7 +464,7 @@ await passo('T04.03: paga, com prévia', async () => {
   await clicarNoDialogo('Salvar ferramenta');
   await dialogoAberto();
   await c.espera(150);
-  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Salvar ferramenta').click()`);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Confirmar cadastro e cobranças').click()`);
   await dialogoFechado();
   await esperarAviso('Ferramenta criada.');
   await painelFechado();
@@ -467,7 +489,7 @@ await passo('T04.03: paga sem valor, e teste', async () => {
   await marcarPilula('Renovação', 'Manual');
   await escolherTexto('ferramenta-conta', 'Cartão pessoal — Kimberly');
   await escolherTexto('ferramenta-categoria-financeira', 'IA');
-  await marcarPilula('Gerar títulos', 'Não');
+  await marcarPilula('Gerar lançamentos', 'Não');
   await c.espera(100);
   await clicarNoDialogo('Salvar ferramenta');
   await dialogoAberto();
@@ -630,16 +652,16 @@ await passo('T04.02: ficha, resumo e abas', async () => {
   ok('abre pela linha', (await c.avaliar(`location.pathname`)).startsWith('/ferramentas/'));
   ok('cabeçalho: categoria, situação, crítica, produtos e responsáveis', ['Hospedagem e nuvem', 'Ativa', 'Crítica', 'Kipi', 'Zupi', 'Técnica:', 'Financeira:'].every((t) => cabecalho.includes(t)), cabecalho.slice(0, 300));
   const abas = await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(a=>a.textContent.trim())`);
-  ok('as abas da especificação, sem Acessos (D14)', js(abas) === js(['Resumo', 'Assinatura e custos', 'Produtos e rateio', 'Dados pessoais', 'Ativos hospedados', 'Atividades', 'Arquivos', 'Histórico']), js(abas));
+  ok('as abas da especificação, sem Acessos (D14)', js(abas) === js(['Resumo', 'Assinatura e custos', 'Produtos e rateio', 'Dados pessoais', 'Mais áreas']), js(abas));
   ok('resumo: finalidade, fornecedor, ambiente, titular', ['Hospedar os apps Kipi e Zupi', 'Estúdio', 'organização numa-studio', 'Pessoa física — Camila Lima', 'Numa'].some((t) => cabecalho.includes(t)) && cabecalho.includes('Pessoa física — Camila Lima') && cabecalho.includes('organização numa-studio'), cabecalho.slice(0, 500));
-  ok('URL de acesso abre em outra aba, com segurança', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main a')].find(x=>x.textContent.trim()==='Abrir acesso');return a&&a.target==='_blank'&&a.rel.includes('noopener')})()`));
+  ok('URL de acesso abre em outra aba, com segurança', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main a')].find(x=>x.textContent.trim()==='Abrir serviço');return a&&a.target==='_blank'&&a.rel.includes('noopener')})()`));
   await c.foto('i-ficha');
   await aba('Assinatura e custos');
   const custos = await texto('main');
   ok('assinatura: plano, valor, estimativa e dia', custos.includes('Pro') && custos.includes('US$') && custos.includes('Dia de cobrança') && custos.includes('Automática'), custos.slice(0, 400));
   ok('sem câmbio, não inventa estimativa', !custos.includes('(estimado)'));
   ok('paga não mostra o que é de teste', !custos.includes('Fim do teste'));
-  ok('mostra os títulos vinculados', custos.includes('Títulos vinculados') && custos.includes('Previsto'), custos.slice(-300));
+  ok('mostra os lançamentos vinculados, previsto e efetivo', custos.includes('Lançamentos vinculados') && custos.includes('Previsto') && custos.includes('Valor efetivo em reais'), custos.slice(-300));
   await aba('Produtos e rateio');
   const campos = await c.avaliar(`[...document.querySelectorAll('main input[aria-label^="Percentual de"]')].map(i=>i.getAttribute('aria-label')+'='+i.value)`);
   ok('mostra os percentuais', js(campos) === js(['Percentual de Kipi=60,00', 'Percentual de Zupi=40,00']) || js(campos) === js(['Percentual de Kipi=60', 'Percentual de Zupi=40']), js(campos));
@@ -749,7 +771,7 @@ await passo('RN-04.17: reajuste, e trocar plano', async () => {
   await c.foto('k-valores');
   const antes = await ativa(f.id);
   ok('é a mesma assinatura', antes.valor === 99.9);
-  await clicarBotao('Trocar plano');
+  await acaoDoMenu('Trocar plano');
   await painelAberto();
   await c.espera(320);
   ok('trocar plano abre direto no custo, sem as etapas', (await c.avaliar(`!document.querySelector('.janela ol[aria-label="Etapas"]')`)) && (await texto('.janela')).includes('Trocar plano'));
@@ -772,7 +794,7 @@ await passo('RN-04.17: reajuste, e trocar plano', async () => {
   await dialogoAberto();
   await c.espera(150);
   ok('P6: anual mostra só a próxima', (await c.avaliar(`document.querySelectorAll('.dialogo tbody tr').length`)) === 1);
-  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Salvar ferramenta').click()`);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Confirmar e salvar').click()`);
   await dialogoFechado();
   await esperarAviso('Plano trocado.');
   await painelFechado();
@@ -788,19 +810,19 @@ await passo('RN-04.10: cancelar', async () => {
   await abrirMenuDaFicha();
   const menu = await texto('.menu-suspenso');
   ok('o menu traz o resto das ações', menu.includes('Cancelar ferramenta') && menu.includes('Arquivar'), menu);
-  ok('Registrar pagamento está no menu', menu.includes('Registrar pagamento'), menu);
+  ok('sem lançamento em aberto, não oferece Registrar pagamento', !menu.includes('Registrar pagamento') && !(await c.avaliar(`[...document.querySelectorAll('main button')].some(b=>b.textContent.trim()==='Registrar pagamento')`)), menu);
   await clicarBotao('Cancelar ferramenta', '.menu-suspenso');
-  await dialogoAberto();
+  await painelAberto();
   await c.espera(150);
-  ok('diz o que fica preservado', (await texto('.dialogo')).includes('ficam guardados'));
+  ok('diz o que fica preservado, e que não cancela no fornecedor', (await texto('.janela')).includes('ficam como estão') && (await texto('.janela')).includes('não cancela a contratação no fornecedor'));
   ok('a data vem preenchida', (await valor('cancelar-data')) === diaISO());
-  await clicarNoDialogo('Cancelar ferramenta');
+  await clicarNoDialogo('Confirmar cancelamento');
   await c.espera(100);
   ok('o motivo é obrigatório', (await erroDe('cancelar-motivo')) === 'Informe o motivo do cancelamento.', await erroDe('cancelar-motivo'));
   await preencher('cancelar-motivo', 'Não vamos usar');
-  await clicarNoDialogo('Cancelar ferramenta');
-  await esperarAviso('Ferramenta cancelada.');
-  await dialogoFechado();
+  await clicarNoDialogo('Confirmar cancelamento');
+  await esperarAviso('Ferramenta cancelada');
+  await painelFechado();
   await c.ate(`document.querySelector('main').textContent.includes('Cancelada')`);
   const salvo = await ferramenta('Quadro Fácil');
   ok('grava a data e o motivo', salvo.situacao === 'cancelada' && salvo.cancelada_em === diaISO() && salvo.cancelamento_motivo === 'Não vamos usar');
@@ -825,8 +847,11 @@ await passo('arquivar e restaurar', async () => {
   ok('a ficha mostra a faixa, sem editar', !(await c.avaliar(`[...document.querySelectorAll('main button')].some(b=>b.textContent.trim()==='Editar')`)));
   await irLista();
   ok('sai da lista', !(await nomes()).includes('Com fornecedor'));
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Arquivadas/.test(b.textContent.trim())).click()`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Mais filtros/.test(b.textContent.trim())).click()`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(120);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.startsWith('Ver as arquivadas')).querySelector('input').click()`);
+  await fecharMenu();
   ok('aparece em Arquivadas', js(await nomes()) === js(['Com fornecedor']), js(await nomes()));
   await ir(`/ferramentas/${f.id}`);
   await c.ate(`document.querySelector('main').textContent.includes('foi arquivada')`);
@@ -1012,7 +1037,7 @@ await passo('rotina do dia: "Atualizar situações" (RN-04.09)', async () => {
   await esperarAviso('Ferramenta atualizada.');
   await painelFechado();
   ok('estender o teste volta para Teste', (await ferramenta('Luma IA')).situacao === 'teste');
-  await clicarBotao('Trocar plano');
+  await acaoDoMenu('Trocar plano');
   await painelAberto();
   await c.espera(320);
   await marcarPilula('Modalidade', 'Gratuita');

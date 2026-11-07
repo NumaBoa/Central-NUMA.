@@ -16,7 +16,15 @@ const irLista = async () => {
 const nomes = () => c.avaliar(`[...document.querySelectorAll('main table tbody tr')].map(tr=>tr.querySelector('span.font-medium')?.firstChild.textContent)`);
 const clicarBotao = (rotulo, onde = 'main') => c.avaliar(`(()=>{const b=[...document.querySelectorAll(${js(onde + ' button')})].find(b=>b.textContent.trim()===${js(rotulo)}||b.getAttribute('aria-label')===${js(rotulo)});if(!b)throw new Error('sem botão: '+${js(rotulo)});b.click()})()`);
 const abaDoTipo = async (rotulo) => {
-  await c.avaliar(`[...document.querySelectorAll('main button[aria-pressed]')].find(b=>b.textContent.trim().startsWith(${js(rotulo)})).click()`);
+  const pilula = `[...document.querySelectorAll('main [aria-label="Tipos de ativo"] > button[aria-pressed]')].find(b=>b.textContent.trim().startsWith(${js(rotulo)}))`;
+  if (await c.avaliar(`Boolean(${pilula})`)) await c.avaliar(`${pilula}.click()`);
+  else {
+    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>(b.getAttribute('aria-label')||'').startsWith('Outros tipos')).click()`);
+    await c.ate(`document.querySelector('.menu-suspenso')`);
+    await c.espera(120);
+    await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.trim().startsWith(${js(rotulo)})).click()`);
+    await c.ate(`!document.querySelector('.menu-suspenso')`);
+  }
   await c.espera(100);
 };
 const escolherTexto = (id, parte) => c.avaliar(`(()=>{const s=document.getElementById(${js(id)});const o=[...s.options].find(o=>o.textContent.trim().startsWith(${js(parte)}));if(!o)throw new Error('sem opção: '+${js(parte)});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,o.value);s.dispatchEvent(new Event('change',{bubbles:true}));return o.value})()`);
@@ -34,8 +42,14 @@ const abrirFicha = async (identificador) => {
   return a;
 };
 const aba = async (rotulo) => {
-  const i = await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].findIndex(a=>a.textContent.trim()===${js(rotulo)})`);
-  await c.clicar(`main [role=tab]:nth-child(${i + 1})`);
+  const achar = `[...document.querySelectorAll('main [role=tab]')].find(a=>a.textContent.trim()===${js(rotulo)})`;
+  const abrir = (alvo) => c.avaliar(`(()=>{const a=${alvo};a.focus();a.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))})()`);
+  // Na ficha da ferramenta, as áreas complementares ficam em "Mais áreas" (revisão de 07/11/2026).
+  if (!(await c.avaliar(`Boolean(${achar})`))) {
+    await abrir(`[...document.querySelectorAll('main [role=tab]')].find(a=>a.textContent.trim()==='Mais áreas')`);
+    await c.ate(`Boolean(${achar})`);
+  }
+  await abrir(achar);
   await c.espera(160);
 };
 
@@ -55,7 +69,7 @@ await passo('T04.04: lista', async () => {
   ok('5 ativos de exemplo', (await nomes()).length === 5, js(await nomes()));
   ok('a aba da página fica marcada', await c.avaliar(`document.querySelector('nav[aria-label="Seções de ferramentas e ativos"] a[aria-current=page]').textContent.includes('Ativos digitais')`));
   const colunas = await c.avaliar(`[...document.querySelectorAll('main table thead th')].map(th=>th.textContent.trim()).filter(Boolean)`);
-  ok('colunas do padrão, sem duas chaves (D14)', js(colunas) === js(['Identificador', 'Tipo', 'Produto', 'Titular atual', 'Transferência', 'Vencimento', 'Responsável']), js(colunas));
+  ok('colunas do padrão, sem duas chaves (D14)', js(colunas) === js(['Ativo', 'Produto', 'Plataforma', 'Titularidade', 'Vencimento', 'Responsável']), js(colunas));
   ok('a tabela cabe em 1440, sem rolagem interna', await c.avaliar(`(()=>{const f=document.querySelector('main .faixa-rolagem table').closest('.faixa-rolagem');return f.scrollWidth<=f.clientWidth+1})()`), await c.avaliar(`(()=>{const f=document.querySelector('main .faixa-rolagem table').closest('.faixa-rolagem');return f.scrollWidth+'/'+f.clientWidth})()`));
   ok('o domínio vencendo chama atenção', await c.avaliar(`[...document.querySelectorAll('main table tbody tr')].find(tr=>tr.textContent.includes('kipi-exemplo')).querySelector('.text-warn')!==null`));
   await conferirTela('lista', 1440);
@@ -64,17 +78,25 @@ await passo('T04.04: lista', async () => {
 
 await passo('T04.04: abas por tipo e filtros', async () => {
   await irLista();
-  const abas = await c.avaliar(`[...document.querySelectorAll('main button[aria-pressed]')].map(b=>b.textContent.trim())`);
-  ok('abas da especificação, com contadores', ['Todos5', 'Domínios2', 'Contas de loja1', 'Repositórios1', 'Redes sociais1', 'E-mails', 'Analytics', 'Outros'].every((t) => abas.includes(t)), js(abas));
+  const abas = await c.avaliar(`[...document.querySelectorAll('main [aria-label="Tipos de ativo"] > button[aria-pressed]')].map(b=>b.textContent.trim())`);
+  ok('grupos à vista, com contadores', js(abas) === js(['Todos5', 'Domínios2', 'Contas de loja1', 'Repositórios1']), js(abas));
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>(b.getAttribute('aria-label')||'').startsWith('Outros tipos')).click()`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(120);
+  ok('os demais tipos da especificação em "Outros tipos"', (await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].map(b=>b.textContent.trim()).filter(Boolean).join('|')`)) === 'Redes sociais1|E-mails0|Analytics0|Outros0', await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].map(b=>b.textContent.trim()).filter(Boolean).join('|')`));
+  await c.tecla('Escape');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  ok('sem filtro de tipo repetindo os grupos', !(await c.avaliar(`Boolean(document.getElementById('filtro-tipo'))`)));
   ok('Marcas aparece "Em breve", sem clique', await c.avaliar(`[...document.querySelectorAll('main *')].some(e=>e.childElementCount===0&&e.textContent.trim()==='Marcas')&&(document.querySelector('main').textContent.includes('Em breve'))`));
   await abaDoTipo('Domínios');
   ok('Domínios', js(await nomes()) === js(['kipi-exemplo.com.br', 'urbana-exemplo.com.br']), js(await nomes()));
   await abaDoTipo('Todos');
   const filtro = async (id, valorDoFiltro) => {
-    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Filtros/.test(b.textContent.trim())).click()`);
+    await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Mais filtros/.test(b.textContent.trim())).click()`);
     await c.ate(`document.querySelector('.menu-suspenso')`);
     await c.espera(120);
-    await escolher(id, valorDoFiltro);
+    if (id === 'filtro-titular') await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.startsWith('Titular atual diferente')).querySelector('input').click()`);
+    else await escolher(id, valorDoFiltro);
     await c.tecla('Escape');
     await c.ate(`!document.querySelector('.menu-suspenso')`);
     await c.espera(120);
@@ -163,9 +185,11 @@ await passo('T04.05: ficha e transferência', async () => {
   ok('resumo: titular, desejado, requisito e ferramenta', ['Pessoa física — Kimberly Grebe', 'Exige o CNPJ da Numa', 'Estúdio Verde Registro'].every((t) => m.includes(t)), m.slice(0, 500));
   await c.foto('c-ficha');
   await clicarBotao('Registrar transferência');
-  await dialogoAberto();
+  await painelAberto();
   await c.espera(160);
   ok('a data vem preenchida', (await valor('transferencia-data')) === diaISO());
+  ok('avisa que é só depois do fornecedor, e mostra o que o registro faz', (await texto('.janela')).includes('Registre somente depois de concluir a transferência no fornecedor') && (await texto('.janela')).includes('O titular anterior fica no histórico'));
+  ok('sem entidade PJ ativa, avisa antes de registrar para a Numa', (await texto('.janela')).includes('ainda não tem entidade PJ ativa'));
   await c.foto('d-transferencia');
   await clicarNoDialogo('Registrar transferência');
   await c.espera(120);
@@ -179,7 +203,7 @@ await passo('T04.05: ficha e transferência', async () => {
   await preencher('transferencia-observacao', 'Protocolo 123');
   await clicarNoDialogo('Registrar transferência');
   await esperarAviso('Transferência registrada.');
-  await dialogoFechado();
+  await painelFechado();
   await c.ate(`document.querySelector('main').textContent.includes('Concluída')`);
   const salvo = await ativo('kipi-exemplo.com.br');
   ok('fica concluída, com o novo titular, a data e a evidência', salvo.transferencia_situacao === 'concluida' && salvo.titular_atual_tipo === 'numa' && salvo.titular_atual_pessoa_id === null && salvo.transferido_em === diaISO() && salvo.evidencia_transferencia_url.includes('drive.google.com'));
@@ -224,7 +248,12 @@ await passo('arquivar e vínculos', async () => {
   ok('a ficha mostra a faixa, sem editar', !(await c.avaliar(`[...document.querySelectorAll('main button')].some(b=>b.textContent.trim()==='Editar')`)));
   await irLista();
   ok('sai da lista', !(await nomes()).includes('@kipi.exemplo'));
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Arquivados/.test(b.textContent.trim())).click()`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Mais filtros/.test(b.textContent.trim())).click()`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(120);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.startsWith('Ver os arquivados')).querySelector('input').click()`);
+  await c.tecla('Escape');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
   await c.espera(120);
   ok('aparece em Arquivados', js(await nomes()) === js(['@kipi.exemplo']), js(await nomes()));
   await ir(`/ferramentas/ativos/${a.id}`);

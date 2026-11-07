@@ -273,10 +273,8 @@ await passo('nas outras telas', async () => {
   await ir(`/ferramentas/${nuvem.id}`);
   await c.ate(`document.querySelector('main h1')?.textContent.includes('Traço Editor')`);
   await c.espera(150);
-  await clicarBotao('Mais ações da ferramenta');
-  await c.ate(`document.querySelector('.menu-suspenso')`);
-  await c.espera(160);
-  await clicarBotao('Registrar pagamento', '.menu-suspenso');
+  // Revisão do M04 (07/11/2026): com lançamento em aberto, "Registrar pagamento" é a ação principal da ficha.
+  await clicarBotao('Registrar pagamento');
   await dialogoAberto();
   await c.espera(200);
   ok('T04.02: "Registrar pagamento" abre a baixa do próximo título', (await texto('.dialogo')).includes('Traço Editor') && (await valor('baixa-valor')) === '89,90', await valor('baixa-valor'));
