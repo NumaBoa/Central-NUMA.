@@ -27,7 +27,7 @@ async function passo(nome, fn) {
   try { await fn(); } catch (e) {
     resultados.push(`ERRO  ${nome}: ${e.message}`);
     try {
-      const d = await c.avaliar(`(()=>{const b=document.querySelector('main button[type=submit]');const r=b?.getBoundingClientRect();const e=r&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return JSON.stringify({caminho:location.pathname+location.search,avisos:[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent),alerta:document.querySelector('main [role=alert]')?.textContent??null,botao:r&&{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height),desligado:b.disabled},noPonto:e?(e.tagName+'.'+String(e.className).slice(0,50)):null,abertura:Boolean(document.querySelector('.abertura')),dialogo:Boolean(document.querySelector('.dialogo')),estado:document.querySelector('form')?.textContent.match(/Há alterações sem salvar|Tudo em ordem/)?.[0]??null})})()`);
+      const d = await c.avaliar(`(()=>{const b=document.querySelector('main button[type=submit]');const r=b?.getBoundingClientRect();const e=r&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return JSON.stringify({caminho:location.pathname+location.search,avisos:[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent),alerta:document.querySelector('main [role=alert]')?.textContent??null,botao:r&&{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height),desligado:b.disabled},noPonto:e?(e.tagName+'.'+String(e.className).slice(0,50)):null,abertura:Boolean(document.querySelector('.abertura')),dialogo:Boolean(document.querySelector('.dialogo')),estado:document.querySelector('main form p[role=status]')?.textContent??null})})()`);
       console.log('    estado:', d);
       await c.foto(`erro-${nome.replaceAll(/[^a-z0-9]+/gi, '-')}`);
     } catch {}
@@ -59,6 +59,14 @@ const historicoDados = async () => {
   return c.avaliar(`[...document.querySelectorAll('main ul li')].map(l=>l.textContent)`);
 };
 const voltarGeral = async () => { await irPara('/configuracoes'); await pronta(); };
+const aba = (id) => `[role=tablist] [role=tab][id$="-trigger-${id}"]`;
+const irSecao = async (id) => { await c.clicar(aba(id)); await c.ate(`document.getElementById(${js(id)})?.offsetParent`); };
+const secaoAberta = () => c.avaliar(`[...document.querySelectorAll('[role=tabpanel] > section')].filter(s=>s.offsetParent).map(s=>s.id).join()`);
+const textoDaAba = (id) => c.avaliar(`document.querySelector(${js(aba(id))})?.textContent ?? ''`);
+const estadoDaBarra = () => c.avaliar(`document.querySelector('main form p[role=status]')?.textContent ?? ''`);
+const focado = () => c.avaliar(`document.activeElement?.id ?? ''`);
+const guardado = (chave) => c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:configuracao')).find(x=>x.chave===${js(chave)}).valor`);
+const SECOES = ['organizacao', 'fase', 'alertas', 'financeiro', 'backup'];
 
 await c.tamanho(1440, 900);
 
@@ -73,7 +81,7 @@ await passo('primeira abertura', async () => {
   ok('a aba Dados é um link', await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Seções de configurações"] a')].some(a=>a.textContent==='Dados'&&a.getAttribute('href')==='/configuracoes/dados')`));
   ok('nenhuma aba "Em breve"', !(await texto('nav[aria-label="Seções de configurações"]')).includes('Em breve'));
   const m = await texto('main');
-  ok('título e resumo', m.includes('Configurações gerais') && m.includes('Uma base bem cuidada. O resto flui.'));
+  ok('título e resumo', m.includes('Configurações gerais') && m.includes('Dados e preferências da Central Numa.'));
   await c.ate(`document.querySelector('main').textContent.includes('Uso imediato')`);
   ok('selo da fase no cabeçalho', (await texto('main')).includes('Fase 0a') && (await texto('main')).includes('Uso imediato'));
   ok('o título da aba diz a tela', (await c.avaliar(`document.title`)).startsWith('Configurações gerais'));
@@ -82,30 +90,37 @@ await passo('primeira abertura', async () => {
   await c.foto('a-1440-inteira', { inteira: true });
 });
 
-await passo('seções e índice', async () => {
-  const ids = await c.avaliar(`[...document.querySelectorAll('main section[id]')].map(s=>s.id)`);
-  ok('seções na ordem aprovada', ids.join() === 'organizacao,regiao,fase,alertas,financeiro,backup', ids.join());
-  const titulos = await c.avaliar(`[...document.querySelectorAll('main section h2')].map(s=>s.textContent)`);
-  ok('títulos das seções', titulos.join('|') === 'Organização|Região e calendário|Fase da Numa|Alertas e lembretes|Financeiro|Backup', titulos.join('|'));
+await passo('navegação por seções', async () => {
+  const abas = await c.avaliar(`[...document.querySelectorAll('[role=tablist] [role=tab]')].map(a=>a.textContent)`);
+  ok('as 5 seções, na ordem', abas.join('|') === 'Organização e região|Fase da Numa|Alertas|Financeiro|Backup', abas.join('|'));
+  ok('começa em Organização e região', (await secaoAberta()) === 'organizacao');
+  ok('o índice "Nesta página" saiu', !(await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Nesta página"]'))`)));
+  const grupos = await c.avaliar(`[...document.querySelectorAll('#organizacao h3')].map(h=>h.textContent)`);
+  ok('dois grupos em Organização e região', grupos.join('|') === 'Organização|Região e calendário', grupos.join('|'));
+  const rotulos = await c.avaliar(`[...document.querySelectorAll('#organizacao label')].map(l=>l.textContent)`);
+  ok('os campos da proposta', rotulos.join('|') === 'Nome da organização *|E-mail institucional|Link do logotipo no Drive|Fuso horário *|Moeda padrão *|UF|Município', rotulos.join('|'));
   const m = await texto('main');
   ok('só o que é da F0a', !/Encarregado|Canal do titular|Validade padrão de propostas|revisão de acessos|Revisão jurídica|revisão jurídica/i.test(m));
   ok('sem aviso de demonstração do protótipo', !/Demonstração visual|nesta prévia|só nesta visualização/i.test(m));
-  const indice = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Nesta página"] a')].map(a=>a.textContent)`);
-  ok('"Nesta página" com as 6 seções', indice.length === 6, indice.join('|'));
-  await c.clicar('nav[aria-label="Nesta página"] a[href="#backup"]');
-  await c.ate(`location.hash==='#backup'`);
-  await c.espera(700);
-  ok('o índice leva à seção', await c.avaliar(`(()=>{const t=document.getElementById('backup').getBoundingClientRect().top;return t>=0&&t<innerHeight})()`));
-  ok('o índice marca a seção clicada', (await c.avaliar(`document.querySelector('nav[aria-label="Nesta página"] a[aria-current]')?.textContent`)) === 'Backup');
-  await c.espera(600);
-  await c.avaliar(`document.getElementById('alertas').scrollIntoView({block:'start',behavior:'instant'})`);
-  await c.espera(200);
-  ok('o índice acompanha a rolagem', (await c.avaliar(`document.querySelector('nav[aria-label="Nesta página"] a[aria-current]')?.textContent`)) === 'Alertas e lembretes');
-  await c.avaliar(`window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})`);
-  await c.espera(200);
-  ok('no fim da página, marca a última seção', (await c.avaliar(`document.querySelector('nav[aria-label="Nesta página"] a[aria-current]')?.textContent`)) === 'Backup');
-  await c.avaliar(`window.scrollTo({top:0,behavior:'instant'})`);
-  await c.espera(100);
+  for (const [id, titulo] of [['fase', 'Fase da Numa'], ['alertas', 'Alertas'], ['financeiro', 'Financeiro'], ['backup', 'Backup'], ['organizacao', 'Organização e região']]) {
+    await irSecao(id);
+    ok(`${titulo}: só ela à vista`, (await secaoAberta()) === id, await secaoAberta());
+    ok(`${titulo}: título e aba marcada`, (await texto(`#${id} h2`)) === titulo && (await c.avaliar(`document.querySelector(${js(aba(id))}).getAttribute('aria-selected')`)) === 'true');
+    ok(`${titulo}: o endereço acompanha`, (await c.avaliar(`location.hash`)) === `#${id}`);
+  }
+  ok('com o mouse, sem contorno de foco na seção', await c.avaliar(`document.activeElement.getAttribute('role')==='tab'&&!document.activeElement.matches(':focus-visible')`));
+  await c.avaliar(`location.hash='#alertas'`);
+  await c.recarregar();
+  await pronta();
+  ok('recarregar fica na mesma seção', (await secaoAberta()) === 'alertas');
+  await irSecao('backup');
+  await c.avaliar(`history.back()`);
+  await c.ate(`location.hash==='#alertas'`);
+  await c.ate(`document.getElementById('alertas').offsetParent`);
+  ok('o voltar do navegador passa pelas seções, sem sair da tela', (await c.avaliar(`location.pathname`)) === '/configuracoes' && (await secaoAberta()) === 'alertas');
+  await irSecao('backup');
+  ok('Backup configura a responsável; exportar e importar seguem em Dados', await c.avaliar(`Boolean(document.querySelector('#backup a[href="/configuracoes/dados"]'))&&!document.querySelector('#backup input[type=file]')`));
+  await irSecao('organizacao');
 });
 
 await passo('padrões da especificação', async () => {
@@ -122,7 +137,9 @@ await passo('padrões da especificação', async () => {
   const m = await texto('main');
   ok('regras fixas, sem controle', (m.match(/Regra fixa/g) || []).length === 2 && m.includes('Rateio sempre fecha em 100%') && m.includes('Comprovante obrigatório em todos os pagamentos'));
   ok('câmbio começa vazio', m.includes('Nenhum câmbio informado.'));
-  ok('tudo em ordem, nada para descartar', m.includes('Tudo em ordem por aqui.') && (await botao('Descartar')) === true);
+  ok('sem alterações: nenhum aviso e ações desligadas', (await estadoDaBarra()) === '' && (await botao('Descartar')) === true && (await botao('Salvar alterações')) === true);
+  ok('obrigatórios explicados junto às ações', (await texto('main form')).includes('Campos com * são obrigatórios.'));
+  ok('"Não informado" é só indicação visual', (await c.avaliar(`document.getElementById('email').placeholder`)) === 'Não informado' && (await c.avaliar(`document.getElementById('logo').placeholder`)) === 'Não informado');
 });
 
 await passo('listas', async () => {
@@ -142,16 +159,17 @@ await passo('listas', async () => {
   const sp = await opcoes('municipio');
   ok('ao trocar de estado, a lista muda', sp.includes('Campinas') && !sp.includes('Niterói'), sp.length);
   ok('e o município volta a "Não informado"', (await valor('municipio')) === '');
-  ok('agora há o que descartar', (await texto('main')).includes('Há alterações sem salvar.') && (await botao('Descartar')) === false);
+  ok('agora há o que descartar', (await estadoDaBarra()) === 'Alterações não salvas' && (await botao('Descartar')) === false && (await botao('Salvar alterações')) === false);
   await escolher('municipio', 'Campinas');
   await escolher('uf', '');
   await c.espera(100);
   ok('sem estado, município fica desligado', await c.avaliar(`document.getElementById('municipio').disabled`));
+  ok('e a tela diz por quê', (await texto('#organizacao')).includes('Escolha a UF para ver os municípios.'));
   await c.clicar('texto=Descartar');
   await c.espera(150);
   ok('descartar volta o estado', (await valor('uf')) === 'RJ');
   ok('descartar volta o município, com a lista certa', (await valor('municipio')) === 'Rio de Janeiro' && (await opcoes('municipio')).includes('Niterói'));
-  ok('nada a descartar de novo', (await texto('main')).includes('Tudo em ordem por aqui.'));
+  ok('nada a descartar de novo', (await estadoDaBarra()) === '' && (await botao('Salvar alterações')) === true);
   const pessoas = await opcoes('responsavel');
   ok('responsável: pessoas internas ativas', pessoas.join('|') === 'Kimberly Grebe|Camila Lima|Bruna Alves', pessoas.join('|'));
 });
@@ -172,22 +190,55 @@ await passo('validação', async () => {
   await c.espera(500);
   const r = await texto('main [role=alert]');
   ok('resumo no topo, com a contagem', r.startsWith('Faltam ajustar 5 campos.'), r.slice(0, 60));
-  ok('uma mensagem para cada erro', ['Informe o nome da organização.', 'Informe um e-mail válido.', 'Use um link de drive.google.com ou docs.google.com.', 'Informe a antecedência de vencimentos, em dias.', 'Informe a antecedência de domínios, em dias.'].every((m) => r.includes(m)));
-  ok('o foco vai para o resumo', await c.avaliar(`document.activeElement===document.querySelector('main [role=alert]')`));
+  ok('uma mensagem para cada erro, com a seção', ['Organização e região: Informe o nome da organização.', 'Organização e região: Informe um e-mail válido.', 'Organização e região: Use um link de drive.google.com ou docs.google.com.', 'Alertas: Informe a antecedência de vencimentos, em dias.', 'Alertas: Informe a antecedência de domínios, em dias.'].every((m) => r.includes(m)), r);
+  ok('com erro na seção aberta, fica nela e o foco vai para o campo', (await secaoAberta()) === 'organizacao' && (await focado()) === 'nome', await focado());
+  ok('a navegação marca as seções com erro', (await textoDaAba('organizacao')).includes('3 campos para ajustar') && (await textoDaAba('alertas')).includes('2 campos para ajustar') && !(await textoDaAba('backup')).includes('ajustar'));
   ok('nada foi gravado', !(await ultimoAviso()).includes('salvas'));
   await c.foto('b-erros');
   await c.clicar('main [role=alert] a:nth-of-type(4)');
   await c.espera(100);
-  ok('o link do resumo leva ao campo', (await c.avaliar(`document.activeElement.id`)) === 'vencimentos', await c.avaliar(`document.activeElement.id`));
+  ok('o link do resumo abre a seção e leva ao campo', (await secaoAberta()) === 'alertas' && (await focado()) === 'vencimentos', await focado());
   await preencher('vencimentos', '4');
   await c.ate(`!document.getElementById('vencimentos-erro')`);
   ok('corrigir tira o erro na hora', (await texto('main [role=alert]')).startsWith('Faltam ajustar 4 campos.'));
   await c.clicar('texto=Descartar');
   await c.ate(`!document.querySelector('main [role=alert]')`);
   ok('descartar limpa os erros e os valores', (await valor('nome')) === 'Numa' && (await valor('vencimentos')) === '3' && !(await c.avaliar(`document.getElementById('nome-erro')`)));
+  ok('e as marcas da navegação', !(await textoDaAba('organizacao')).includes('ajustar') && !(await textoDaAba('alertas')).includes('ajustar'));
+});
+
+await passo('erro em seção que não está aberta', async () => {
+  await irSecao('backup');
+  await preencher('nome', '');
+  await preencher('dominios', 'abc');
+  await c.espera(60);
+  await preencher('nome', '');
+  await escolher('responsavel', '0b7f1c52-3f6e-4a1b-9d2c-5e8a7c4f1a01');
+  await c.espera(60);
+  await salvar();
+  await c.ate(`document.querySelector('main [role=alert]')`);
+  await c.ate(`document.getElementById('organizacao').offsetParent`);
+  await c.espera(100);
+  ok('abre a seção do primeiro erro e põe o foco no campo', (await secaoAberta()) === 'organizacao' && (await focado()) === 'nome', `${await secaoAberta()} ${await focado()}`);
+  const r = await texto('main [role=alert]');
+  ok('o resumo identifica as duas seções', r.includes('Organização e região: Informe o nome') && r.includes('Alertas: Informe a antecedência de domínios'), r);
+  ok('a outra seção continua marcada', (await textoDaAba('alertas')).includes('1 campo para ajustar'));
+  ok('nada foi gravado', (await guardado('responsavel_backup_id')) !== '0b7f1c52-3f6e-4a1b-9d2c-5e8a7c4f1a01');
+  await c.foto('b-erro-em-outra-secao');
+  await preencher('nome', 'Numa');
+  await c.ate(`!document.getElementById('nome-erro')`);
+  await salvar();
+  await c.ate(`document.getElementById('alertas').offsetParent`);
+  await c.espera(100);
+  ok('corrigido um, salvar leva ao erro que restou', (await secaoAberta()) === 'alertas' && (await focado()) === 'dominios', `${await secaoAberta()} ${await focado()}`);
+  await c.clicar('texto=Descartar');
+  await c.ate(`!document.querySelector('main [role=alert]')`);
+  ok('descartar volta todas as seções', (await valor('dominios')) === '45' && (await valor('responsavel')) === (await guardado('responsavel_backup_id')));
+  await irSecao('organizacao');
 });
 
 await passo('link do Drive', async () => {
+  await irSecao('organizacao');
   ok('sem link, sem botão "Abrir"', !(await c.avaliar(`[...document.querySelectorAll('#organizacao a')].some(a=>a.textContent.includes('Abrir'))`)));
   await preencher('logo', 'https://drive.google.com/file/d/abc/view');
   await c.ate(`[...document.querySelectorAll('#organizacao a')].some(a=>a.textContent.includes('Abrir'))`);
@@ -199,6 +250,19 @@ await passo('link do Drive', async () => {
   ok('com link inválido, o botão some', true);
   await c.clicar('texto=Descartar');
   await c.espera(100);
+});
+
+await passo('"Não informado" nunca é gravado', async () => {
+  await preencher('nome', 'Numa temporária');
+  await c.espera(60);
+  await salvar();
+  await esperarAviso('Configurações salvas.');
+  await c.espera(100);
+  ok('e-mail e logotipo continuam vazios', !(await guardado('organizacao_email')) && !(await guardado('organizacao_logo_url')), `${await guardado('organizacao_email')} ${await guardado('organizacao_logo_url')}`);
+  await preencher('nome', 'Numa');
+  await c.espera(60);
+  await salvar();
+  await c.espera(5200);
 });
 
 await passo('salvar', async () => {
@@ -213,14 +277,17 @@ await passo('salvar', async () => {
   await esperarAviso('Configurações salvas.');
   ok('aviso curto ao salvar', true);
   await c.espera(150);
-  ok('volta a "Tudo em ordem"', (await texto('main')).includes('Tudo em ordem por aqui.') && (await botao('Descartar')) === true);
+  ok('o aviso de alterações some', (await estadoDaBarra()) === '' && (await botao('Descartar')) === true && (await botao('Salvar alterações')) === true);
   ok('tira os espaços do nome', (await valor('nome')) === 'Numa Planejada', await valor('nome'));
   await c.recarregar();
   await pronta();
   ok('recarregar mantém', [await valor('nome'), await valor('email'), await valor('moeda'), await valor('vencimentos')].join('|') === 'Numa Planejada|contato@numa.com.br|USD|5');
+  ok('sem mudança, salvar fica desligado', (await botao('Salvar alterações')) === true);
+  await preencher('nome', 'Numa Planejada ');
+  await c.espera(60);
   await salvar();
   await esperarAviso('Nenhuma alteração para salvar.');
-  ok('sem mudança, avisa e não registra', true);
+  ok('só espaços a mais: avisa e não registra', (await valor('nome')) === 'Numa Planejada');
   const h = await historicoDados();
   ok('o histórico diz quem mudou o quê', h.some((l) => l.includes('Kimberly Grebe alterou Moeda padrão: de BRL para USD')) && h.some((l) => l.includes('Kimberly Grebe alterou Vencimentos financeiros: de 3 dias para 5 dias')), h.slice(0, 3).join(' ; '));
   ok('com nomes por extenso', h.some((l) => l.includes('alterou Responsável pelo backup semanal: de Camila Lima para Kimberly Grebe')));
@@ -262,7 +329,7 @@ await passo('alterações pendentes', async () => {
   await c.clicar('nav[aria-label="Seções de configurações"] a[href="/configuracoes/dados"]');
   await dialogoAberto();
   await c.espera(420);
-  await c.clicar('texto=Descartar alterações');
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Descartar alterações').click()`);
   await c.ate(`location.pathname==='/configuracoes/dados'`);
   ok('descartar e sair leva à outra tela', true);
   ok('depois de sair, fechar a aba não avisa', await c.avaliar(`(()=>{const e=new Event('beforeunload',{cancelable:true});window.dispatchEvent(e);return !e.defaultPrevented})()`));
@@ -276,8 +343,55 @@ await passo('alterações pendentes', async () => {
   await voltarGeral();
 });
 
+await passo('trocar de seção com alterações', async () => {
+  await preencher('nome', 'Digitado');
+  await c.espera(60);
+  ok('a barra avisa', (await estadoDaBarra()) === 'Alterações não salvas');
+  ok('a navegação marca a seção alterada', (await textoDaAba('organizacao')).includes('alterações não salvas') && !(await textoDaAba('alertas')).includes('alterações não salvas'));
+  await preencher('nome', 'Numa');
+  await c.espera(60);
+  ok('voltar ao valor salvo tira o aviso e desliga salvar', (await estadoDaBarra()) === '' && (await botao('Salvar alterações')) === true && !(await textoDaAba('organizacao')).includes('alterações não salvas'));
+  await preencher('nome', 'Digitado');
+  await c.espera(60);
+  await irSecao('alertas');
+  ok('trocar de seção não pergunta nem apaga', !(await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) && (await valor('nome')) === 'Digitado');
+  ok('a barra diz onde está a alteração', (await estadoDaBarra()) === 'Alterações não salvas em Organização e região', await estadoDaBarra());
+  await preencher('vencimentos', '7');
+  await c.espera(60);
+  ok('e nas duas seções', (await estadoDaBarra()) === 'Alterações não salvas em Organização e região e Alertas', await estadoDaBarra());
+  await irSecao('fase');
+  ok('em Fase, com alteração pendente, as ações aparecem', (await botao('Salvar alterações')) === false && (await botao('Descartar')) === false);
+  await c.foto('c-alteracao-em-outra-secao');
+  await irSecao('organizacao');
+  ok('o que foi digitado continua lá', (await valor('nome')) === 'Digitado' && (await valor('vencimentos')) === '7');
+  const antes = await c.avaliar(`localStorage.getItem('numa-central:v1:configuracao')`);
+  await c.clicar('texto=Descartar');
+  await c.espera(100);
+  ok('descartar volta as duas seções', (await valor('nome')) === 'Numa' && (await valor('vencimentos')) === '5' && (await estadoDaBarra()) === '');
+  ok('e não mexe em nada gravado', (await c.avaliar(`localStorage.getItem('numa-central:v1:configuracao')`)) === antes);
+  await c.espera(5200);
+  await preencher('nome', 'Numa Segunda');
+  await preencher('vencimentos', '6');
+  await c.espera(60);
+  await irSecao('backup');
+  await salvar();
+  await esperarAviso('Configurações salvas.');
+  await c.espera(100);
+  ok('salvar de outra seção grava todas', (await guardado('organizacao_nome')) === 'Numa Segunda' && (await guardado('alerta_vencimento_dias')) === 6, `${await guardado('organizacao_nome')} ${await guardado('alerta_vencimento_dias')}`);
+  ok('e fica na seção aberta', (await secaoAberta()) === 'backup');
+  await c.recarregar();
+  await pronta();
+  ok('recarregar mantém, na mesma seção', (await valor('nome')) === 'Numa Segunda' && (await valor('vencimentos')) === '6' && (await secaoAberta()) === 'backup');
+  await preencher('nome', 'Numa');
+  await preencher('vencimentos', '5');
+  await c.espera(60);
+  await salvar();
+  await c.espera(5200);
+  await voltarGeral();
+});
+
 await passo('fase: estado inicial', async () => {
-  await c.ate(`document.getElementById('fase')`);
+  await irSecao('fase');
   const f = await texto('#fase');
   ok('fase atual e pergunta', f.includes('Fase 0a · Uso imediato') && f.includes('O que temos, quanto custa e o que precisamos fazer?') && f.includes('Fase atual'));
   const trilha = await c.avaliar(`[...document.querySelectorAll('#fase ol li')].map(l=>l.textContent)`);
@@ -314,7 +428,7 @@ await passo('fase: avançar', async () => {
   ok('muda na hora', f.includes('Fase 0b · Casa em ordem'));
   ok('selo acompanha', (await texto('main')).includes('Casa em ordem'));
   ok('registra quem avançou', f.includes('Kimberly Grebe avançou para a Fase 0b'), f.slice(-90));
-  ok('o que estava sendo digitado continua lá', (await valor('nome')) === 'Pendente' && (await texto('main')).includes('Há alterações sem salvar.'));
+  ok('o que estava sendo digitado continua lá', (await valor('nome')) === 'Pendente' && (await estadoDaBarra()) === 'Alterações não salvas em Organização e região');
   const emBreveDepois = await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`);
   ok('nenhuma tela não construída foi liberada', emBreveDepois === emBreveAntes && emBreveAntes === 8, `${emBreveAntes}→${emBreveDepois}`);
   ok('a fase já passada fica marcada', await c.avaliar(`document.querySelector('#fase ol li').className.includes('border-indigo')`));
@@ -363,6 +477,9 @@ await passo('fase: última', async () => {
 });
 
 await passo('câmbio', async () => {
+  await irSecao('financeiro');
+  ok('regras fixas como informação, sem controle', (await c.avaliar(`[...document.querySelectorAll('#financeiro input,#financeiro select,#financeiro [role=switch]')].length`)) === 0);
+  ok('sem nada pendente, a seção não oferece salvar', !(await c.avaliar(`Boolean(document.querySelector('main button[type=submit]'))`)) && (await texto('main form')).includes('O câmbio é gravado ao adicionar ou remover'));
   await c.clicar('#financeiro button');
   await dialogoAberto();
   await c.espera(420);
@@ -440,6 +557,7 @@ await passo('fuso', async () => {
   await c.espera(60);
   await salvar();
   await esperarAviso('Configurações salvas.');
+  await irSecao('financeiro');
   await c.clicar('#financeiro button');
   await dialogoAberto();
   await c.espera(420);
@@ -483,10 +601,16 @@ await passo('responsável fora da lista', async () => {
   ok('a tela avisa, sem trocar sozinha', (await valor('responsavel')) === '' && (await texto('#backup')).includes('A pessoa responsável pelo backup não está mais na lista. Escolha outra.'));
   ok('o dado salvo continua o mesmo', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:configuracao')).find(x=>x.chave==='responsavel_backup_id').valor==='2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03'`));
   ok('Bruna saiu da lista', !(await opcoes('responsavel')).includes('Bruna Alves'));
-  await c.foto('f-fora-da-lista');
+  ok('a navegação avisa, mesmo com outra seção aberta', (await secaoAberta()) === 'organizacao' && (await textoDaAba('backup')).includes('precisa de atenção'));
+  ok('sem alteração, salvar fica desligado', (await botao('Salvar alterações')) === true);
+  await preencher('nome', 'Numa com pendência');
+  await c.espera(60);
   await salvar();
-  await c.ate(`document.querySelector('main [role=alert]')`);
-  ok('salvar pede que escolha', (await texto('main [role=alert]')).includes('Escolha a pessoa responsável pelo backup.'));
+  await c.ate(`document.getElementById('backup').offsetParent`);
+  await c.espera(100);
+  ok('ao salvar outra coisa, abre Backup e pede que escolha', (await focado()) === 'responsavel' && (await texto('main [role=alert]')).includes('Backup: Escolha a pessoa responsável pelo backup.'), await focado());
+  await c.foto('f-fora-da-lista');
+  await preencher('nome', 'Numa');
   await escolher('responsavel', '1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02');
   await c.espera(100);
   await salvar();
@@ -568,24 +692,64 @@ const menor=[];document.querySelectorAll('body *').forEach(e=>{if(vis(e)&&[...e.
 const alvos=[];document.querySelectorAll('a,button:not(:disabled),select:not(:disabled),input:not(:disabled):not([type=file]),[role=tab]').forEach(e=>{if(vis(e)&&e.getAttribute('href')!=='#conteudo'){const b=e.getBoundingClientRect();if(b.height<44||b.width<44)alvos.push((e.textContent.trim().slice(0,20)||e.getAttribute('aria-label')||e.id)+' '+Math.round(b.width)+'x'+Math.round(b.height))}});r.alvosAbaixo44=alvos;
 const c16=[];document.querySelectorAll('input:not([type=file]),select,textarea').forEach(e=>{if(vis(e)&&parseFloat(cs(e).fontSize)<16)c16.push((e.id||e.getAttribute('aria-label'))+':'+cs(e).fontSize)});r.camposAbaixo16=c16;return r})()`;
 
+const MEDIR_ACOES = `(()=>{const barra=document.querySelector('main form > div:last-child');const caixas=[...barra.querySelectorAll('p,button')].map(e=>e.getBoundingClientRect()).filter(r=>r.width>1&&r.height>1);let cruza=false;for(let i=0;i<caixas.length;i++)for(let j=i+1;j<caixas.length;j++){const a=caixas[i],b=caixas[j];if(a.left<b.right-0.5&&b.left<a.right-0.5&&a.top<b.bottom-0.5&&b.top<a.bottom-0.5)cruza=true}const base=barra.getBoundingClientRect();const nav=document.querySelector('nav[aria-label="Navegação do celular"]')?.getBoundingClientRect();return {cruza,dentro:caixas.every(c=>c.left>=base.left&&c.right<=base.right),acimaDaBarraInferior:!nav||nav.height===0||base.height===0||base.bottom<=nav.top+1,naTela:base.top>=0&&base.bottom<=innerHeight}})()`;
+const NAVEGACAO = `(()=>{const abas=[...document.querySelectorAll('[role=tablist] [role=tab]')].map(e=>e.getBoundingClientRect());const painel=document.querySelector('main form').getBoundingClientRect();const lista=document.querySelector('[role=tablist]').getBoundingClientRect();return {todas:abas.length===5&&abas.every(r=>r.width>0&&r.left>=0&&r.right<=innerWidth&&r.height>=44),aEsquerda:lista.right<=painel.left,acima:lista.bottom<=painel.top}})()`;
+const acoesEmOrdem = (b) => !b.cruza && b.dentro && b.acimaDaBarraInferior && b.naTela;
+
 for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
   await c.tamanho(l, a);
   await passo(`tela em ${l}px`, async () => {
     await voltarGeral();
     await c.espera(300);
-    const m = await c.avaliar(MEDIR);
-    if (l >= 768) { delete m.alvosAbaixo44; delete m.camposAbaixo16; }
-    resultados.push(`  medida ${l}: ${JSON.stringify(m)}`);
-    ok(`sem rolagem lateral em ${l}px`, !m.rolagemLateral && m.larguraJanela === l, m.larguraJanela);
-    ok(`nada abaixo de 12px em ${l}px`, m.textoAbaixo12.length === 0, m.textoAbaixo12.join(','));
-    if (l < 768) {
-      ok(`alvos de 44px em ${l}px`, m.alvosAbaixo44.length === 0, m.alvosAbaixo44.join(' | '));
-      ok(`campos de 16px em ${l}px`, m.camposAbaixo16.length === 0, m.camposAbaixo16.join(','));
+    for (const secao of SECOES) {
+      await irSecao(secao);
+      await c.avaliar(`window.scrollTo({top:0,behavior:'instant'})`);
+      await c.espera(100);
+      const m = await c.avaliar(MEDIR);
+      ok(`${secao}: sem rolagem lateral em ${l}px`, !m.rolagemLateral && m.larguraJanela === l, m.larguraJanela);
+      ok(`${secao}: nada abaixo de 12px em ${l}px`, m.textoAbaixo12.length === 0, m.textoAbaixo12.join(','));
+      if (l < 768) {
+        ok(`${secao}: alvos de 44px em ${l}px`, m.alvosAbaixo44.length === 0, m.alvosAbaixo44.join(' | '));
+        ok(`${secao}: campos de 16px em ${l}px`, m.camposAbaixo16.length === 0, m.camposAbaixo16.join(','));
+      }
+      const n = await c.avaliar(NAVEGACAO);
+      ok(`${secao}: as 5 opções à vista em ${l}px`, n.todas);
+      ok(`${secao}: navegação ${l >= 1024 ? 'à esquerda' : 'acima'} em ${l}px`, l >= 1024 ? n.aEsquerda : n.acima);
+      const b = await c.avaliar(MEDIR_ACOES);
+      ok(`${secao}: ações sem sobreposição em ${l}px`, acoesEmOrdem(b), JSON.stringify(b));
+      await c.foto(`i-${l}-${secao}`);
     }
-    const indice = await c.avaliar(`document.querySelector('nav[aria-label="Nesta página"]').getBoundingClientRect().width>0`);
-    ok(`índice ${l >= 1024 ? 'visível' : 'oculto'} em ${l}px`, indice === (l >= 1024));
-    await c.foto(`i-${l}-topo`);
-    await c.foto(`i-${l}-inteira`, { inteira: true });
+    // Com alteração em duas seções, o texto da barra é o mais longo.
+    await preencher('nome', 'Numa alterada');
+    await preencher('vencimentos', '9');
+    await c.espera(80);
+    for (const secao of SECOES) {
+      await irSecao(secao);
+      await c.espera(60);
+      const b = await c.avaliar(MEDIR_ACOES);
+      ok(`${secao}: com alterações, ações sem sobreposição em ${l}px`, acoesEmOrdem(b), JSON.stringify(b));
+      ok(`${secao}: com alterações, sem rolagem lateral em ${l}px`, !(await c.avaliar(`document.documentElement.scrollWidth>innerWidth`)));
+    }
+    await c.foto(`i-${l}-alterado`);
+    await irSecao('organizacao');
+    await c.avaliar(`window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})`);
+    await c.espera(100);
+    const fim = await c.avaliar(`(()=>{const m=document.getElementById('municipio').getBoundingClientRect();const barra=document.querySelector('main form > div:last-child').getBoundingClientRect();return m.bottom<=barra.top})()`);
+    ok(`rolando até o fim, a barra não cobre o último campo em ${l}px`, fim);
+    await c.foto(`i-${l}-fim`);
+    await c.clicar('texto=Descartar');
+    await c.avaliar(`window.scrollTo({top:0,behavior:'instant'})`);
+    await c.espera(500);
+    const AVISO_E_ACOES = `(()=>{const t=[...document.querySelectorAll('[data-sonner-toast]')].map(e=>e.getBoundingClientRect());const b=[...document.querySelectorAll('main form > div:last-child button')].map(e=>e.getBoundingClientRect());return {avisos:t.length,botoes:b.length,cobre:t.some(a=>b.some(r=>a.left<r.right&&r.left<a.right&&a.top<r.bottom&&r.top<a.bottom))}})()`;
+    const noInicio = await c.avaliar(AVISO_E_ACOES);
+    ok(`o aviso não cobre as ações em ${l}px, no início da página`, noInicio.avisos > 0 && noInicio.botoes === 2 && !noInicio.cobre, JSON.stringify(noInicio));
+    await c.foto(`i-${l}-aviso`);
+    await c.avaliar(`window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})`);
+    await c.espera(100);
+    const noFim = await c.avaliar(AVISO_E_ACOES);
+    ok(`o aviso não cobre as ações em ${l}px, no fim da página`, noFim.avisos > 0 && noFim.botoes === 2 && !noFim.cobre, JSON.stringify(noFim));
+    await c.avaliar(`window.scrollTo({top:0,behavior:'instant'})`);
+    await c.espera(5200);
   });
 }
 
@@ -604,6 +768,7 @@ await passo('celular', async () => {
   const barra = await c.avaliar(`(()=>{const b=document.querySelector('main button[type=submit]').getBoundingClientRect();const nav=document.querySelector('nav[aria-label="Navegação principal"]')?.getBoundingClientRect();return {base:Math.round(b.bottom),topoNav:nav?Math.round(nav.top):null,visivel:b.top>=0&&b.bottom<=innerHeight}})()`);
   ok('salvar fica à mão no celular', barra.visivel, JSON.stringify(barra));
   // câmbio com linha, em cartão
+  await irSecao('financeiro');
   await c.clicar('#financeiro button');
   await dialogoAberto();
   await c.espera(450);
@@ -639,6 +804,7 @@ await passo('celular', async () => {
   await c.clicar('texto=Descartar');
   await c.espera(100);
   // fase no celular
+  await irSecao('fase');
   await c.clicar('texto=Avançar para a Fase 0b');
   await dialogoAberto();
   await c.espera(450);
@@ -652,6 +818,12 @@ await passo('celular', async () => {
 await c.tamanho(1440, 900);
 await passo('teclado', async () => {
   await voltarGeral();
+  await c.avaliar(`document.querySelector(${js(aba('organizacao'))}).focus()`);
+  await c.tecla('ArrowDown');
+  await c.espera(100);
+  ok('as setas passam pelas seções', (await secaoAberta()) === 'fase' && (await c.avaliar(`document.activeElement.getAttribute('role')`)) === 'tab');
+  ok('pelo teclado, o foco aparece', await c.avaliar(`document.activeElement.matches(':focus-visible')`));
+  ok('as seções fechadas saem do caminho do Tab', await c.avaliar(`!document.getElementById('nome').offsetParent&&document.getElementById('nome').matches(':not(:focus)')`));
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.includes('Avançar para a Fase')).focus()`);
   await c.tecla('Enter');
   await dialogoAberto();

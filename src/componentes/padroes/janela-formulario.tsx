@@ -10,7 +10,8 @@ import { Confirmacao } from './confirmacao';
 export type ErroDeCampo = { campoId: string; mensagem: string };
 
 /** Resumo no topo, com links para cada erro (P3). */
-export function ResumoErros({ erros, ref }: { erros: readonly ErroDeCampo[]; ref?: Ref<HTMLDivElement> }) {
+/** `aoEscolher` é para quando o campo pode estar fora da vista: quem chama mostra o campo e dá o foco. */
+export function ResumoErros({ erros, aoEscolher, ref }: { erros: readonly ErroDeCampo[]; aoEscolher?: (campoId: string) => void; ref?: Ref<HTMLDivElement> }) {
   if (!erros.length) return null;
   return (
     <div ref={ref} role="alert" tabIndex={-1} className="mb-5 rounded-md bg-err-wash p-4 text-[13px] text-err focus:outline-none">
@@ -22,7 +23,8 @@ export function ResumoErros({ erros, ref }: { erros: readonly ErroDeCampo[]; ref
           className="mt-0.5 flex min-h-11 items-center underline md:mt-1.5 md:block md:min-h-0"
           onClick={(evento) => {
             evento.preventDefault();
-            document.getElementById(erro.campoId)?.focus();
+            if (aoEscolher) aoEscolher(erro.campoId);
+            else document.getElementById(erro.campoId)?.focus();
           }}
         >
           {erro.mensagem}

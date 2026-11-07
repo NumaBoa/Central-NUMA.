@@ -441,6 +441,7 @@ await passo('áreas na ficha da pessoa', async () => {
 await passo('RT-14 na T02.01: motivo e fonte', async () => {
   await ir('/configuracoes');
   await c.ate(`document.getElementById('nome')&&document.getElementById('responsavel')`);
+  await c.clicar('[role=tab][id$="-trigger-fase"]');
   await c.clicar('texto=Avançar para a Fase 0b');
   await dialogoAberto();
   await c.espera(420);
@@ -460,6 +461,7 @@ await passo('RT-14 na T02.01: motivo e fonte', async () => {
   await esperarAviso('A Numa voltou para a Fase 0a.');
   await dialogoFechado();
   ok('confirmar de novo segue', (await texto('#fase')).includes('Fase 0a'));
+  await c.clicar('[role=tab][id$="-trigger-financeiro"]');
   await c.clicar('#financeiro button');
   await dialogoAberto();
   await c.espera(420);

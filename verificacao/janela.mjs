@@ -33,7 +33,7 @@ const FORMULARIOS = [
   { nome: 'Nova despesa', caminho: '/financeiro', botao: 'Nova despesa' },
   { nome: 'Novo aporte', caminho: '/financeiro/socias', botao: 'Novo aporte em dinheiro', dialogo: true },
   { nome: 'Nova transferência', caminho: '/financeiro/transferencias', botao: 'Nova transferência', dialogo: true },
-  { nome: 'Adicionar câmbio', caminho: '/configuracoes', botao: 'Adicionar', dialogo: true },
+  { nome: 'Adicionar câmbio', caminho: '/configuracoes#financeiro', botao: 'Adicionar', dialogo: true },
 ];
 
 async function abrir(formulario) {

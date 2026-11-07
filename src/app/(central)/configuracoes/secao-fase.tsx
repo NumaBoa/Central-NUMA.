@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, Check, Flag, Undo2 } from 'lucide-react';
+import { ArrowRight, Check, Undo2 } from 'lucide-react';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { Secao } from '@/componentes/padroes/secao';
 import { Button } from '@/componentes/ui/button';
 import { mensagemDoErro } from '@/dados/erros';
 import { avancarFase, voltarFase } from '@/dominio/configuracoes';
@@ -53,7 +52,7 @@ export function SecaoFase({ fase, ultimaMudanca }: { fase: Fase; ultimaMudanca: 
   }
 
   return (
-    <Secao id="fase" icone={Flag} titulo="Fase da Numa" descricao="Um passo de cada vez, com espaço para crescer.">
+    <>
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-md bg-linen p-3.5 md:flex-nowrap md:items-center md:p-4">
         <div className="min-w-0">
           <strong className="block text-[13px] font-semibold md:text-sm">
@@ -153,6 +152,6 @@ export function SecaoFase({ fase, ultimaMudanca }: { fase: Fase; ultimaMudanca: 
           }
         />
       )}
-    </Secao>
+    </>
   );
 }
