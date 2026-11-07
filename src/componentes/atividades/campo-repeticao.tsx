@@ -48,7 +48,7 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
   const aviso = usaDia ? avisoDoDia(regra) : null;
 
   return (
-    <div className="grid gap-[18px] rounded-md border border-line p-3.5">
+    <div className="grid gap-x-5 gap-y-3 rounded-md border border-line p-3 md:grid-cols-2">
       <Pilulas rotulo="Frequência" obrigatorio valor={valor.frequencia} aoMudar={(frequencia) => mudar({ frequencia: frequencia as FormularioRepeticao['frequencia'] })} opcoes={FREQUENCIAS} />
 
       <Campo id={idDe('intervalo')} rotulo="A cada" erro={erros.intervalo} className="max-w-52">
@@ -61,7 +61,7 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
       </Campo>
 
       {valor.frequencia === 'semanal' && (
-        <div id={idDe('dias_semana')} tabIndex={-1}>
+        <div id={idDe('dias_semana')} tabIndex={-1} className="md:col-span-2">
           <PilulasMultiplas rotulo="Nos dias" obrigatorio valores={valor.dias_semana.map(String)} aoMudar={(dias) => mudar({ dias_semana: dias.map(Number) })} opcoes={DIAS_DA_SEMANA.map((dia) => ({ valor: String(dia.valor), rotulo: dia.curto }))} />
           {erros.dias_semana && <MensagemErro>{erros.dias_semana}</MensagemErro>}
         </div>
@@ -91,9 +91,9 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
           )}
         </div>
       )}
-      {aviso && <p className="-mt-3 text-xs text-ink-soft">{aviso}</p>}
+      {aviso && <p className="-mt-2 text-xs text-ink-soft md:col-span-2">{aviso}</p>}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-[1.6fr_1fr] gap-3">
         <Campo id={idDe('inicio')} rotulo="Começa em" obrigatorio erro={erros.inicio}>
           {(controle) => <EntradaData {...controle} value={valor.inicio} onChange={(evento) => mudar({ inicio: evento.target.value })} />}
         </Campo>
@@ -115,7 +115,7 @@ export function CampoRepeticao({ id, valor, aoMudar, erros = {}, lembrete, hoje 
       )}
 
       {valida && (
-        <p data-resumo-regra className="rounded-sm bg-mist px-3 py-2 text-[13px] leading-[20px]">
+        <p data-resumo-regra className="rounded-sm bg-mist px-3 py-1.5 text-[13px] leading-[20px] md:col-span-2">
           <span className="font-semibold">{regraPorExtenso(regra)}</span>
           {fim ? `, ${fim}` : ''}.
           {proximas.length > 0 ? ` Próximas: ${proximas.map((dia) => formatarDiaISO(dia).slice(0, 5)).join(', ')}.` : ' Com esse fim, não haveria nenhuma ocorrência.'}

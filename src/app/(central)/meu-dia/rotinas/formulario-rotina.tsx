@@ -2,19 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown } from 'lucide-react';
+import { Bell, ChevronRight, CircleCheck, Layers, PlusCircle } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { CampoRepeticao, idDoCampoDaRepeticao } from '@/componentes/atividades/campo-repeticao';
+import { CampoParticipantes } from '@/componentes/campos/campo-participantes';
+import { SelecaoPessoa } from '@/componentes/campos/selecao-pessoa';
+import { SeletorContextos } from '@/componentes/campos/seletor-contextos';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
-import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
+import { Pilulas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
-import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -25,11 +27,12 @@ import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { avisosDaRotina, criarRotina, dadosDoFormularioRotina, editarRotina, esquemaDoFormularioRotina, formularioDaRotina, formularioRotinaVazio, SOLICITANTE_OUTRA_ROTINA, type DadosDasRotinas, type FormularioRotina } from '@/dominio/recorrencias';
 import { mesmaAgenda, regraDoFormulario, type FormularioRepeticao } from '@/dominio/repeticao';
 import { hojeISO } from '@/lib/datas';
+import { cn } from '@/lib/utils';
 
 const TIPOS = [
-  { valor: 'tarefa', rotulo: 'Tarefa' },
-  { valor: 'demanda', rotulo: 'Demanda' },
-  { valor: 'lembrete', rotulo: 'Lembrete' },
+  { valor: 'tarefa', rotulo: 'Tarefa', icone: CircleCheck },
+  { valor: 'demanda', rotulo: 'Demanda', icone: Layers },
+  { valor: 'lembrete', rotulo: 'Lembrete', icone: Bell },
 ];
 const OPCOES_PRIORIDADE = Object.entries(ROTULOS_PRIORIDADE_ATIVIDADE).map(([valor, rotulo]) => ({ valor, rotulo }));
 const ID_DA_REPETICAO = 'rotina-repeticao';
@@ -44,9 +47,13 @@ type FormularioDeRotinaProps = {
   dados: DadosDasRotinas;
 };
 
+
+
 /** T03.05: criar e editar. Mudar a agenda encerra a regra e começa outra (RN-03.17). */
 export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: FormularioDeRotinaProps) {
   const { pessoa, contexto } = useCentral();
+  // Encerrada não volta: abre só para consulta (protótipo de T03.05).
+  const soLeitura = rotina?.situacao === 'encerrada';
   const hoje = hojeISO();
   const inicial = useMemo(() => (rotina ? formularioDaRotina(rotina) : formularioRotinaVazio(pessoa.id, contexto.id, hoje)), [rotina, pessoa.id, contexto.id, hoje]);
   const resolver = useMemo(() => zodResolver(esquemaDoFormularioRotina(rotina ? undefined : hoje)), [rotina, hoje]);
@@ -127,73 +134,81 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
 
   return (
     <>
-      <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={rotina ? 'Editar rotina' : 'Nova rotina'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={rotina ? 'Salvar' : 'Criar rotina'} salvando={isSubmitting} erros={erros}>
-        <div className="grid grid-cols-1 gap-[18px]">
-          <Controller control={control} name="tipo" render={({ field }) => <Pilulas rotulo="Tipo" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={TIPOS} />} />
-          <Campo id={ID_DO_CAMPO.titulo} rotulo="Título" obrigatorio erro={erroDoTitulo} ajuda={titulo.length > MAXIMO_NO_TITULO - 20 ? `${titulo.length} de ${MAXIMO_NO_TITULO} caracteres.` : undefined}>
-            {(controle) => <Input autoComplete="off" {...controle} {...register('titulo')} />}
+      <JanelaFormulario larga aberto={aberto} aoFechar={aoFechar} titulo={soLeitura ? (rotina?.titulo ?? 'Rotina') : rotina ? 'Editar rotina' : 'Nova rotina'} descricao={soLeitura ? 'Esta rotina está encerrada: só para consulta.' : undefined} alterado={isDirty && !soLeitura} aoEnviar={enviar} rotuloSalvar={rotina ? 'Salvar alterações' : 'Criar rotina'} salvando={isSubmitting} erros={erros} soLeitura={soLeitura}>
+        <fieldset disabled={soLeitura} className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
+          <div className="border-b border-line pb-3 md:col-span-2">
+            <Controller control={control} name="tipo" render={({ field }) => <Pilulas rotulo="Tipo" rotuloOculto obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={TIPOS} />} />
+          </div>
+          <Campo id={ID_DO_CAMPO.titulo} rotulo="Título" obrigatorio erro={erroDoTitulo} className="relative md:col-span-2">
+            {(controle) => (
+              <>
+                <span className="absolute top-0.5 right-0 text-xs text-ink-soft tabular-nums">
+                  {titulo.length}/{MAXIMO_NO_TITULO}
+                </span>
+                <Input autoComplete="off" {...controle} {...register('titulo')} />
+              </>
+            )}
           </Campo>
           <Controller
             control={control}
             name="responsavel_id"
             render={({ field }) => (
               <Campo id={ID_DO_CAMPO.responsavel_id} rotulo="Responsável" obrigatorio erro={errors.responsavel_id?.message}>
-                {(controle) => (
-                  <Selecao {...controle} {...field}>
-                    {!field.value && <option value="">Escolha uma pessoa</option>}
-                    {responsaveis.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.nome_completo}
-                      </option>
-                    ))}
-                  </Selecao>
-                )}
+                {(controle) => <SelecaoPessoa {...controle} {...field} pessoas={responsaveis} vazio="Escolha uma pessoa" />}
               </Campo>
             )}
           />
-          <Controller control={control} name="repeticao" render={({ field }) => <CampoRepeticao id={ID_DA_REPETICAO} valor={field.value} aoMudar={field.onChange} lembrete={lembrete} hoje={hoje} erros={Object.fromEntries(Object.entries(errosDaRepeticao ?? {}).map(([campo, erro]) => [campo, erro?.message]))} />} />
-          {rotina && (mudouAgenda ? <Faixa tipo="atencao">Ao salvar, esta regra termina e outra começa a partir de hoje. As ocorrências que ninguém mexeu são refeitas; as passadas não mudam.</Faixa> : <p className="-mt-2 text-xs text-ink-soft">O que mudar aqui vale para as próximas ocorrências que ninguém editou à parte. As passadas não mudam.</p>)}
-
-          <div>
-            <Button variante="terciario" tamanho="pequeno" aria-expanded={maisOpcoes} onClick={() => setMaisOpcoes((atual) => erroEscondido || !atual)}>
-              <ChevronDown aria-hidden className={maisOpcoes ? 'rotate-180' : undefined} />
-              Mais opções
-            </Button>
+          <Controller
+            control={control}
+            name="contextos"
+            render={({ field }) => (
+              <Campo id="rotina-contexto" rotulo="Contexto">
+                {(controle) => <SeletorContextos id={controle.id} desativado={soLeitura} valores={field.value} aoMudar={field.onChange} produtos={produtos} todosOsProdutos={dados.produtos} marcas={dados.marcas} />}
+              </Campo>
+            )}
+          />
+          <div className="md:col-span-2">
+            <Controller control={control} name="repeticao" render={({ field }) => <CampoRepeticao id={ID_DA_REPETICAO} valor={field.value} aoMudar={field.onChange} lembrete={lembrete} hoje={hoje} erros={Object.fromEntries(Object.entries(errosDaRepeticao ?? {}).map(([campo, erro]) => [campo, erro?.message]))} />} />
           </div>
+          {rotina && !soLeitura && <div className="md:col-span-2">{mudouAgenda ? <Faixa tipo="atencao">Ao salvar, esta regra termina e outra começa a partir de hoje. As ocorrências que ninguém mexeu são refeitas; as passadas não mudam.</Faixa> : <p className="text-xs text-ink-soft">O que mudar aqui vale para as próximas ocorrências que ninguém editou à parte. As passadas não mudam.</p>}</div>}
+
+          <button
+            type="button"
+            aria-expanded={maisOpcoes}
+            onClick={() => setMaisOpcoes((atual) => erroEscondido || !atual)}
+            className="flex min-h-12 items-center gap-3 rounded-md bg-mist px-4 py-2 text-left transition-colors duration-150 hover:bg-oat md:col-span-2 [&_svg]:size-[18px] [&_svg]:shrink-0"
+          >
+            <PlusCircle aria-hidden className="text-ink-soft" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">Mais opções</span>
+              <span className="block text-xs text-ink-soft">{demanda ? 'Solicitante, área, participantes, prioridade, checklist e arquivo' : lembrete ? 'Área, participantes, prioridade e arquivo' : 'Área, participantes, prioridade, checklist e arquivo'}</span>
+            </span>
+            <ChevronRight aria-hidden className={cn('text-ink-soft transition-transform duration-150', maisOpcoes && 'rotate-90')} />
+          </button>
 
           {maisOpcoes && (
             <>
               {demanda && (
                 <>
-                  <Controller
-                    control={control}
-                    name="solicitante"
-                    render={({ field }) => (
-                      <Campo id={ID_DO_CAMPO.solicitante} rotulo="Solicitante" obrigatorio erro={errors.solicitante?.message}>
-                        {(controle) => (
-                          <Selecao {...controle} {...field}>
-                            {dados.pessoas
-                              .filter((item) => !item.arquivado_em)
-                              .map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.nome_completo}
-                                </option>
-                              ))}
-                            <option value={SOLICITANTE_OUTRA_ROTINA}>Outra: escrever o nome</option>
-                          </Selecao>
-                        )}
+                  <div className="grid gap-3">
+                    <Controller
+                      control={control}
+                      name="solicitante"
+                      render={({ field }) => (
+                        <Campo id={ID_DO_CAMPO.solicitante} rotulo="Solicitante" obrigatorio erro={errors.solicitante?.message}>
+                          {(controle) => <SelecaoPessoa {...controle} {...field} pessoas={dados.pessoas.filter((item) => !item.arquivado_em)} extra={<option value={SOLICITANTE_OUTRA_ROTINA}>Outra: escrever o nome</option>} />}
+                        </Campo>
+                      )}
+                    />
+                    {solicitante === SOLICITANTE_OUTRA_ROTINA && (
+                      <Campo id={ID_DO_CAMPO.solicitante_texto} rotulo="Quem pediu" obrigatorio erro={errors.solicitante_texto?.message}>
+                        {(controle) => <Input autoComplete="off" {...controle} {...register('solicitante_texto')} />}
                       </Campo>
                     )}
-                  />
-                  {solicitante === SOLICITANTE_OUTRA_ROTINA && (
-                    <Campo id={ID_DO_CAMPO.solicitante_texto} rotulo="Quem pediu" obrigatorio erro={errors.solicitante_texto?.message}>
-                      {(controle) => <Input autoComplete="off" {...controle} {...register('solicitante_texto')} />}
-                    </Campo>
-                  )}
-                  <Campo rotulo="Resultado esperado">{(controle) => <Textarea {...controle} {...register('resultado_esperado')} />}</Campo>
+                  </div>
+                  <Campo rotulo="Resultado esperado">{(controle) => <Textarea {...controle} {...register('resultado_esperado')} className="md:min-h-[72px]" />}</Campo>
                 </>
               )}
-              <Campo rotulo="Descrição">{(controle) => <Textarea {...controle} {...register('descricao')} />}</Campo>
               <Controller
                 control={control}
                 name="area_id"
@@ -212,15 +227,24 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
                   </Campo>
                 )}
               />
-              <Controller control={control} name="contextos" render={({ field }) => <PilulasMultiplas rotulo="Contexto" valores={field.value} aoMudar={field.onChange} opcoes={produtos.map((produto) => ({ valor: produto.id, rotulo: produto.nome }))} />} />
-              <p className="-mt-3 text-xs text-ink-soft">Sem produto marcado, é da Numa.</p>
-              <Controller control={control} name="participantes" render={({ field }) => <PilulasMultiplas rotulo="Participantes" valores={field.value} aoMudar={field.onChange} opcoes={participantes.map((item) => ({ valor: item.id, rotulo: item.nome_completo }))} />} />
-              <Controller control={control} name="prioridade" render={({ field }) => <Pilulas rotulo="Prioridade" valor={field.value} aoMudar={field.onChange} opcoes={OPCOES_PRIORIDADE} />} />
-              {!lembrete && (
-                <Campo id="rotina-checklist" rotulo="Checklist" ajuda="Um item por linha. Cada ocorrência nasce com ele desmarcado.">
-                  {(controle) => <Textarea {...controle} {...register('checklist')} />}
-                </Campo>
-              )}
+              <Controller
+                control={control}
+                name="prioridade"
+                render={({ field }) => (
+                  <Campo id="rotina-prioridade" rotulo="Prioridade">
+                    {(controle) => (
+                      <Selecao {...controle} {...field}>
+                        {OPCOES_PRIORIDADE.map(({ valor, rotulo }) => (
+                          <option key={valor} value={valor}>
+                            {rotulo}
+                          </option>
+                        ))}
+                      </Selecao>
+                    )}
+                  </Campo>
+                )}
+              />
+              <Controller control={control} name="participantes" render={({ field }) => <CampoParticipantes desativado={soLeitura} pessoas={participantes} todas={dados.pessoas} valores={field.value} aoMudar={field.onChange} />} />
               <Controller
                 control={control}
                 name="arquivo"
@@ -230,10 +254,18 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
                   </Campo>
                 )}
               />
+              <Campo rotulo="Descrição" className="md:col-span-2">
+                {(controle) => <Textarea {...controle} {...register('descricao')} className="md:min-h-[72px]" />}
+              </Campo>
+              {!lembrete && (
+                <Campo id="rotina-checklist" rotulo="Checklist" ajuda="Um item por linha. Cada ocorrência nasce com ele desmarcado." className="md:col-span-2">
+                  {(controle) => <Textarea {...controle} {...register('checklist')} className="md:min-h-[72px]" />}
+                </Campo>
+              )}
             </>
           )}
-          {errors.root?.message && <MensagemErro>{errors.root.message}</MensagemErro>}
-        </div>
+          {errors.root?.message && <MensagemErro className="md:col-span-2">{errors.root.message}</MensagemErro>}
+        </fieldset>
       </JanelaFormulario>
       <Confirmacao
         aberto={Boolean(aConfirmar)}

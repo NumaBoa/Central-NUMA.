@@ -6,11 +6,11 @@ import { repositorios } from '@/dados/repositorios';
 import { VERSAO_DADOS } from '@/dados/tabelas';
 import type { Atividade } from '@/dados/tipos/atividade';
 import { REGISTROS_INICIAIS, ROTINAS_INICIAIS } from './apoio-testes';
-import { cancelarAtividade, concluirAtividade, adiarAtividade, trocarResponsavel, carregarMeuDia } from './atividades';
+import { cancelarAtividade, concluirAtividade, adiarAtividade, trocarResponsavel, carregarMeuDia, MINHAS } from './atividades';
 import { criarAtividade, formularioAtividadeVazio } from './atividades-formulario';
 import { alterarDatas, duplicarAtividade } from './atividades-painel';
 import { salvarFormularioGeral, formularioDosValores, lerConfiguracoes } from './configuracoes';
-import { ID_CONSOLIDADA } from './contextos';
+import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { limparExemplos, resumoDosDados } from './dados';
 import { historicoDaAtividade } from './historico';
 import { vinculosDaPessoa } from './pessoas';
@@ -30,8 +30,13 @@ import {
   pausarRotina,
   quantasOcorrenciasFuturas,
   repetirAtividade,
+  resumoDasRotinas,
   retomarRotina,
+  rotinasVisiveis,
+  FILTROS_ROTINAS_INICIAIS,
   type DadosDaRotina,
+  type FiltrosRotinas,
+  type LinhaDaRotina,
 } from './recorrencias';
 import { executarRotinas } from './rotinas';
 import type { RegraDeRepeticao } from './repeticao';
@@ -515,5 +520,77 @@ describe('T03.05 e as rotinas do dia', () => {
       expect(rotinas).toHaveLength(6);
       expect(rotinas.some((rotina) => rotina.exemplo)).toBe(false);
     });
+  });
+});
+
+describe('T03.05: filtros no padrão do Meu dia', () => {
+  const linha = ({ modelo, ...alteracoes }: Partial<Omit<LinhaDaRotina, 'modelo'>> & { modelo?: Partial<LinhaDaRotina['modelo']> }): LinhaDaRotina =>
+    ({
+      id: crypto.randomUUID(),
+      titulo: 'Rotina',
+      responsavel_id: ID_KIMBERLY,
+      situacao: 'ativa',
+      frequencia: 'semanal',
+      intervalo: 1,
+      dias_semana: [1],
+      dia_mes: null,
+      ultimo_dia: false,
+      mes: null,
+      hora: null,
+      inicio: '2026-11-02',
+      fim_data: null,
+      fim_ocorrencias: null,
+      proxima: '2026-11-09',
+      abertas: 1,
+      aguardaFase: null,
+      ...alteracoes,
+      modelo: { ...modeloVazio('tarefa'), ...modelo },
+    }) as LinhaDaRotina;
+  const OPCOES = { hoje: HOJE, pessoaAtualId: ID_KIMBERLY, contextoGlobalId: ID_CONSOLIDADA, nomeDaPessoa: () => 'Kimberly Grebe' };
+  const rotinas = [
+    linha({ titulo: 'Minha, do Kipi', proxima: HOJE, modelo: { produtos: [ID_PRODUTO_KIPI], area_id: 'a1', prioridade: 'alta' } }),
+    linha({ titulo: 'Da Camila, comigo', responsavel_id: ID_CAMILA, proxima: '2026-11-08', modelo: { participantes: [ID_KIMBERLY], tipo: 'demanda' } }),
+    linha({ titulo: 'Da Camila', responsavel_id: ID_CAMILA, proxima: '2026-12-01' }),
+    linha({ titulo: 'Pausada', situacao: 'pausada', proxima: null }),
+    linha({ titulo: 'Encerrada', situacao: 'encerrada', proxima: null }),
+  ];
+  const titulos = (filtros: Partial<FiltrosRotinas>, opcoes = {}) => rotinasVisiveis(rotinas, { ...FILTROS_ROTINAS_INICIAIS, ...filtros }, { ...OPCOES, ...opcoes }).map((rotina) => rotina.titulo);
+
+  it('a próxima primeiro; as que não têm próxima vão para o fim', () => {
+    expect(titulos({})).toEqual(['Minha, do Kipi', 'Da Camila, comigo', 'Da Camila', 'Encerrada', 'Pausada']);
+  });
+
+  it('pessoa: responsável ou participante, com a alternância', () => {
+    expect(titulos({ pessoa: MINHAS })).toEqual(['Minha, do Kipi', 'Da Camila, comigo', 'Encerrada', 'Pausada']);
+    expect(titulos({ pessoa: MINHAS, soResponsavel: true })).toEqual(['Minha, do Kipi', 'Encerrada', 'Pausada']);
+    expect(titulos({ pessoa: ID_CAMILA })).toEqual(['Da Camila, comigo', 'Da Camila']);
+  });
+
+  it('respeita o contexto global', () => {
+    expect(titulos({}, { contextoGlobalId: ID_PRODUTO_KIPI })).toEqual(['Minha, do Kipi']);
+    expect(titulos({}, { contextoGlobalId: ID_INSTITUCIONAL })).not.toContain('Minha, do Kipi');
+  });
+
+  it('período da próxima ocorrência', () => {
+    expect(titulos({ periodo: 'hoje' })).toEqual(['Minha, do Kipi']);
+    expect(titulos({ periodo: 'semana' })).toEqual(['Minha, do Kipi', 'Da Camila, comigo']);
+    expect(titulos({ periodo: '30dias' })).toEqual(['Minha, do Kipi', 'Da Camila, comigo', 'Da Camila']);
+    expect(titulos({ periodo: 'sem_proxima' })).toEqual(['Encerrada', 'Pausada']);
+    expect(titulos({ periodo: 'intervalo', proximaDe: '2026-11-08', proximaAte: '2026-11-08' })).toEqual(['Da Camila, comigo']);
+  });
+
+  it('área, tipo e prioridade', () => {
+    expect(titulos({ area: 'a1' })).toEqual(['Minha, do Kipi']);
+    expect(titulos({ tipo: 'demanda' })).toEqual(['Da Camila, comigo']);
+    expect(titulos({ prioridades: ['alta'] })).toEqual(['Minha, do Kipi']);
+  });
+
+  it('os contadores seguem o recorte, e marcar uma situação não zera as outras (RN-03.19)', () => {
+    const resumo = (filtros: Partial<FiltrosRotinas>, opcoes = {}) => resumoDasRotinas(rotinas, { ...FILTROS_ROTINAS_INICIAIS, ...filtros }, { ...OPCOES, ...opcoes });
+    expect(resumo({})).toEqual({ ativa: 3, pausada: 1, encerrada: 1 });
+    expect(resumo({ situacao: 'pausada' })).toEqual({ ativa: 3, pausada: 1, encerrada: 1 });
+    expect(resumo({ pessoa: ID_CAMILA })).toEqual({ ativa: 2, pausada: 0, encerrada: 0 });
+    expect(resumo({}, { contextoGlobalId: ID_PRODUTO_KIPI })).toEqual({ ativa: 1, pausada: 0, encerrada: 0 });
+    expect(titulos({ situacao: 'pausada' })).toEqual(['Pausada']);
   });
 });
