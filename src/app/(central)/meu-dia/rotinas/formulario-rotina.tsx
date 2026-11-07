@@ -66,7 +66,8 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
   useEffect(() => {
     if (!aberto) return;
     reset(inicial);
-    setMaisOpcoes(Boolean(rotina));
+    // Encerrada não deixa mexer em nada, nem no botão: abre com tudo à vista.
+    setMaisOpcoes(rotina?.situacao === 'encerrada');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `inicial` vale no momento de abrir
   }, [aberto, rotina?.id, reset]);
 

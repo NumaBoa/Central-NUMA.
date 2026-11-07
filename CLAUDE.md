@@ -15,7 +15,7 @@ A especificação fica em `../Especificacao-Sistema`. Leia nesta ordem:
 7. `17-roteiro-construcao-ia.md`
 8. O arquivo do módulo da tela em construção
 
-O andamento e as decisões ficam em `../Mapa-do-Prototipo.md`. Consulte esse arquivo antes de continuar e atualize-o a cada tela.
+O andamento e as decisões ficam em `../Prototipos/Mapa-do-Prototipo.md`. Consulte esse arquivo antes de continuar e atualize-o a cada tela.
 
 ## Regras de trabalho
 
@@ -75,3 +75,5 @@ Logo depois de mudar um arquivo, o `next dev` pode acusar erro de hidratação n
 - `../Prototipos` é **referência visual**, não código a evoluir. A T02.01 foi aprovada nessa forma: `configuracoes.html`, `visual.css` e `visual.js`.
 - Nos demais casos, vale `18-identidade-visual-e-responsividade.md`. Cada tela deve funcionar em 1440, 768 e 360px.
 - **Menu:** estrutura final completa, com o que ainda não existe esmaecido e marcado "Em breve", sem link. Decisão de Kimberly em 05/11/2026, que desvia de RT-23 só no menu.
+- **Formulários e detalhes:** janela central no computador, com os obrigatórios à vista sem rolar; no celular, tela inteira (`18 §9.9`, decisão de Kimberly em 06/11/2026). Use `JanelaFormulario`; com `colunas={2}`, o formulário longo vai em duas colunas. Diálogo que é formulário leva `telaCheia`. Confirmações e menus continuam como folha inferior no celular.
+- **Filtros do M03:** `FiltrosEmLinha` e `CartoesDeResumo`. Contador aplica filtro visível e segue o recorte, e nenhuma seleção aparece em dois lugares.

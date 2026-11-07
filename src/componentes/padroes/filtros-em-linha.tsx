@@ -89,7 +89,8 @@ function SeletorNaLinha<F>({ seletor, filtros, aoMudar }: { seletor: SeletorEmLi
         </button>
       }
     >
-      {(fechar) => <div className="grid gap-3.5 px-1 pb-2 md:px-3">{seletor.campos(filtros, aoMudar, fechar)}</div>}
+      {/* O menu já tem o título: o rótulo do primeiro grupo fica só para o leitor de tela. */}
+      {(fechar) => <div className="grid gap-3.5 px-1 pb-2 md:px-3 [&>fieldset:first-child>legend]:sr-only">{seletor.campos(filtros, aoMudar, fechar)}</div>}
     </MenuSobreposto>
   );
 }

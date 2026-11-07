@@ -25,11 +25,58 @@ const abrirMenu = async (titulo) => {
   await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`);
   await c.espera(120);
 };
-const noMenu = (rotulo) => c.avaliar(`[...document.querySelectorAll('.menu-suspenso button, .dialogo button')].find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
+const noMenu = (rotulo) => c.avaliar(`(()=>{const l=[...document.querySelectorAll('.menu-suspenso button, .dialogo button')];(l.find(b=>b.textContent.trim()===${js(rotulo)})??l.find(b=>b.textContent.trim().startsWith(${js(rotulo)}))).click()})()`);
+const abrirAdiar = async (titulo) => {
+  await c.avaliar(`document.querySelector(${js(`[aria-label="Adiar ${titulo}"]`)}).scrollIntoView({block:'center'})`);
+  await c.espera(80);
+  await c.clicar(`[aria-label="Adiar ${titulo}"]`);
+  await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`);
+  await c.espera(120);
+};
+const naLinha = (rotulo) => `document.querySelector(${js(`main button[aria-label^="${rotulo}:"]`)})`;
+const abrirNaLinha = async (rotulo) => {
+  await c.avaliar(`${naLinha(rotulo)}.click()`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(180);
+};
+const escolherPessoa = async (rotulo) => {
+  await abrirNaLinha('Pessoa');
+  await marcarPilula('Pessoa', rotulo);
+};
+/** Escolher um período fecha o menu. */
+const escolherPeriodo = async (rotulo) => {
+  await abrirNaLinha('Período');
+  await marcarPilula('Período', rotulo);
+  await c.espera(180);
+};
+const agrupar = async (rotulo) => {
+  await abrirNaLinha('Agrupar por');
+  await marcarPilula('Agrupar por', rotulo);
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(120);
+};
+const contextoGlobal = async (rotulo) => {
+  await c.clicar('[aria-label^="Contexto"]');
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(150);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso ul button')].find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(120);
+};
+/** No celular, Quadro e Lista ficam na folha de Filtros. */
+const trocarVisao = async (rotulo) => {
+  if (await c.avaliar(`innerWidth>=768`)) return botao(rotulo);
+  await abrirFiltros();
+  await marcarPilula('Visão', rotulo);
+  await c.espera(100);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Aplicar').click()`);
+  await c.ate(`!document.querySelector('.dialogo')`);
+  await c.espera(200);
+};
 const linhasDoMenu = () => c.avaliar(`[...document.querySelectorAll('.menu-suspenso button, .dialogo button')].map(b=>b.textContent.trim()).filter(Boolean)`);
 const fecharMenu = async () => { await c.tecla('Escape'); await c.ate(`!document.querySelector('.menu-suspenso') && !document.querySelector('.dialogo')`); };
 const preencherBusca = (novo) => c.avaliar(`(()=>{const e=document.querySelector('main input[type=search]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${js(novo)});e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
-const abrirFiltros = async () => { await c.clicar('texto=Filtros'); await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`); await c.espera(180); };
+const abrirFiltros = async () => { await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Filtros/.test(b.textContent.trim())).click()`); await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`); await c.espera(180); };
 const botao = (rotulo) => c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()===${js(rotulo)}&&b.getBoundingClientRect().height>0).click()`);
 const preencherMotivo = (novo) => c.avaliar(`(()=>{const e=document.querySelector('.dialogo textarea');e.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${js(novo)});e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
 const clicarAcaoDoAviso = async (rotulo) => { await c.ate(`[...document.querySelectorAll('[data-sonner-toast] button')].some(b=>b.textContent===${js(rotulo)})`); await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast] button')].filter(b=>b.textContent===${js(rotulo)}).pop().click()`); };
@@ -97,7 +144,7 @@ await passo('faixa de resumo', async () => {
 
 await passo('quadro', async () => {
   const col = await c.avaliar(`[...document.querySelectorAll('section[data-coluna] h2')].map(t=>t.textContent).join('|')`);
-  ok('as quatro colunas', col === 'A fazer|Em andamento|Aguardando retorno|Concluída (hoje)', col);
+  ok('as quatro colunas', col === 'A fazer|Em andamento|Aguardando retorno|Concluída hoje', col);
   ok('lado a lado, sem rolagem em 1440px', await c.avaliar(`(()=>{const s=[...document.querySelectorAll('section[data-coluna]')];const f=s[0].parentElement;return new Set(s.map(x=>Math.round(x.getBoundingClientRect().top))).size===1&&f.scrollWidth<=f.clientWidth})()`));
   ok('as colunas contam', (await contador('a_fazer')) === '8' && (await contador('em_andamento')) === '3' && (await contador('aguardando')) === '1' && (await contador('concluida')) === '2');
   const aFazer = await titulos('a_fazer');
@@ -114,13 +161,13 @@ await passo('quadro', async () => {
 await passo('cartão', async () => {
   const c1 = await textoDoCartao('Revisar os textos da página de preços do Zupi');
   ok('tipo, código, prioridade, título', c1.includes('Tarefa') && /ATV-\d{4}-0001/.test(c1) && c1.includes('Alta'), c1);
-  ok('responsável por nome completo, contexto, área (CA-03.01)', c1.includes('Kimberly Grebe') && c1.includes('Zupi') && c1.includes('Social media / Marketing'), c1);
+  ok('responsável por nome completo e contexto (CA-03.01)', c1.includes('Kimberly Grebe') && c1.includes('Zupi'), c1);
   ok('atrasada em vermelho, com o texto', c1.includes('Atrasada há 3 dias') && (await c.avaliar(`getComputedStyle([...(${cartao('Revisar os textos da página de preços do Zupi')}).querySelectorAll('p')].find(p=>p.textContent.includes('Atrasada'))).color`)) === (await c.avaliar(`getComputedStyle(document.documentElement).getPropertyValue('--err')`)).trim() || true, c1);
   ok('faixa esquerda só para atraso ou bloqueio', await c.avaliar(`getComputedStyle(${cartao('Revisar os textos da página de preços do Zupi')}).borderLeftWidth==='3px'&&getComputedStyle(${cartao('Mapear o fluxo de cadastro do Zarpa')}).borderLeftWidth==='1px'`));
   const bloqueada = await textoDoCartao('Escrever a política de privacidade do Sobrevivência Urbana');
   ok('bloqueada mostra o motivo', bloqueada.includes('Bloqueada: Aguardando a definição da entidade'), bloqueada);
   const aguardando = await textoDoCartao('Confirmar os documentos para abrir a empresa');
-  ok('aguardando mostra de quem, e o acompanhamento', aguardando.includes('Aguardando Souza Contabilidade') && aguardando.includes('acompanhar hoje'), aguardando);
+  ok('aguardando mostra de quem, e o acompanhamento', aguardando.includes('Aguardando: Souza Contabilidade') && aguardando.includes('acompanhar hoje'), aguardando);
   ok('adiada a partir da 2ª vez (RN-03.08)', (await textoDoCartao('Organizar a pasta de contratos no Drive')).includes('Adiada 2 vezes'));
   ok('participantes pelo primeiro nome', (await textoDoCartao('Definir o preço da oferta anual')).includes('+Camila'));
   ok('vários contextos', await c.avaliar(`(()=>{const t=(${cartao('Definir o preço da oferta anual')}).textContent;return t.includes('Kipi')&&t.includes('Zupi')})()`));
@@ -129,7 +176,7 @@ await passo('cartão', async () => {
   const alerta = await textoDoCartao('Exportar os dados da Central');
   ok('alerta mostra a origem e a ação (RN-03.12)', alerta.includes('Origem: Backup') && alerta.includes('Backup atrasado') && alerta.includes('Exportar dados'), alerta);
   ok('a ação do alerta leva à tela certa', await c.avaliar(`(${cartao('Exportar os dados da Central')}).querySelector('a').getAttribute('href')==='/configuracoes/dados'`));
-  ok('riscada quando concluída', await c.avaliar(`getComputedStyle((${cartao('Enviar o logotipo final do Zupi')}).querySelector('h3')).textDecorationLine==='line-through'`));
+  ok('concluída diz a hora', (await textoDoCartao('Enviar o logotipo final do Zupi')).includes('Concluída às'));
   ok('nunca só a cor: etiqueta de prioridade com texto', c1.includes('Alta'));
 });
 
@@ -172,7 +219,7 @@ await passo('menu do cartão', async () => {
   const t = 'Publicar a nota de versão do Kipi';
   await abrirMenu(t);
   const l = await linhasDoMenu();
-  ok('as ações sem arrastar (RT-19)', ['Em andamento', 'Aguardando retorno', '+1 dia', '+1 semana', 'Escolher data', 'Marcar bloqueada', 'Concluir', 'Cancelar'].every((x) => l.includes(x)), l.join('|'));
+  ok('as ações sem arrastar (RT-19)', ['Em andamento', 'Aguardando retorno', 'Marcar bloqueada', 'Concluir', 'Cancelar'].every((x) => l.includes(x)), l.join('|'));
   ok('sem a situação atual', !l.includes('A fazer'));
   ok('o menu cabe na janela', await c.avaliar(`(()=>{const r=document.querySelector('.menu-suspenso').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()`));
   await c.foto('d-menu');
@@ -199,7 +246,7 @@ await passo('menu do cartão', async () => {
   await emColuna('aguardando', t);
   const a = await atividadePor(t);
   ok('grava de quem, desde quando e o acompanhamento', a.situacao === 'aguardando' && a.aguardando_de_texto === 'Equipe da loja' && Boolean(a.aguardando_desde) && Boolean(a.acompanhamento_em));
-  ok('o cartão mostra', (await textoDoCartao(t)).includes('Aguardando Equipe da loja'));
+  ok('o cartão mostra', (await textoDoCartao(t)).includes('Aguardando: Equipe da loja'));
   await abrirMenu(t);
   await noMenu('A fazer');
   await emColuna('a_fazer', t);
@@ -210,7 +257,7 @@ await passo('menu do cartão', async () => {
 await passo('adiar', async () => {
   const t = 'Publicar a nota de versão do Kipi';
   const antes = (await atividadePor(t)).prazo;
-  await abrirMenu(t);
+  await abrirAdiar(t);
   await noMenu('+1 dia');
   await esperarAviso('Adiada para');
   await c.ate(`(${cartao(t)}).textContent.includes('Amanhã')`);
@@ -219,7 +266,7 @@ await passo('adiar', async () => {
   await c.ate(`(${cartao(t)}).textContent.includes('Hoje')`);
   ok('"Desfazer" volta a data e o contador', (await atividadePor(t)).prazo === antes && (await atividadePor(t)).adiamentos === 0);
   await c.espera(200);
-  await abrirMenu(t);
+  await abrirAdiar(t);
   await noMenu('Escolher data');
   await dialogoAberto();
   await c.espera(380);
@@ -242,13 +289,13 @@ await passo('adiar', async () => {
   await c.ate(`(${cartao(t)}).textContent.includes('Hoje')`);
   // sem prazo ganha um, sem contar
   const s = 'Mapear o fluxo de cadastro do Zarpa';
-  await abrirMenu(s);
+  await abrirAdiar(s);
   await noMenu('+1 semana');
   await c.ate(`!(${cartao(s)}).textContent.includes('Sem prazo')`);
   ok('quem não tinha prazo ganha um, sem contar como adiamento', (await atividadePor(s)).adiamentos === 0 && Boolean((await atividadePor(s)).prazo));
   // lembrete adia o aviso
   const l = 'Ligar para o banco sobre a conta da empresa';
-  await abrirMenu(l);
+  await abrirAdiar(l);
   await noMenu('+1 dia');
   await c.ate(`(${cartao(l)}).textContent.includes('Amanhã às 15:00')`);
   ok('lembrete adia o aviso, mantendo a hora', (await atividadePor(l)).prazo === null);
@@ -293,7 +340,7 @@ await passo('bloquear, cancelar, dispensar', async () => {
   // alerta
   const a = 'Exportar os dados da Central';
   await abrirMenu(a);
-  ok('alerta oferece dispensar, e não cancelar', (await linhasDoMenu()).includes('Dispensar alerta') && !(await linhasDoMenu()).includes('Cancelar'));
+  ok('alerta oferece dispensar, e não cancelar', (await linhasDoMenu()).some((x) => x.startsWith('Dispensar alerta')) && !(await linhasDoMenu()).includes('Cancelar'));
   await noMenu('Dispensar alerta');
   await dialogoAberto();
   await c.espera(380);
@@ -358,7 +405,10 @@ await passo('arrastar', async () => {
 });
 
 await passo('recolher colunas', async () => {
-  await c.clicar('[aria-label="Recolher Aguardando retorno"]');
+  await c.clicar('[aria-label="Ações da coluna Aguardando retorno"]');
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(150);
+  await noMenu('Recolher coluna');
   await c.ate(`document.querySelector('[aria-label="Expandir Aguardando retorno"]')`);
   ok('a coluna recolhida esconde os cartões e segue contando', (await c.avaliar(`document.querySelectorAll('section[data-coluna="aguardando"] article').length`)) === 0 && (await contador('aguardando')) === '1');
   ok('e fica estreita', await c.avaliar(`document.querySelector('section[data-coluna="aguardando"]').getBoundingClientRect().width<80`));
@@ -385,57 +435,45 @@ await passo('filtros', async () => {
   await c.ate(`document.querySelectorAll('main article').length===2`);
   ok('busca pela responsável', true);
   await preencherBusca('ninguém');
-  await c.ate(`document.querySelector('main').textContent.includes('Nada com esses filtros.')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Há atividades ocultas pelos filtros.')`);
   ok('filtros ocultando tudo: explica e oferece limpar', true);
   await preencherBusca('');
   await c.ate(`document.querySelectorAll('main article').length===14`);
 
-  await c.avaliar(`[...document.querySelectorAll('[aria-label="De quem"] button')].find(b=>b.textContent==='Minhas').click()`);
+  await escolherPessoa('Minhas');
   await c.ate(`document.querySelectorAll('main article').length===9`);
   ok('Minhas: responsável ou participante', true, await c.avaliar(`document.querySelectorAll('main article').length`));
   ok('o recorte fica dito (RN-03.19)', (await texto('main')).includes('Contagem com filtro: Minhas'));
   await c.foto('i-minhas');
-  await abrirFiltros();
-  await c.foto('i-filtros');
   await marcarPilula('Considerar', 'Só responsável');
   await c.ate(`document.querySelectorAll('main article').length===7`);
   ok('com a alternância "só responsável"', true, await c.avaliar(`document.querySelectorAll('main article').length`));
-  await fecharMenu();
-  await c.avaliar(`[...document.querySelectorAll('[aria-label="De quem"] button')].find(b=>b.textContent==='Todas').click()`);
+  await marcarPilula('Pessoa', 'Todas');
   await c.ate(`document.querySelectorAll('main article').length===14`);
-
-  // contexto (CA-03.04)
-  const antes = await noResumo('Para hoje');
-  await abrirFiltros();
-  await marcarPilula('Contexto', 'Kipi');
-  await c.ate(`document.querySelector('main').textContent.includes('Contagem com filtro: Kipi')`);
   await fecharMenu();
-  ok('o contador muda com o filtro de produto e diz o recorte (CA-03.04)', (await noResumo('Para hoje')) !== antes && (await noResumo('Para hoje')) === '1' && (await noResumo('Atrasadas')) === '0', await noResumo('Para hoje'));
+
+  // contexto (CA-03.04): só o seletor global
+  const antes = await noResumo('Para hoje');
+  await contextoGlobal('Kipi');
+  await c.ate(`document.querySelector('main').textContent.includes('Contagem com filtro: Kipi')`);
+  ok('o contador muda com o produto e diz o recorte (CA-03.04)', (await noResumo('Para hoje')) !== antes && (await noResumo('Para hoje')) === '1' && (await noResumo('Atrasadas')) === '0', await noResumo('Para hoje'));
   ok('a frase-resumo acompanha', (await texto('main header')).includes('1 item'));
   await c.ate(`document.querySelectorAll('main article').length===3`);
   ok('só o que é do produto', (await c.avaliar(`[...document.querySelectorAll('main article')].every(a=>a.textContent.includes('Kipi'))`)));
-  await c.clicar('button[aria-label="Remover filtro: Contexto: Kipi"]');
+  await contextoGlobal('Numa consolidada');
   await c.ate(`document.querySelectorAll('main article').length===14`);
-  ok('etiqueta removível', true);
 
   await abrirFiltros();
-  await marcarPilula('Contexto', 'Numa');
-  await c.ate(`document.querySelector('main').textContent.includes('Contagem com filtro: Numa')`);
-  ok('Numa: as sem produto', await c.avaliar(`[...document.querySelectorAll('main article')].every(a=>a.textContent.includes('Numa'))`));
-  await marcarPilula('Contexto', 'Numa');
+  await c.foto('i-filtros');
   const area = await c.avaliar(`[...document.querySelectorAll('#filtro-area option')].find(o=>o.textContent==='Tecnologia').value`);
   await escolher('filtro-area', area);
   await c.ate(`[...document.querySelectorAll('main article')].length===3`);
-  ok('filtro de área', await c.avaliar(`[...document.querySelectorAll('main article')].every(a=>a.textContent.includes('Tecnologia'))`));
+  ok('filtro de área', await c.avaliar(`[...document.querySelectorAll('main article')].length===3`));
   await escolher('filtro-area', '');
   await escolher('filtro-tipo', 'demanda');
   await c.ate(`document.querySelectorAll('main article').length===1`);
   ok('filtro de tipo', (await titulos('em_andamento'))[0].startsWith('Levantar'));
   await escolher('filtro-tipo', '');
-  await escolher('filtro-situacao', 'aguardando');
-  await c.ate(`document.querySelectorAll('main article').length===1`);
-  ok('filtro de situação', (await titulos('aguardando')).length === 1);
-  await escolher('filtro-situacao', 'abertas');
   await marcarPilula('Prioridade', 'Urgente');
   await c.ate(`document.querySelectorAll('main article').length===1`);
   ok('filtro de prioridade', (await titulos('em_andamento'))[0].startsWith('Corrigir'));
@@ -444,16 +482,21 @@ await passo('filtros', async () => {
   ok('prioridade é multiseleção', true);
   await marcarPilula('Prioridade', 'Urgente');
   await marcarPilula('Prioridade', 'Alta');
-  await escolher('filtro-periodo', 'atrasadas');
+  await fecharMenu();
+  await escolherPeriodo('Atrasadas');
   await c.ate(`document.querySelectorAll('main article').length===1`);
   ok('período: atrasadas', true);
-  await escolher('filtro-periodo', 'sem_prazo');
+  await escolherPeriodo('Sem prazo');
   await c.ate(`document.querySelectorAll('main article').length===1`);
   ok('período: sem prazo', (await titulos('a_fazer'))[0].includes('Zarpa'));
-  await escolher('filtro-periodo', 'intervalo');
-  await c.ate(`Boolean(document.getElementById('filtro-prazo-de'))`);
+  await abrirNaLinha('Período');
+  await marcarPilula('Período', 'Intervalo');
+  await c.ate(`Boolean(document.getElementById('filtro-periodo-de'))`);
   ok('período: intervalo pede as datas', true);
-  await escolher('filtro-periodo', '');
+  await marcarPilula('Período', 'Todos');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(150);
+  await abrirFiltros();
   await escolher('filtro-origem', 'backup');
   await c.ate(`document.querySelectorAll('main article').length===1`);
   ok('origem do alerta', (await titulos('a_fazer'))[0] === 'Exportar os dados da Central');
@@ -490,8 +533,8 @@ await passo('lista', async () => {
   await botao('Lista');
   await c.ate(`document.querySelector('main table tbody tr')`);
   const cab = await c.avaliar(`[...document.querySelectorAll('main thead th')].map(t=>t.textContent)`);
-  ok('as colunas', cab.slice(0, 7).join('|') === 'Atividade|Responsável|Contexto|Área|Prazo|Prioridade|Situação', cab.join('|'));
-  ok('só as abertas, sem as concluídas', (await c.avaliar(`document.querySelectorAll('main table tbody tr').length`)) === 12 && !(await texto('main table')).includes('Enviar o logotipo final do Zupi'), await c.avaliar(`document.querySelectorAll('main table tbody tr').length`));
+  ok('as colunas', cab.slice(0, 6).join('|') === 'Atividade|Responsável|Contexto|Prazo|Prioridade|Situação', cab.join('|'));
+  ok('as abertas e, por último, as concluídas de hoje', (await c.avaliar(`document.querySelectorAll('main table tbody tr').length`)) === 14 && (await c.avaliar(`[...document.querySelectorAll('main table tbody tr')].at(-1).textContent.includes('Concluída')`)), await c.avaliar(`document.querySelectorAll('main table tbody tr').length`));
   ok('nome completo, sem cortar (CA-03.01)', await c.avaliar(`[...document.querySelectorAll('main table tbody tr')].every(t=>{const nome=[...t.children[1].querySelectorAll('span')].find(s=>!s.children.length&&s.textContent.includes(' '));const r=document.createRange();r.selectNodeContents(nome);return r.getBoundingClientRect().right<=t.children[2].getBoundingClientRect().left+1})`));
   ok('Sem prazo escrito', (await texto('main table')).includes('Sem prazo'));
   ok('tudo cabe, sem rolagem na página', await c.avaliar(`document.documentElement.scrollWidth<=innerWidth`), await c.avaliar(`document.documentElement.scrollWidth`));
@@ -501,33 +544,33 @@ await passo('lista', async () => {
   await pronta();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('lembra a preferência (T03.01)', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).visao_meu_dia`)) === 'lista');
-  await escolher('agrupar-por', 'prazo');
+  await agrupar('Prazo');
   await c.ate(`document.querySelectorAll('main section h2').length>=4`);
   const g = await c.avaliar(`[...document.querySelectorAll('main section h2')].map(t=>t.firstChild.textContent)`);
   ok('agrupar por prazo, na ordem do tempo', g.join('|').startsWith('Atrasadas|Hoje') && g.at(-1) === 'Sem prazo', g.join('|'));
   await c.foto('j-agrupada');
-  await escolher('agrupar-por', 'responsavel');
+  await agrupar('Responsável');
   await c.ate(`[...document.querySelectorAll('main section h2')].some(t=>t.textContent.startsWith('Bruna Alves'))`);
   ok('agrupar por responsável', true);
-  await escolher('agrupar-por', 'contexto');
+  await agrupar('Contexto');
   await c.ate(`[...document.querySelectorAll('main section h2')].some(t=>t.textContent.startsWith('Numa'))`);
   ok('agrupar por contexto: quem tem dois aparece nos dois', (await c.avaliar(`[...document.querySelectorAll('main section')].filter(s=>s.textContent.includes('Definir o preço da oferta anual')).length`)) === 2);
-  await escolher('agrupar-por', 'area');
+  await agrupar('Área');
   await c.ate(`[...document.querySelectorAll('main section h2')].some(t=>t.textContent.startsWith('Tecnologia'))`);
   ok('agrupar por área', true);
-  await escolher('agrupar-por', 'nenhum');
+  await agrupar('Nenhum');
   await clicarResumo('Concluídas hoje');
   await c.ate(`document.querySelectorAll('main table tbody tr').length===2`);
   ok('"Concluídas hoje" também vale na lista', true);
   await clicarResumo('Concluídas hoje');
-  await c.ate(`document.querySelectorAll('main table tbody tr').length===12`);
+  await c.ate(`document.querySelectorAll('main table tbody tr').length===14`);
   await abrirMenu('Corrigir o erro no login do Kipi');
   await noMenu('Concluir');
   await esperarAviso('Atividade concluída.');
-  await c.ate(`document.querySelectorAll('main table tbody tr').length===11`);
+  await c.ate(`document.querySelector('[aria-label="Reabrir Corrigir o erro no login do Kipi"]')`);
   ok('o menu funciona na lista', true);
   await clicarAcaoDoAviso('Desfazer');
-  await c.ate(`document.querySelectorAll('main table tbody tr').length===12`);
+  await c.ate(`document.querySelector('[aria-label="Concluir Corrigir o erro no login do Kipi"]')`);
   await botao('Quadro');
   await c.ate(`document.querySelector('section[data-coluna]')`);
 });
@@ -622,11 +665,11 @@ for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
     await c.espera(250);
     await conferirTela('Quadro', l);
     await c.foto(`l-${l}-quadro`);
-    await botao('Lista');
+    await trocarVisao('Lista');
     await c.espera(300);
     await conferirTela('Lista', l);
     await c.foto(`l-${l}-lista`);
-    await botao('Quadro');
+    await trocarVisao('Quadro');
     await c.espera(200);
     await abrirFiltros();
     await c.espera(300);
@@ -719,13 +762,13 @@ await passo('celular', async () => {
   await conferirTela('Mudar a responsável', 360);
   await c.tecla('Escape');
   await dialogoFechado();
-  await botao('Lista');
+  await trocarVisao('Lista');
   await c.ate(`document.querySelector('main ul[aria-label="Atividades"]')`);
   await c.espera(150);
   ok('a lista usa os mesmos cartões', await c.avaliar(`document.querySelector('main ul[aria-label="Atividades"]').getBoundingClientRect().height>0&&document.querySelector('main table').getBoundingClientRect().height===0`));
   await conferirTela('Lista em cartões', 360);
   await c.foto('m-lista');
-  await botao('Quadro');
+  await trocarVisao('Quadro');
 });
 
 await c.tamanho(1440, 900);

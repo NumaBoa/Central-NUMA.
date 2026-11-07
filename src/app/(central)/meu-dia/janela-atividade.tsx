@@ -163,7 +163,7 @@ function TituloDaJanela({ atividade, valor, erro, aoMudar }: { atividade: Ativid
       <div className="flex items-start gap-1">
         <DialogTitle className={cn(classe, 'min-w-0')}>{valor}</DialogTitle>
         {editavel && (
-          <Button variante="icone" tamanho="icone" aria-label="Editar o título" className="-mt-0.5 md:size-9" onClick={() => setEditando(true)}>
+          <Button variante="icone" tamanho="icone" aria-label="Editar o título" className="-mt-0.5 shrink-0 md:size-9" onClick={() => setEditando(true)}>
             <Pencil aria-hidden />
           </Button>
         )}
