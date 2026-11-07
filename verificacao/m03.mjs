@@ -647,4 +647,143 @@ await passo('T03.04: abrir e, no celular, os cartões', async () => {
   await c.espera(300);
 });
 
+// ---------- T03.05: Rotinas ----------
+
+await passo('T03.05: cabeçalho, contadores e a mesma barra de filtros', async () => {
+  await ir('/meu-dia/rotinas');
+  await c.ate(`document.querySelector('main tbody tr')`);
+  await c.espera(300);
+  ok('o título do protótipo', /Rotinas e recorrências/.test(await texto('main h1')));
+  ok('volta ao Meu dia e cria', await c.avaliar(`['Voltar ao Meu dia','Nova rotina'].every(r=>[...document.querySelectorAll('main a,main button')].some(b=>b.textContent.trim()===r))`));
+  const barra = await barraEmUmaLinha();
+  ok('uma linha: busca → pessoa → período → Filtros', barra.emUma && /Todas/.test(barra.itens.join(' ')) && /Próxima ocorrência/.test(barra.itens.join(' ')) && /Filtros/.test(barra.itens.join(' ')), js(barra.itens));
+  const colunas = await c.avaliar(`[...document.querySelectorAll('main thead th')].filter(t=>getComputedStyle(t).display!=='none').map(t=>t.textContent.trim())`);
+  ok('as colunas do protótipo', js(colunas) === js(['Rotina', 'Responsável', 'Repetição', 'Próxima ocorrência', 'Ocorrências abertas', 'Situação', 'Ações']), js(colunas));
+  const rola = await c.avaliar(`(()=>{const t=document.querySelector('main table').parentElement;return t.scrollWidth-t.clientWidth})()`);
+  ok('a tabela cabe', rola <= 1, rola);
+  ok('explica pausar e encerrar', /Pausar interrompe novas ocorrências/.test(await texto('main')) && /você escolhe o que fazer com as ocorrências futuras/.test(await texto('main')));
+  await conferirTela('Rotinas', 1440);
+  await c.foto('rotinas-1440');
+});
+
+await passo('T03.05: os contadores aplicam filtro e seguem o recorte', async () => {
+  const ativas = await numeroDe('Resumo das rotinas', 'Ativas');
+  await c.avaliar(`${noResumoDe('Resumo das rotinas', 'Ativas')}.click()`);
+  await c.ate(`${noResumoDe('Resumo das rotinas', 'Ativas')}.getAttribute('aria-pressed')==='true'`);
+  ok('virou etiqueta', js(await etiquetasDeFiltro()) === js(['Ativas']), js(await etiquetasDeFiltro()));
+  ok('o número é o que aparece', (await linhasDaTabela()) === ativas, `${ativas}`);
+  await c.avaliar(`document.querySelector('main button[aria-label="Remover filtro: Ativas"]').click()`);
+  await c.espera(150);
+  await abrirMenu(botaoNaLinha('Pessoa'));
+  await marcarPilula('Pessoa', 'Camila Lima');
+  await c.espera(150);
+  await marcarPilula('Considerar', 'Só responsável');
+  await c.espera(150);
+  await fecharMenu();
+  ok('a pessoa muda os contadores', (await numeroDe('Resumo das rotinas', 'Ativas')) <= ativas);
+  const camila = (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id;
+  const dela = (await tabela('recorrencia')).filter((rotina) => rotina.responsavel_id === camila && !rotina.arquivado_em).length;
+  ok('e a lista também', (await linhasDaTabela()) === dela, `${dela}`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Limpar filtros').click()`);
+  await c.espera(150);
+});
+
+await passo('T03.05: pausar se desfaz sem confirmação; encerrar pergunta', async () => {
+  const rotina = (await tabela('recorrencia')).find((item) => item.situacao === 'ativa' && !item.fase_minima);
+  const linha = `[...document.querySelectorAll('main tbody tr')].find(l=>l.textContent.includes(${js(rotina.titulo)}))`;
+  await abrirMenu(`${linha}.querySelector('button[aria-label^="Ações de"]')`);
+  ok('o menu diz o efeito de cada um', /Não gera novas\. As criadas continuam no Meu dia\./.test(await texto('.menu-suspenso')) && /Não volta\. Você escolhe o que fazer com as futuras\./.test(await texto('.menu-suspenso')));
+  await c.foto('rotinas-menu-1440');
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.startsWith('Pausar')).click()`);
+  await esperarAviso('Rotina pausada.');
+  ok('pausar não pede confirmação', !(await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)));
+  ok('pausou', (await tabela('recorrencia')).find((item) => item.id === rotina.id).situacao === 'pausada');
+  await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast]')].find(t=>t.textContent.includes('Rotina pausada')).querySelector('button').click()`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:recorrencia')).find(r=>r.id===${js(rotina.id)}).situacao==='ativa'`);
+  ok('o "Desfazer" retoma', true);
+  await c.espera(200);
+  await abrirMenu(`${linha}.querySelector('button[aria-label^="Ações de"]')`);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.startsWith('Encerrar')).click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Encerrar rotina')`);
+  await c.espera(300);
+  ok('encerrar pergunta e explica', /não volta/.test(await texto('.dialogo')));
+  await c.foto('rotinas-encerrar-1440');
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Encerrar rotina').click()`);
+  await esperarAviso('Rotina encerrada');
+  await c.ate(`!document.querySelector('.dialogo')`);
+  ok('encerrou', (await tabela('recorrencia')).find((item) => item.id === rotina.id).situacao === 'encerrada');
+  await c.ate(`${linha}?.textContent.includes('Abrir')`);
+  ok('encerrada oferece "Abrir"', true);
+  await c.espera(200);
+  await c.avaliar(`[...${linha}.querySelectorAll('button')].find(b=>b.textContent.trim()==='Abrir').click()`);
+  await painelAberto();
+  await c.espera(450);
+  ok('abre só para consulta', /só para consulta/.test(await texto('.janela')) && (await c.avaliar(`document.getElementById('rotina-titulo').matches(':disabled')`)));
+  ok('sem salvar, com "Fechar"', await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Fechar')&&![...document.querySelectorAll('.janela button')].some(b=>/^Salvar/.test(b.textContent.trim()))`));
+  await c.foto('rotinas-encerrada-1440');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+});
+
+await passo('T03.05: nova rotina, em janela central, com o essencial sem rolar', async () => {
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Nova rotina').click()`);
+  await painelAberto();
+  await c.espera(450);
+  const rola = await c.avaliar(`(()=>{const e=[...document.querySelectorAll('.janela form > div')].find(d=>getComputedStyle(d).overflowY==='auto');return e.scrollHeight-e.clientHeight})()`);
+  ok('sem rolar', rola <= 0, rola);
+  await conferirTela('Nova rotina', 1440);
+  await c.foto('rotina-nova-1440');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+});
+
+await passo('T03.05: no celular', async () => {
+  await c.tamanho(360, 800);
+  await c.espera(350);
+  await conferirTela('Rotinas', 360);
+  await c.foto('rotinas-360', { inteira: true });
+  await abrirFiltros();
+  await conferirTela('Rotinas, folha', 360);
+  ok('a folha traz pessoa, período e os avançados', /Pessoa/.test(await texto('.dialogo')) && /Próxima ocorrência/.test(await texto('.dialogo')) && /Prioridade/.test(await texto('.dialogo')));
+  await fecharMenu();
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Nova rotina').click()`);
+  await painelAberto();
+  await c.espera(450);
+  const m = await c.avaliar(`(()=>{const b=document.querySelector('.janela').getBoundingClientRect();return {l:Math.round(b.width),a:Math.round(b.height)}})()`);
+  ok('nova rotina em tela inteira', m.l === 360 && m.a === 800, js(m));
+  await conferirTela('Nova rotina', 360);
+  await c.foto('rotina-nova-360');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Voltar"]').click()`);
+  await painelFechado();
+  await c.tamanho(1440, 900);
+  await c.espera(300);
+});
+
+// ---------- T03.06: prévia do resumo diário ----------
+
+await passo('T03.06: só a prévia, sem envio', async () => {
+  await ir('/meu-dia/rotinas');
+  await c.ate(`[...document.querySelectorAll('main a')].some(a=>a.textContent.trim()==='Prévia do resumo diário')`);
+  await c.espera(600);
+  await c.avaliar(`[...document.querySelectorAll('main a')].find(a=>a.textContent.trim()==='Prévia do resumo diário').click()`);
+  await c.ate(`location.pathname==='/meu-dia/resumo-diario'&&document.querySelector('[data-assunto]')`);
+  await c.espera(300);
+  const assunto = await texto('[data-assunto]');
+  ok('o assunto de T03.06', /^Seu dia na Numa — /.test(assunto), assunto);
+  const corpo = await texto('main');
+  ok('diz que não envia', /Nenhum e-mail é enviado nesta etapa/.test(corpo));
+  ok('de quem e para quem', /Central Numa/.test(corpo) && /Kimberly Grebe/.test(corpo));
+  ok('sem botão de enviar', !(await c.avaliar(`[...document.querySelectorAll('main button')].some(b=>/enviar/i.test(b.textContent))`)));
+  ok('sem valores', !/R\$/.test(corpo));
+  ok('o link para o Meu dia', await c.avaliar(`[...document.querySelectorAll('main article a')].some(a=>a.textContent.trim()==='Abrir Meu dia'&&a.getAttribute('href')==='/meu-dia')`));
+  await conferirTela('Resumo diário', 1440);
+  await c.foto('resumo-1440', { inteira: true });
+  await c.tamanho(360, 800);
+  await c.espera(350);
+  await conferirTela('Resumo diário', 360);
+  await c.foto('resumo-360', { inteira: true });
+  await c.tamanho(1440, 900);
+  await c.espera(300);
+});
+
 await terminar();
