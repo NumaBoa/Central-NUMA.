@@ -18,6 +18,7 @@ import {
   desfazerAdiamento,
   desfazerConclusao,
   dispensarAlerta,
+  mensagemAoConcluir,
   moverAtividade,
   moverParaAguardando,
   novaDataDoAdiamento,
@@ -62,7 +63,7 @@ export function useAcoesDaAtividade(dados: DadosMeuDia | undefined, hoje: string
     const concluir: AcoesDaAtividade['concluir'] = (atividade) => {
       void concluirAtividade(atividade.id, pessoa.id).then(
         (anterior) =>
-          aviso('Atividade concluída.', {
+          aviso(mensagemAoConcluir(atividade), {
             acao: { rotulo: 'Desfazer', aoClicar: () => void tentar(() => desfazerConclusao(atividade.id, anterior)) },
           }),
         (erro: unknown) => aviso(mensagemDoErro(erro)),

@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState, type TouchEvent } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronRight, Ellipsis } from 'lucide-react';
+import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Button } from '@/componentes/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import { COLUNAS_DO_QUADRO, ROTULOS_SITUACAO_ATIVIDADE, type AtividadeDoDia, type ColunaDoQuadro, type DadosMeuDia } from '@/dominio/atividades';
@@ -13,7 +14,7 @@ import { CartaoDoQuadro } from './cartao-atividade';
 /** T03.01: carregamento progressivo de 30 cartões por coluna. */
 const CARTOES_POR_VEZ = 30;
 
-const ROTULOS_COLUNA: Readonly<Record<ColunaDoQuadro, string>> = { a_fazer: ROTULOS_SITUACAO_ATIVIDADE.a_fazer, em_andamento: ROTULOS_SITUACAO_ATIVIDADE.em_andamento, aguardando: ROTULOS_SITUACAO_ATIVIDADE.aguardando, concluida: 'Concluída (hoje)' };
+const ROTULOS_COLUNA: Readonly<Record<ColunaDoQuadro, string>> = { a_fazer: ROTULOS_SITUACAO_ATIVIDADE.a_fazer, em_andamento: ROTULOS_SITUACAO_ATIVIDADE.em_andamento, aguardando: ROTULOS_SITUACAO_ATIVIDADE.aguardando, concluida: 'Concluída hoje' };
 const ROTULOS_ABA: Readonly<Record<ColunaDoQuadro, string>> = { a_fazer: 'A fazer', em_andamento: 'Em andamento', aguardando: 'Aguardando', concluida: 'Concluídas' };
 
 type QuadroProps = {
@@ -135,13 +136,41 @@ function QuadroNoComputador({ colunas, dados, hoje, acoes, recenteId }: QuadroPr
               evento.preventDefault();
               soltar(coluna);
             }}
-            className={cn('rounded-lg bg-mist p-2 outline-offset-[-2px]', recolhida ? 'w-14 shrink-0' : 'min-w-[248px] flex-1 basis-0', sobre === coluna && 'outline-2 outline-indigo outline-dashed')}
+            className={cn('rounded-lg border border-line bg-mist/70 p-2 outline-offset-[-2px]', recolhida ? 'w-14 shrink-0' : 'min-w-[240px] flex-1 basis-0', sobre === coluna && 'outline-2 outline-indigo outline-dashed')}
           >
             <div className={cn('flex items-center gap-2 px-1.5 py-1', recolhida && 'flex-col')}>
-              <Button variante="icone" tamanho="icone" aria-expanded={!recolhida} aria-label={`${recolhida ? 'Expandir' : 'Recolher'} ${rotulo}`} onClick={() => alternar(coluna)} className={cn(recolhida ? 'order-first' : 'order-last ml-auto')}>
-                {recolhida ? <ChevronRight aria-hidden /> : <ChevronLeft aria-hidden />}
-              </Button>
-              <h2 className={cn('font-body text-[13px] leading-[18px] font-semibold tracking-normal', recolhida && '[writing-mode:vertical-rl]')}>{rotulo}</h2>
+              {recolhida ? (
+                <Button variante="icone" tamanho="icone" aria-expanded={false} aria-label={`Expandir ${rotulo}`} onClick={() => alternar(coluna)}>
+                  <ChevronRight aria-hidden />
+                </Button>
+              ) : (
+                <div className="order-last ml-auto">
+                  <MenuSobreposto
+                    titulo={rotulo}
+                    largura={220}
+                    alinhar="end"
+                    gatilho={
+                      <Button variante="icone" tamanho="icone" aria-label={`Ações da coluna ${rotulo}`} className="md:size-8">
+                        <Ellipsis aria-hidden />
+                      </Button>
+                    }
+                  >
+                    {(fechar) => (
+                      <button
+                        type="button"
+                        className={cn(CLASSE_LINHA_MENU, 'hover:bg-hover md:min-h-9 md:py-1.5')}
+                        onClick={() => {
+                          fechar();
+                          alternar(coluna);
+                        }}
+                      >
+                        Recolher coluna
+                      </button>
+                    )}
+                  </MenuSobreposto>
+                </div>
+              )}
+              <h2 className={cn('font-display text-[15px] leading-[22px] font-semibold tracking-[-.01em] whitespace-nowrap', recolhida && '[writing-mode:vertical-rl]')}>{rotulo}</h2>
               <span className="rounded-pill bg-paper px-2 text-xs leading-[18px] font-semibold text-ink-soft tabular-nums">{colunas[coluna].length}</span>
             </div>
             {!recolhida && (

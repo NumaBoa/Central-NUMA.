@@ -156,9 +156,9 @@ export function saudacao(agora: Date = new Date(), fuso: string = fusoConfigurad
   return hora >= 12 && hora < 18 ? 'Boa tarde' : 'Boa noite';
 }
 
-/** "sexta-feira, 6 de novembro", no fuso configurado. */
+/** "sexta-feira, 6 de novembro de 2026", no fuso configurado. */
 export function dataPorExtenso(agora: Date = new Date(), fuso: string = fusoConfigurado()): string {
-  return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: fuso }).format(agora);
+  return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: fuso }).format(agora);
 }
 
 // ---------- Filtros (T03.01) ----------
@@ -168,35 +168,35 @@ export type AtividadeDoDia = Atividade & { produtos: string[]; participantes: st
 };
 
 export type PeriodoDoPrazo = '' | 'atrasadas' | 'hoje' | 'semana' | '30dias' | 'sem_prazo' | 'intervalo';
-export type DestaqueDoResumo = '' | 'atrasadas' | 'hoje' | 'em_andamento' | 'aguardando' | 'bloqueadas' | 'concluidas';
+/** O que os cartões do resumo marcam além do período: a situação e o bloqueio não têm outro controle na tela. */
+export type DestaqueDoResumo = '' | 'em_andamento' | 'aguardando' | 'bloqueadas' | 'concluidas';
 
-export type FiltrosMeuDia = {
+/** O que o Meu dia e o Histórico filtram do mesmo jeito (T03.04). O contexto vem só do seletor global. */
+export type FiltrosComuns = {
   busca: string;
   /** Vazio é Todas (RN-03.01); 'minhas' é a pessoa atual; ou o id de uma pessoa. */
   pessoa: string;
   soResponsavel: boolean;
-  /** Ids de produtos e `institucional`. Vazio herda o seletor global. */
-  contextos: string[];
   area: string;
   tipo: string;
-  situacao: 'abertas' | ColunaDoQuadro;
   prioridades: string[];
-  periodo: PeriodoDoPrazo;
-  prazoDe: string;
-  prazoAte: string;
   origem: string;
   /** O id de uma etiqueta (decisão de Kimberly em 06/11/2026). */
   etiqueta: string;
-  /** O cartão clicado na faixa de resumo. */
+};
+
+export type FiltrosMeuDia = FiltrosComuns & {
+  periodo: PeriodoDoPrazo;
+  prazoDe: string;
+  prazoAte: string;
   destaque: DestaqueDoResumo;
 };
 
-/** O que o Meu dia e o Histórico filtram do mesmo jeito (T03.04). */
-export type FiltrosComuns = Omit<FiltrosMeuDia, 'situacao' | 'destaque'>;
+export const FILTROS_COMUNS_INICIAIS: FiltrosComuns = { busca: '', pessoa: '', soResponsavel: false, area: '', tipo: '', prioridades: [], origem: '', etiqueta: '' };
 
-export const FILTROS_MEU_DIA_INICIAIS: FiltrosMeuDia = { busca: '', pessoa: '', soResponsavel: false, contextos: [], area: '', tipo: '', situacao: 'abertas', prioridades: [], periodo: '', prazoDe: '', prazoAte: '', origem: '', etiqueta: '', destaque: '' };
+export const FILTROS_MEU_DIA_INICIAIS: FiltrosMeuDia = { ...FILTROS_COMUNS_INICIAIS, periodo: '', prazoDe: '', prazoAte: '', destaque: '' };
 
-export const ROTULOS_PERIODO = { atrasadas: 'Atrasadas', hoje: 'Hoje', semana: 'Esta semana', '30dias': 'Próximos 30 dias', sem_prazo: 'Sem prazo', intervalo: 'Intervalo' } as const;
+export const ROTULOS_PERIODO = { hoje: 'Hoje', atrasadas: 'Atrasadas', semana: 'Esta semana', '30dias': 'Próximos 30 dias', sem_prazo: 'Sem prazo', intervalo: 'Intervalo' } as const;
 
 export const MINHAS = 'minhas';
 
@@ -223,13 +223,13 @@ function somarDias(dia: string, dias: number): string {
   return data.toISOString().slice(0, 10);
 }
 
-function passaNoPeriodo(atividade: Atividade, { periodo, prazoDe, prazoAte }: FiltrosComuns, hoje: string): boolean {
+function passaNoPeriodo(atividade: Atividade, { periodo, prazoDe, prazoAte }: Pick<FiltrosMeuDia, 'periodo' | 'prazoDe' | 'prazoAte'>, hoje: string): boolean {
   const prazo = prazoEfetivo(atividade);
   switch (periodo) {
     case 'atrasadas':
       return estaAtrasada(atividade, hoje);
     case 'hoje':
-      return ehParaHoje(atividade, hoje) || (prazo === hoje && !estaAberta(atividade));
+      return ehParaHoje(atividade, hoje);
     case 'semana':
       return prazo !== null && prazo >= hoje && prazo <= fimDaSemana(hoje);
     case '30dias':
@@ -249,11 +249,10 @@ function passaNaPessoa(atividade: AtividadeDoDia, { pessoa, soResponsavel }: Fil
   return atividade.responsavel_id === alvo || (!soResponsavel && atividade.participantes.includes(alvo));
 }
 
-/** Os contextos do filtro; sem nenhum, vale o seletor global. Atividade sem produto é da Numa. */
-function passaNoContexto(atividade: AtividadeDoDia, { contextos }: FiltrosComuns, contextoGlobalId: string): boolean {
-  const escolhidos = contextos.length ? contextos : contextoGlobalId === ID_CONSOLIDADA ? [] : [contextoGlobalId];
-  if (!escolhidos.length) return true;
-  return escolhidos.some((id) => (id === ID_INSTITUCIONAL ? atividade.produtos.length === 0 : atividade.produtos.includes(id)));
+/** O seletor global é o único contexto da tela. O que não tem produto é da Numa. */
+export function passaNoContexto(produtos: readonly string[], contextoGlobalId: string): boolean {
+  if (contextoGlobalId === ID_CONSOLIDADA) return true;
+  return contextoGlobalId === ID_INSTITUCIONAL ? produtos.length === 0 : produtos.includes(contextoGlobalId);
 }
 
 function passaNaBusca(atividade: AtividadeDoDia, busca: string, nomeDaPessoa: (id: string) => string): boolean {
@@ -262,31 +261,26 @@ function passaNaBusca(atividade: AtividadeDoDia, busca: string, nomeDaPessoa: (i
   return normalizarTexto(`${atividade.titulo} ${atividade.codigo} ${atividade.descricao ?? ''} ${nomeDaPessoa(atividade.responsavel_id)}`).includes(texto);
 }
 
-export function passaNosFiltrosComuns(atividade: AtividadeDoDia, filtros: FiltrosComuns, { hoje, pessoaAtualId, contextoGlobalId, nomeDaPessoa }: OpcoesDosFiltros): boolean {
+export function passaNosFiltrosComuns(atividade: AtividadeDoDia, filtros: FiltrosComuns, { pessoaAtualId, contextoGlobalId, nomeDaPessoa }: OpcoesDosFiltros): boolean {
   return (
     passaNaBusca(atividade, filtros.busca, nomeDaPessoa) &&
     passaNaPessoa(atividade, filtros, pessoaAtualId) &&
-    passaNoContexto(atividade, filtros, contextoGlobalId) &&
+    passaNoContexto(atividade.produtos, contextoGlobalId) &&
     (!filtros.area || atividade.area_id === filtros.area) &&
     (!filtros.tipo || atividade.tipo === filtros.tipo) &&
     (!filtros.prioridades.length || filtros.prioridades.includes(atividade.prioridade)) &&
-    passaNoPeriodo(atividade, filtros, hoje) &&
     (!filtros.origem || atividade.origem_tipo === filtros.origem) &&
     (!filtros.etiqueta || atividade.etiquetas.includes(filtros.etiqueta))
   );
 }
 
-/** Tudo o que não depende da situação nem do destaque: é a base dos contadores (RN-03.19). */
+/** Tudo o que não depende do destaque (RN-03.19). */
 export function atividadesDaBase(atividades: readonly AtividadeDoDia[], filtros: FiltrosMeuDia, opcoes: OpcoesDosFiltros): AtividadeDoDia[] {
-  return atividades.filter((atividade) => estaNoDia(atividade, opcoes.hoje) && passaNosFiltrosComuns(atividade, filtros, opcoes));
+  return atividades.filter((atividade) => estaNoDia(atividade, opcoes.hoje) && passaNosFiltrosComuns(atividade, filtros, opcoes) && passaNoPeriodo(atividade, filtros, opcoes.hoje));
 }
 
 function passaNoDestaque(atividade: Atividade, destaque: DestaqueDoResumo, hoje: string): boolean {
   switch (destaque) {
-    case 'atrasadas':
-      return estaAtrasada(atividade, hoje);
-    case 'hoje':
-      return ehParaHoje(atividade, hoje);
     case 'em_andamento':
     case 'aguardando':
       return estaAberta(atividade) && atividade.situacao === destaque;
@@ -299,20 +293,10 @@ function passaNoDestaque(atividade: Atividade, destaque: DestaqueDoResumo, hoje:
   }
 }
 
-/**
- * O que aparece na tela. No quadro, a coluna Concluída fica sempre (RN-03.06); na lista, "abertas"
- * são só as abertas, salvo se o cartão "Concluídas hoje" estiver escolhido.
- */
-export function atividadesVisiveis(base: readonly AtividadeDoDia[], { situacao, destaque }: FiltrosMeuDia, visao: 'quadro' | 'lista', hoje: string): AtividadeDoDia[] {
-  return ordenarAtividades(
-    base
-      .filter((atividade) => passaNoDestaque(atividade, destaque, hoje))
-      .filter((atividade) => {
-        if (situacao !== 'abertas') return atividade.situacao === situacao;
-        return visao === 'quadro' || destaque === 'concluidas' || estaAberta(atividade);
-      }),
-    hoje,
-  );
+/** O que aparece na tela, igual no quadro e na lista. As concluídas de hoje ficam por último (RN-03.06). */
+export function atividadesVisiveis(base: readonly AtividadeDoDia[], { destaque }: Pick<FiltrosMeuDia, 'destaque'>, hoje: string): AtividadeDoDia[] {
+  const ordenadas = ordenarAtividades(base.filter((atividade) => passaNoDestaque(atividade, destaque, hoje)), hoje);
+  return [...ordenadas.filter(estaAberta), ...ordenadas.filter((atividade) => !estaAberta(atividade))];
 }
 
 export function colunasDoQuadro(visiveis: readonly AtividadeDoDia[]): Record<ColunaDoQuadro, AtividadeDoDia[]> {
@@ -326,7 +310,22 @@ export function colunasDoQuadro(visiveis: readonly AtividadeDoDia[]): Record<Col
 
 // ---------- Faixa de resumo (RN-03.19) ----------
 
-export type ResumoDoDia = Record<Exclude<DestaqueDoResumo, ''>, number>;
+export const CARTOES_DO_RESUMO = ['atrasadas', 'hoje', 'em_andamento', 'aguardando', 'bloqueadas', 'concluidas'] as const;
+export type CartaoDoResumo = (typeof CARTOES_DO_RESUMO)[number];
+export type ResumoDoDia = Record<CartaoDoResumo, number>;
+
+const CARTAO_DE_PERIODO = (cartao: CartaoDoResumo): cartao is 'atrasadas' | 'hoje' => cartao === 'atrasadas' || cartao === 'hoje';
+
+/** "Atrasadas" e "Para hoje" são o mesmo filtro do seletor de período: uma seleção só, nunca duas. */
+export function cartaoEstaAtivo(filtros: Pick<FiltrosMeuDia, 'periodo' | 'destaque'>, cartao: CartaoDoResumo): boolean {
+  return CARTAO_DE_PERIODO(cartao) ? filtros.periodo === cartao : filtros.destaque === cartao;
+}
+
+/** O filtro que o cartão aplica. Clicar de novo tira. */
+export function filtroDoCartao(filtros: Pick<FiltrosMeuDia, 'periodo' | 'destaque'>, cartao: CartaoDoResumo): Partial<FiltrosMeuDia> {
+  if (CARTAO_DE_PERIODO(cartao)) return { periodo: filtros.periodo === cartao ? '' : cartao, prazoDe: '', prazoAte: '' };
+  return { destaque: filtros.destaque === cartao ? '' : cartao };
+}
 
 export function resumoDoDia(base: readonly Atividade[], hoje: string): ResumoDoDia {
   const conta = (regra: (atividade: Atividade) => boolean) => base.filter(regra).length;
@@ -346,6 +345,18 @@ export function fraseDoResumo(resumo: ResumoDoDia): { abertura: string; itens: s
   if (!resumo.hoje && !pedacos.length) return null;
   const resto = pedacos.join(' e ');
   return { abertura: 'Hoje você tem ', itens: plural(resumo.hoje, 'item', 'itens'), resto: resto ? `, ${resto}.` : '.' };
+}
+
+/**
+ * RN-03.19: todo contador segue o recorte. Só a própria escolha não conta: marcar "Atrasadas" não zera
+ * "Para hoje", e marcar "Em andamento" não zera "Aguardando retorno", senão não daria para trocar de um para o outro.
+ */
+export function resumoDoRecorte(atividades: readonly AtividadeDoDia[], filtros: FiltrosMeuDia, opcoes: OpcoesDosFiltros): ResumoDoDia {
+  const base = atividadesDaBase(atividades, filtros, opcoes);
+  const periodoDoCartao = filtros.periodo === 'atrasadas' || filtros.periodo === 'hoje';
+  const semOPeriodo = periodoDoCartao ? atividadesDaBase(atividades, { ...filtros, periodo: '' }, opcoes) : base;
+  const doPeriodo = resumoDoDia(semOPeriodo.filter((atividade) => passaNoDestaque(atividade, filtros.destaque, opcoes.hoje)), opcoes.hoje);
+  return { ...resumoDoDia(base, opcoes.hoje), atrasadas: doPeriodo.atrasadas, hoje: doPeriodo.hoje };
 }
 
 // ---------- Contexto, nomes e o recorte ----------
@@ -377,11 +388,10 @@ export function contextosDaAtividade(atividade: Pick<AtividadeDoDia, 'produtos'>
 
 /** "Kipi, Alta": o que está reduzindo os contadores (RN-03.19). */
 export function recorteDosFiltros(filtros: FiltrosMeuDia, { nomeDaPessoa, nomeDaArea, nomeDoContexto, contextoGlobalId }: { nomeDaPessoa: (id: string) => string; nomeDaArea: (id: string) => string; nomeDoContexto: (id: string) => string; contextoGlobalId: string }): string[] {
-  const contextos = filtros.contextos.length ? filtros.contextos : contextoGlobalId === ID_CONSOLIDADA ? [] : [contextoGlobalId];
   return [
     ...(filtros.busca.trim() ? [`“${filtros.busca.trim()}”`] : []),
     ...(filtros.pessoa ? [filtros.pessoa === MINHAS ? 'Minhas' : nomeDaPessoa(filtros.pessoa)] : []),
-    ...contextos.map(nomeDoContexto),
+    ...(contextoGlobalId === ID_CONSOLIDADA ? [] : [nomeDoContexto(contextoGlobalId)]),
     ...(filtros.area ? [nomeDaArea(filtros.area)] : []),
     ...(filtros.tipo ? [ROTULOS_TIPO_ATIVIDADE[filtros.tipo as Atividade['tipo']]] : []),
     ...filtros.prioridades.map((prioridade) => ROTULOS_PRIORIDADE_ATIVIDADE[prioridade as Atividade['prioridade']]),
@@ -435,6 +445,11 @@ async function obterAtividade(id: string): Promise<Atividade> {
 }
 
 const SEM_AGUARDANDO = { aguardando_de_pessoa_id: null, aguardando_de_texto: null, aguardando_desde: null, acompanhamento_em: null };
+
+/** RN-03.12: concluir um alerta não executa a ação de origem, e o aviso diz isso. */
+export function mensagemAoConcluir(atividade: Pick<Atividade, 'tipo'>): string {
+  return atividade.tipo === 'alerta' ? 'Alerta concluído. A ação de origem não foi feita.' : 'Atividade concluída.';
+}
 
 /** Quem conclui é a pessoa atual; o repositório grava o histórico. Devolve a situação anterior, para o "Desfazer". */
 export async function concluirAtividade(id: string, pessoaId: string): Promise<Situacao> {

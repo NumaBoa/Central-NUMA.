@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
-import { Campo } from '@/componentes/campos/campo';
-import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EstadoCarregando, EstadoErro, EstadoVazio, EstadoVazioFiltro } from '@/componentes/padroes/estados';
+import { CartoesDeResumo } from '@/componentes/padroes/cartoes-resumo';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Button } from '@/componentes/ui/button';
 import { assinarMeta, gravarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
@@ -16,18 +15,19 @@ import { AlarmClock, CheckSquare, ChevronDown, History, Inbox, Plus, Repeat, Sun
 import {
   atividadesDaBase,
   atividadesVisiveis,
+  CARTOES_DO_RESUMO,
   carregarMeuDia,
+  cartaoEstaAtivo,
   colunasDoQuadro,
   dataPorExtenso,
+  filtroDoCartao,
   FILTROS_MEU_DIA_INICIAIS,
   fraseDoResumo,
   primeiroNome,
   recorteDosFiltros,
-  resumoDoDia,
-  ROTULOS_AGRUPAR,
+  resumoDoRecorte,
   saudacao,
   type AgruparPor,
-  type DestaqueDoResumo,
   type FiltrosMeuDia as Filtros,
   type ResumoDoDia,
 } from '@/dominio/atividades';
@@ -35,12 +35,10 @@ import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { hojeISO } from '@/lib/datas';
 import { cn } from '@/lib/utils';
 import { useAcoesDaAtividade } from './acoes-atividade';
-import { FiltrosMeuDia, PessoaRapida, ROTULOS_DESTAQUE } from './filtros-meu-dia';
+import { BarraDoMeuDia, ROTULOS_CARTAO } from './filtros-meu-dia';
 import { ListaAtividades } from './lista-atividades';
 import { PainelAtividade } from './painel-atividade';
 import { QuadroAtividades } from './quadro-atividades';
-
-const CARTOES_DO_RESUMO = ['atrasadas', 'hoje', 'em_andamento', 'aguardando', 'bloqueadas', 'concluidas'] as const;
 
 /** Linhas calmas do cabeçalho do Meu dia, versão estática em SVG (18 §2.2). */
 function LinhasDoCabecalho() {
@@ -151,36 +149,6 @@ function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia })
   );
 }
 
-/** Cartões clicáveis que aplicam filtro (T03.01). No celular, pílulas com rolagem (18 §10.6). */
-function FaixaDeResumo({ resumo, destaque, aoEscolher, recorte }: { resumo: ResumoDoDia; destaque: DestaqueDoResumo; aoEscolher: (destaque: DestaqueDoResumo) => void; recorte: readonly string[] }) {
-  return (
-    <div className="space-y-2">
-      <div role="group" aria-label="Resumo do dia" className="faixa-rolagem flex gap-1.5 py-0.5 md:grid md:grid-cols-3 md:gap-2 lg:grid-cols-6">
-        {CARTOES_DO_RESUMO.map((id) => {
-          const ativo = destaque === id;
-          const atencao = (id === 'atrasadas' || id === 'bloqueadas') && resumo[id] > 0;
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={ativo}
-              onClick={() => aoEscolher(ativo ? '' : id)}
-              className={cn(
-                'flex min-h-11 shrink-0 items-center gap-2 rounded-pill border px-3.5 text-left text-[13px] font-semibold whitespace-nowrap transition-colors duration-150 md:min-h-0 md:flex-col md:items-start md:gap-1 md:rounded-lg md:px-4 md:py-3 md:whitespace-normal',
-                ativo ? 'border-espresso bg-espresso text-linen' : 'border-line bg-paper text-ink hover:border-ink-soft',
-              )}
-            >
-              <span className={cn('md:text-xs md:font-semibold', !ativo && 'md:text-ink-soft')}>{ROTULOS_DESTAQUE[id]}</span>
-              <span className={cn('tabular-nums md:texto-kpi', atencao && !ativo && 'text-err')}>{resumo[id]}</span>
-            </button>
-          );
-        })}
-      </div>
-      {recorte.length > 0 && <p className="text-xs text-ink-soft">Contagem com filtro: {recorte.join(', ')}</p>}
-    </div>
-  );
-}
-
 function AlternanciaDeVisao({ visao }: { visao: 'quadro' | 'lista' }) {
   const opcoes = [
     { id: 'quadro', rotulo: 'Quadro' },
@@ -189,7 +157,7 @@ function AlternanciaDeVisao({ visao }: { visao: 'quadro' | 'lista' }) {
   return (
     <div role="group" aria-label="Visão" className="inline-flex rounded-pill border border-line bg-paper p-0.5">
       {opcoes.map(({ id, rotulo }) => (
-        <button key={id} type="button" aria-pressed={visao === id} onClick={() => gravarMeta({ visao_meu_dia: id })} className={cn('min-h-11 rounded-pill px-4 text-[13px] font-semibold transition-colors duration-150 md:min-h-8', visao === id ? 'bg-espresso text-linen' : 'text-ink-soft hover:text-ink')}>
+        <button key={id} type="button" aria-pressed={visao === id} onClick={() => gravarMeta({ visao_meu_dia: id })} className={cn('min-h-11 rounded-pill px-4 text-[13px] font-semibold transition-colors duration-150 md:min-h-9', visao === id ? 'bg-espresso text-linen' : 'text-ink-soft hover:text-ink')}>
           {rotulo}
         </button>
       ))}
@@ -233,9 +201,10 @@ export function TelaMeuDia() {
   const nomeDaArea = (id: string) => dados?.areas.find((area) => area.id === id)?.nome ?? 'Área removida';
   const nomeDoContexto = (id: string) => (id === ID_INSTITUCIONAL ? 'Numa' : (dados?.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido'));
 
-  const base = useMemo(() => (dados ? atividadesDaBase(dados.atividades, filtros, { hoje, pessoaAtualId: pessoa.id, contextoGlobalId: contexto.id, nomeDaPessoa }) : []), [dados, filtros, hoje, pessoa.id, contexto.id]); // eslint-disable-line react-hooks/exhaustive-deps -- nomeDaPessoa só depende de dados
-  const resumo = useMemo(() => resumoDoDia(base, hoje), [base, hoje]);
-  const visiveis = useMemo(() => atividadesVisiveis(base, filtros, visao, hoje), [base, filtros, visao, hoje]);
+  const opcoes = { hoje, pessoaAtualId: pessoa.id, contextoGlobalId: contexto.id, nomeDaPessoa };
+  const base = useMemo(() => (dados ? atividadesDaBase(dados.atividades, filtros, opcoes) : []), [dados, filtros, hoje, pessoa.id, contexto.id]); // eslint-disable-line react-hooks/exhaustive-deps -- nomeDaPessoa só depende de dados
+  const resumo = useMemo(() => resumoDoRecorte(dados?.atividades ?? [], filtros, opcoes), [dados, filtros, hoje, pessoa.id, contexto.id]); // eslint-disable-line react-hooks/exhaustive-deps -- nomeDaPessoa só depende de dados
+  const visiveis = useMemo(() => atividadesVisiveis(base, filtros, hoje), [base, filtros, hoje]);
   const colunas = useMemo(() => colunasDoQuadro(visiveis), [visiveis]);
   const recorte = recorteDosFiltros(filtros, { nomeDaPessoa, nomeDaArea, nomeDoContexto, contextoGlobalId: contexto.id });
 
@@ -256,32 +225,22 @@ export function TelaMeuDia() {
   return (
     <div className="space-y-5">
       <CabecalhoDoDia nome={pessoa.nome} resumo={resumo} />
-      <FaixaDeResumo resumo={resumo} destaque={filtros.destaque} aoEscolher={(destaque) => mudar({ destaque })} recorte={recorte} />
-      <FiltrosMeuDia filtros={filtros} aoMudar={mudar} dados={dados} nomeDoContexto={nomeDoContexto} />
-      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-        <PessoaRapida filtros={filtros} aoMudar={mudar} />
-        <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-          {visao === 'lista' && (
-            <Campo rotulo="Agrupar por" id="agrupar-por" className="w-44">
-              {(controle) => (
-                <Selecao {...controle} value={agruparPor} onChange={(evento) => setAgruparPor(evento.target.value as AgruparPor)}>
-                  {Object.entries(ROTULOS_AGRUPAR).map(([valor, rotulo]) => (
-                    <option key={valor} value={valor}>
-                      {rotulo}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-          )}
-          <AlternanciaDeVisao visao={visao} />
-        </div>
+      <div className="space-y-2">
+        <CartoesDeResumo
+          rotulo="Resumo do dia"
+          className="md:grid-cols-3 lg:grid-cols-6"
+          cartoes={CARTOES_DO_RESUMO.map((id) => ({ id, rotulo: ROTULOS_CARTAO[id], valor: resumo[id], atencao: (id === 'atrasadas' || id === 'bloqueadas') && resumo[id] > 0 }))}
+          ativo={(id) => cartaoEstaAtivo(filtros, id)}
+          aoEscolher={(id) => mudar(filtroDoCartao(filtros, id))}
+        />
+        {recorte.length > 0 && <p className="text-xs text-ink-soft">Contagem com filtro: {recorte.join(', ')}</p>}
       </div>
+      <BarraDoMeuDia filtros={filtros} aoMudar={mudar} visao={visao} aoMudarVisao={(novaVisao) => gravarMeta({ visao_meu_dia: novaVisao })} agruparPor={agruparPor} aoMudarAgrupar={setAgruparPor} dados={dados} alternancia={<AlternanciaDeVisao visao={visao} />} />
 
       {nadaNoDia ? (
         <EstadoVazio icone={Sun} titulo="Tudo em dia por aqui." texto="Que tal registrar o que vem pela frente?" acao={<BotaoAdicionar />} />
       ) : visiveis.length === 0 ? (
-        <EstadoVazioFiltro aoLimpar={limpar} />
+        <EstadoVazioFiltro titulo="Há atividades ocultas pelos filtros." aoLimpar={limpar} />
       ) : visao === 'quadro' ? (
         <QuadroAtividades colunas={colunas} dados={dados} hoje={hoje} acoes={acoes} recenteId={recenteId} />
       ) : (

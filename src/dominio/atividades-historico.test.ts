@@ -3,7 +3,7 @@ import { criarArmazenamentoEmMemoria, usarDriverDeTeste } from '@/dados/armazena
 import { ID_BRUNA, ID_CAMILA, ID_KIMBERLY, ID_PRODUTO_ZUPI } from '@/dados/exemplos/base';
 import { esquecerMetaEmMemoria } from '@/dados/meta';
 import { carregarMeuDia, concluirAtividade, FILTROS_MEU_DIA_INICIAIS, atividadesDaBase, reabrirAtividade, cancelarAtividade, type OpcoesDosFiltros } from './atividades';
-import { atividadesDoHistorico, CONCLUIDA_PELO_SISTEMA, encerradaEm, FILTROS_HISTORICO_INICIAIS, type FiltrosHistorico } from './atividades-historico';
+import { atividadesDoHistorico, CONCLUIDA_PELO_SISTEMA, encerradaEm, FILTROS_HISTORICO_INICIAIS, quemEncerrou, resumoDoHistorico, type FiltrosHistorico } from './atividades-historico';
 import { ID_CONSOLIDADA } from './contextos';
 
 const HOJE = '2026-11-06';
@@ -64,9 +64,23 @@ describe('T03.04: Histórico', () => {
   it('com os filtros do Meu dia', async () => {
     expect(await titulos({ busca: 'logotipo' })).toEqual(['Enviar o logotipo final do Zupi']);
     expect(await titulos({ pessoa: ID_CAMILA })).toEqual(['Atualizar a lista de fornecedores']);
-    expect(await titulos({ contextos: [ID_PRODUTO_ZUPI] })).toEqual(['Enviar o logotipo final do Zupi']);
     expect(await titulos({}, { contextoGlobalId: ID_PRODUTO_ZUPI })).toEqual(['Enviar o logotipo final do Zupi']);
     expect(await titulos({ prioridades: ['urgente'] })).toEqual([]);
+  });
+
+  it('os contadores seguem o recorte, e marcar uma situação não zera a outra (RN-03.19)', async () => {
+    const { atividades } = await carregarMeuDia();
+    const resumo = (alteracoes: Partial<FiltrosHistorico> = {}, opcoes: Partial<OpcoesDosFiltros> = {}) => resumoDoHistorico(atividades, { ...FILTROS_HISTORICO_INICIAIS, ...alteracoes }, { ...OPCOES, ...opcoes });
+    expect(resumo()).toEqual({ total: 5, concluidas: 4, canceladas: 1 });
+    expect(resumo({ situacao: 'cancelada' })).toEqual({ total: 5, concluidas: 4, canceladas: 1 });
+    expect(resumo({ conclusao: 'hoje' })).toEqual({ total: 2, concluidas: 2, canceladas: 0 });
+    expect(resumo({}, { contextoGlobalId: ID_PRODUTO_ZUPI })).toEqual({ total: 1, concluidas: 1, canceladas: 0 });
+  });
+
+  it('quem encerrou: quem concluiu ou, no cancelamento, quem fez a última alteração', () => {
+    expect(quemEncerrou({ situacao: 'concluida', concluida_por: ID_BRUNA, atualizado_por: ID_CAMILA })).toBe(ID_BRUNA);
+    expect(quemEncerrou({ situacao: 'cancelada', concluida_por: null, atualizado_por: ID_CAMILA })).toBe(ID_CAMILA);
+    expect(quemEncerrou({ situacao: 'concluida', concluida_por: null, atualizado_por: null })).toBeNull();
   });
 
   it('reabrir tira do Histórico; o motivo do cancelamento não fica para trás', async () => {

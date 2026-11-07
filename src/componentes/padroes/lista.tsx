@@ -16,6 +16,8 @@ export type Coluna<T> = {
   ordenar?: (a: T, b: T) => number;
   /** As demais colunas somem no tablet (18 §10.4). */
   essencial?: boolean;
+  /** Classes da coluna, no cabeçalho e nas células: com `@min-[...]`, ela só aparece se a tabela couber. */
+  classe?: string;
   /** Números à direita, tabulares (18 §9.6). */
   numerica?: boolean;
   /** Para alinhar as colunas de listas vizinhas, como os grupos de categorias. */
@@ -48,10 +50,12 @@ type ListaProps<T> = {
   aoLimparFiltros?: () => void;
   vazio: ReactNode;
   rodape?: ReactNode;
+  /** Menos espaço entre as colunas, para caber mais sem rolar. */
+  compacta?: boolean;
 };
 
 /** Lista (P1 e 18 §9.6): tabela em papel; no celular, cartões. */
-export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, selecao, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape }: ListaProps<T>) {
+export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, selecao, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape, compacta = false }: ListaProps<T>) {
   const [ordem, setOrdem] = useState<{ id: string; sentido: 1 | -1 } | null>(null);
   const [limite, setLimite] = useState(TAMANHO_PAGINA);
 
@@ -82,7 +86,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
   return (
     <div>
       {/* Computador e tablet */}
-      <div className="faixa-rolagem relative hidden rounded-lg border border-line bg-paper md:block">
+      <div className="@container faixa-rolagem relative hidden rounded-lg border border-line bg-paper md:block">
         <table aria-label={rotulo} className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>
@@ -106,9 +110,11 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
                     aria-sort={ordenada ? (ordem?.sentido === 1 ? 'ascending' : 'descending') : undefined}
                     style={coluna.largura ? { width: coluna.largura } : undefined}
                     className={cn(
-                      'bg-mist px-3.5 py-2.5 text-left font-semibold whitespace-nowrap text-ink-soft first:rounded-tl-lg last:rounded-tr-lg',
+                      'bg-mist py-2.5 text-left font-semibold whitespace-nowrap text-ink-soft first:rounded-tl-lg last:rounded-tr-lg',
+                      compacta ? 'px-2.5' : 'px-3.5',
                       coluna.numerica && 'text-right',
                       !coluna.essencial && 'hidden lg:table-cell',
+                      coluna.classe,
                       i === 0 && 'sticky left-0 z-[1]',
                     )}
                   >
@@ -159,9 +165,11 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
                   <td
                     key={coluna.id}
                     className={cn(
-                      'h-[52px] border-t border-line px-3.5 py-1.5',
+                      'h-[52px] border-t border-line py-1.5',
+                      compacta ? 'px-2.5' : 'px-3.5',
                       coluna.numerica && 'text-right tabular-nums',
                       !coluna.essencial && 'hidden lg:table-cell',
+                      coluna.classe,
                       i === 0 && 'sticky left-0 bg-paper group-hover/linha:bg-linen',
                     )}
                   >

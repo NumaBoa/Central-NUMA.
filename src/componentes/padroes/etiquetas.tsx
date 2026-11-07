@@ -42,17 +42,17 @@ export function EtiquetaContexto({ contexto, className }: { contexto: Contexto; 
 export type Prioridade = 'urgente' | 'alta' | 'normal' | 'baixa';
 
 const PRIORIDADES: Record<Prioridade, { rotulo: string; icone?: LucideIcon; classe: string }> = {
-  urgente: { rotulo: 'Urgente', icone: ChevronsUp, classe: 'text-err' },
-  alta: { rotulo: 'Alta', icone: ChevronUp, classe: 'text-warn' },
-  normal: { rotulo: 'Normal', classe: 'text-ink-soft' },
-  baixa: { rotulo: 'Baixa', classe: 'text-ink-soft' },
+  urgente: { rotulo: 'Urgente', icone: ChevronsUp, classe: 'bg-err-wash text-err' },
+  alta: { rotulo: 'Alta', icone: ChevronUp, classe: 'bg-err-wash text-err' },
+  normal: { rotulo: 'Normal', classe: 'bg-mist text-ink-soft' },
+  baixa: { rotulo: 'Baixa', classe: 'bg-ok-wash text-ok' },
 };
 
 /** Prioridade: Urgente e Alta com ícone e texto; Normal e Baixa só aparecem na lista (18 §9.4). */
 export function EtiquetaPrioridade({ prioridade }: { prioridade: Prioridade }) {
   const { rotulo, icone: Icone, classe } = PRIORIDADES[prioridade];
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs leading-4 font-semibold whitespace-nowrap [&_svg]:size-[14px]', classe)}>
+    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-pill px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap [&_svg]:size-[14px]', classe)}>
       {Icone && <Icone aria-hidden />}
       {rotulo}
     </span>

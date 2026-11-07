@@ -16,13 +16,12 @@ import { Input } from '@/componentes/ui/input';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarMeuDia, contextosDaAtividade, prazoEfetivo, type AtividadeDoDia, type DadosMeuDia } from '@/dominio/atividades';
 import { atividadesDoHistorico, CONCLUIDA_PELO_SISTEMA, encerradaEm, FILTROS_HISTORICO_INICIAIS, ROTULOS_PERIODO_CONCLUSAO, type FiltrosHistorico, type PeriodoDaConclusao } from '@/dominio/atividades-historico';
-import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { hojeISO } from '@/lib/datas';
 import { formatarData, formatarDiaISO } from '@/lib/formatacao';
 import { useAcoesDaAtividade } from '../acoes-atividade';
 import { MenuDaAtividade, TipoDaAtividade } from '../cartao-atividade';
-import { ativosComuns, CamposComuns, removerComum } from '../filtros-meu-dia';
+import { ativosComuns, CamposAvancados, removerComum } from '../filtros-meu-dia';
 import { SituacaoDaAtividade } from '../lista-atividades';
 import { PainelAtividade } from '../painel-atividade';
 
@@ -52,7 +51,6 @@ export function TelaHistorico() {
   const { acoes, dialogos } = useAcoesDaAtividade(dados, hoje, abrirPainel);
 
   const nomeDaPessoa = (id: string) => dados?.pessoas.find((item) => item.id === id)?.nome_completo ?? 'Pessoa removida';
-  const nomeDoContexto = (id: string) => (id === ID_INSTITUCIONAL ? 'Numa' : (dados?.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido'));
   const linhas = useMemo(() => (dados ? atividadesDoHistorico(dados.atividades, filtros, { hoje, pessoaAtualId: pessoa.id, contextoGlobalId: contexto.id, nomeDaPessoa }) : []), [dados, filtros, hoje, pessoa.id, contexto.id]); // eslint-disable-line react-hooks/exhaustive-deps -- nomeDaPessoa só depende de dados
   const mudar = (parcial: Partial<FiltrosHistorico>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
 
@@ -118,7 +116,7 @@ export function TelaHistorico() {
     ...(filtros.situacao ? [{ id: 'situacao', rotulo: `Situação: ${filtros.situacao === 'concluida' ? 'Concluída' : 'Cancelada'}` }] : []),
     ...(filtros.conclusao ? [{ id: 'conclusao', rotulo: `Concluída: ${ROTULOS_PERIODO_CONCLUSAO[filtros.conclusao]}` }] : []),
     ...(filtros.concluidaPor ? [{ id: 'concluidaPor', rotulo: `Concluída por: ${filtros.concluidaPor === CONCLUIDA_PELO_SISTEMA ? 'Sistema' : nomeDaPessoa(filtros.concluidaPor)}` }] : []),
-    ...ativosComuns(filtros, dados, nomeDoContexto),
+    ...ativosComuns(filtros, dados),
   ];
 
   function remover(id: string) {
@@ -193,7 +191,7 @@ export function TelaHistorico() {
                 </Selecao>
               )}
             </Campo>
-            <CamposComuns filtros={filtros} aoMudar={mudar} dados={dados} />
+            <CamposAvancados filtros={filtros} aoMudar={mudar} dados={dados} />
           </div>
         }
       />

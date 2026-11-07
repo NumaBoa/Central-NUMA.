@@ -90,26 +90,32 @@ export function BarraFiltros({ busca, aoBuscar, rotuloBusca = 'Buscar', rapidos 
         </div>
       )}
 
-      {ativos.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {ativos.map((ativo) => (
-            <button
-              key={ativo.id}
-              type="button"
-              onClick={() => aoRemoverAtivo?.(ativo.id)}
-              aria-label={`Remover filtro: ${ativo.rotulo}`}
-              className="inline-flex min-h-11 items-center gap-1 rounded-pill bg-mist px-3 text-xs font-semibold text-ink-soft md:min-h-8 [&_svg]:size-3.5"
-            >
-              {ativo.rotulo}
-              <X aria-hidden />
-            </button>
-          ))}
-          {aoLimpar && (
-            <Button variante="terciario" tamanho="pequeno" onClick={aoLimpar}>
-              Limpar filtros
-            </Button>
-          )}
-        </div>
+      <EtiquetasDosFiltros ativos={ativos} aoRemoverAtivo={aoRemoverAtivo} aoLimpar={aoLimpar} />
+    </div>
+  );
+}
+
+/** Filtros aplicados, como etiquetas removíveis, e "Limpar filtros" (P1). */
+export function EtiquetasDosFiltros({ ativos, aoRemoverAtivo, aoLimpar }: Pick<BarraFiltrosProps, 'ativos' | 'aoRemoverAtivo' | 'aoLimpar'>) {
+  if (!ativos?.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {ativos.map((ativo) => (
+        <button
+          key={ativo.id}
+          type="button"
+          onClick={() => aoRemoverAtivo?.(ativo.id)}
+          aria-label={`Remover filtro: ${ativo.rotulo}`}
+          className="inline-flex min-h-11 items-center gap-1 rounded-pill bg-mist px-3 text-xs font-semibold text-ink-soft md:min-h-8 [&_svg]:size-3.5"
+        >
+          {ativo.rotulo}
+          <X aria-hidden />
+        </button>
+      ))}
+      {aoLimpar && (
+        <Button variante="terciario" tamanho="pequeno" onClick={aoLimpar}>
+          Limpar filtros
+        </Button>
       )}
     </div>
   );

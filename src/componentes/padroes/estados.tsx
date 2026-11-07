@@ -31,11 +31,11 @@ export function EstadoVazio({ icone: Icone, titulo, texto, acao, comMarcaDagua =
 }
 
 /** Vazio por filtro (18 §8): "Nada com esses filtros." + "Limpar filtros". */
-export function EstadoVazioFiltro({ aoLimpar, className }: { aoLimpar?: () => void; className?: string }) {
+export function EstadoVazioFiltro({ titulo = 'Nada com esses filtros.', aoLimpar, className }: { titulo?: string; aoLimpar?: () => void; className?: string }) {
   return (
     <div className={cn('flex flex-col items-center rounded-lg border border-line bg-paper px-4 py-10 text-center', className)}>
       <SearchX className="size-6 text-ink-soft" aria-hidden />
-      <p className="mt-3 text-sm font-semibold">Nada com esses filtros.</p>
+      <p className="mt-3 text-sm font-semibold">{titulo}</p>
       {aoLimpar && (
         <Button variante="terciario" className="mt-2" onClick={aoLimpar}>
           Limpar filtros

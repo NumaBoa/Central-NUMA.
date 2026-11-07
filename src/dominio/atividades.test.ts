@@ -13,7 +13,9 @@ import {
   atividadesVisiveis,
   bloquearAtividade,
   cancelarAtividade,
+  CARTOES_DO_RESUMO,
   carregarMeuDia,
+  cartaoEstaAtivo,
   colunasDoQuadro,
   concluidaHoje,
   concluirAtividade,
@@ -27,6 +29,7 @@ import {
   estaAberta,
   estaAtrasada,
   estaNoDia,
+  filtroDoCartao,
   FILTROS_MEU_DIA_INICIAIS,
   fraseDoResumo,
   MINHAS,
@@ -41,6 +44,7 @@ import {
   reabrirAtividade,
   recorteDosFiltros,
   resumoDoDia,
+  resumoDoRecorte,
   saudacao,
   textoDoPrazo,
   textoDosAdiamentos,
@@ -49,6 +53,7 @@ import {
   type AtividadeDoDia,
   type DadosMeuDia,
   type FiltrosMeuDia,
+  type OpcoesDosFiltros,
 } from './atividades';
 import { arquivarArea } from './areas';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
@@ -258,7 +263,7 @@ describe('T03.01', () => {
       expect(saudacao(new Date('2026-11-06T16:00:00.000Z'))).toBe('Boa tarde');
       expect(saudacao(new Date('2026-11-06T23:30:00.000Z'))).toBe('Boa noite');
       expect(saudacao(new Date('2026-11-06T04:00:00.000Z'))).toBe('Boa noite');
-      expect(dataPorExtenso(new Date('2026-11-06T15:00:00.000Z'))).toBe('sexta-feira, 6 de novembro');
+      expect(dataPorExtenso(new Date('2026-11-06T15:00:00.000Z'))).toBe('sexta-feira, 6 de novembro de 2026');
       expect(primeiroNome('Kimberly Grebe')).toBe('Kimberly');
     });
 
@@ -291,12 +296,10 @@ describe('T03.01', () => {
       expect(titulos(base(lista, { pessoa: ID_CAMILA }))).toEqual(['Da Camila', 'Só da Camila']);
     });
 
-    it('contexto: multiseleção, Numa é quem não tem produto, e herda o seletor global', () => {
-      expect(titulos(base(lista, { contextos: [ID_PRODUTO_KIPI] }))).toEqual(['Minha']);
-      expect(titulos(base(lista, { contextos: [ID_PRODUTO_KIPI, ID_PRODUTO_ZUPI] }))).toEqual(['Minha', 'Da Camila']);
-      expect(titulos(base(lista, { contextos: [ID_INSTITUCIONAL] }))).toEqual(['Só da Camila']);
+    it('o contexto vem só do seletor global, e Numa é quem não tem produto', () => {
+      expect(titulos(base(lista, {}, { contextoGlobalId: ID_PRODUTO_KIPI }))).toEqual(['Minha']);
       expect(titulos(base(lista, {}, { contextoGlobalId: ID_PRODUTO_ZUPI }))).toEqual(['Da Camila']);
-      expect(titulos(base(lista, { contextos: [ID_PRODUTO_KIPI] }, { contextoGlobalId: ID_PRODUTO_ZUPI }))).toEqual(['Minha']);
+      expect(titulos(base(lista, {}, { contextoGlobalId: ID_INSTITUCIONAL }))).toEqual(['Só da Camila']);
     });
 
     it('busca por título, código, descrição e responsável, sem ligar para acento', () => {
@@ -329,10 +332,10 @@ describe('T03.01', () => {
     it('os contadores seguem os filtros e o recorte diz quais (CA-03.04)', () => {
       const semFiltro = resumoDoDia(base(lista), HOJE);
       expect(semFiltro).toMatchObject({ atrasadas: 1, hoje: 1 });
-      expect(resumoDoDia(base(lista, { contextos: [ID_PRODUTO_KIPI] }), HOJE)).toMatchObject({ atrasadas: 0, hoje: 1 });
+      expect(resumoDoDia(base(lista, {}, { contextoGlobalId: ID_PRODUTO_KIPI }), HOJE)).toMatchObject({ atrasadas: 0, hoje: 1 });
       const nomes = { nomeDaPessoa: () => 'Camila Lima', nomeDaArea: () => 'Tecnologia', nomeDoContexto: () => 'Kipi', contextoGlobalId: ID_CONSOLIDADA };
       expect(recorteDosFiltros(FILTROS_MEU_DIA_INICIAIS, nomes)).toEqual([]);
-      expect(recorteDosFiltros({ ...FILTROS_MEU_DIA_INICIAIS, contextos: [ID_PRODUTO_KIPI], prioridades: ['alta'], pessoa: MINHAS, periodo: 'hoje', tipo: 'demanda', area: 'x', busca: ' lumi ', origem: 'backup' }, nomes)).toEqual(['“lumi”', 'Minhas', 'Kipi', 'Tecnologia', 'Demanda', 'Alta', 'Hoje', 'Backup']);
+      expect(recorteDosFiltros({ ...FILTROS_MEU_DIA_INICIAIS, prioridades: ['alta'], pessoa: MINHAS, periodo: 'hoje', tipo: 'demanda', area: 'x', busca: ' lumi ', origem: 'backup' }, { ...nomes, contextoGlobalId: ID_PRODUTO_KIPI })).toEqual(['“lumi”', 'Minhas', 'Kipi', 'Tecnologia', 'Demanda', 'Alta', 'Hoje', 'Backup']);
       expect(recorteDosFiltros(FILTROS_MEU_DIA_INICIAIS, { ...nomes, contextoGlobalId: ID_PRODUTO_KIPI })).toEqual(['Kipi']);
     });
   });
@@ -345,16 +348,15 @@ describe('T03.01', () => {
       atividade({ titulo: 'concluída', situacao: 'concluida', concluida_em: '2026-11-06T12:00:00.000Z' }),
       atividade({ titulo: 'bloqueada', bloqueada: true, bloqueio_motivo: 'x' }),
     ];
-    const visiveis = (filtros: Partial<FiltrosMeuDia>, visao: 'quadro' | 'lista' = 'quadro') => atividadesVisiveis(base(lista), { ...FILTROS_MEU_DIA_INICIAIS, ...filtros }, visao, HOJE).map((item) => item.titulo);
+    const visiveis = (filtros: Partial<FiltrosMeuDia>) => atividadesVisiveis(base(lista, filtros), { ...FILTROS_MEU_DIA_INICIAIS, ...filtros }, HOJE).map((item) => item.titulo);
 
-    it('o quadro mostra a coluna Concluída; a lista, só as abertas', () => {
-      expect(visiveis({})).toContain('concluída');
-      expect(visiveis({}, 'lista')).not.toContain('concluída');
-      expect(visiveis({ destaque: 'concluidas' }, 'lista')).toEqual(['concluída']);
+    it('quadro e lista mostram o mesmo: as concluídas de hoje ficam por último (RN-03.06)', () => {
+      expect(visiveis({}).at(-1)).toBe('concluída');
+      expect(visiveis({ destaque: 'concluidas' })).toEqual(['concluída']);
     });
 
     it('as colunas do quadro', () => {
-      const colunas = colunasDoQuadro(atividadesVisiveis(base(lista), FILTROS_MEU_DIA_INICIAIS, 'quadro', HOJE));
+      const colunas = colunasDoQuadro(atividadesVisiveis(base(lista), FILTROS_MEU_DIA_INICIAIS, HOJE));
       expect(colunas.a_fazer.map((item) => item.titulo)).toEqual(['bloqueada', 'a fazer']);
       expect(colunas.em_andamento).toHaveLength(1);
       expect(colunas.aguardando).toHaveLength(1);
@@ -362,16 +364,67 @@ describe('T03.01', () => {
     });
 
     it('cada cartão da faixa de resumo vira filtro', () => {
-      expect(visiveis({ destaque: 'hoje' })).toEqual(['a fazer']);
-      expect(visiveis({ destaque: 'em_andamento' })).toEqual(['andamento']);
-      expect(visiveis({ destaque: 'aguardando' })).toEqual(['aguardando']);
-      expect(visiveis({ destaque: 'bloqueadas' })).toEqual(['bloqueada']);
-      expect(visiveis({ destaque: 'atrasadas' })).toEqual([]);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'hoje'))).toEqual(['a fazer']);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'em_andamento'))).toEqual(['andamento']);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'aguardando'))).toEqual(['aguardando']);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'bloqueadas'))).toEqual(['bloqueada']);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'concluidas'))).toEqual(['concluída']);
+      expect(visiveis(filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'atrasadas'))).toEqual([]);
     });
 
-    it('filtro de situação', () => {
-      expect(visiveis({ situacao: 'em_andamento' }, 'lista')).toEqual(['andamento']);
-      expect(visiveis({ situacao: 'concluida' }, 'lista')).toEqual(['concluída']);
+    it('"Atrasadas" e "Para hoje" são o seletor de período, e não uma segunda seleção', () => {
+      const comPeriodo = { ...FILTROS_MEU_DIA_INICIAIS, ...filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, 'atrasadas') };
+      expect(comPeriodo.periodo).toBe('atrasadas');
+      expect(cartaoEstaAtivo(comPeriodo, 'atrasadas')).toBe(true);
+      expect(cartaoEstaAtivo(comPeriodo, 'hoje')).toBe(false);
+      // Escolher pelo seletor marca o cartão, e clicar de novo tira.
+      expect(cartaoEstaAtivo({ ...FILTROS_MEU_DIA_INICIAIS, periodo: 'hoje' }, 'hoje')).toBe(true);
+      expect(filtroDoCartao(comPeriodo, 'atrasadas').periodo).toBe('');
+      expect(filtroDoCartao(comPeriodo, 'hoje').periodo).toBe('hoje');
+      // O intervalo não fica para trás.
+      const comIntervalo: FiltrosMeuDia = { ...FILTROS_MEU_DIA_INICIAIS, periodo: 'intervalo', prazoDe: '2026-11-01' };
+      expect(filtroDoCartao(comIntervalo, 'hoje')).toMatchObject({ periodo: 'hoje', prazoDe: '', prazoAte: '' });
+    });
+
+    it('o número do cartão é o que aparece ao clicar nele', () => {
+      const atividades = [...lista, atividade({ titulo: 'hoje e concluída', prazo: HOJE, situacao: 'concluida', concluida_em: '2026-11-06T12:00:00.000Z' }), atividade({ titulo: 'atrasada', prazo: '2026-11-01' })];
+      const resumo = resumoDoRecorte(atividades, FILTROS_MEU_DIA_INICIAIS, OPCOES);
+      for (const cartao of CARTOES_DO_RESUMO) {
+        const filtros = { ...FILTROS_MEU_DIA_INICIAIS, ...filtroDoCartao(FILTROS_MEU_DIA_INICIAIS, cartao) };
+        expect(atividadesVisiveis(atividadesDaBase(atividades, filtros, OPCOES), filtros, HOJE)).toHaveLength(resumo[cartao]);
+      }
+    });
+  });
+
+  describe('os contadores seguem o recorte (RN-03.19)', () => {
+    const lista = [
+      atividade({ titulo: 'atrasada do Kipi', prazo: '2026-11-01', situacao: 'em_andamento', produtos: [ID_PRODUTO_KIPI] }),
+      atividade({ titulo: 'de hoje do Kipi', prazo: HOJE, produtos: [ID_PRODUTO_KIPI] }),
+      atividade({ titulo: 'de hoje do Zupi', prazo: HOJE, situacao: 'aguardando', aguardando_de_texto: 'x', produtos: [ID_PRODUTO_ZUPI] }),
+      atividade({ titulo: 'da Camila, atrasada', prazo: '2026-11-02', responsavel_id: ID_CAMILA }),
+      atividade({ titulo: 'concluída', situacao: 'concluida', concluida_em: '2026-11-06T12:00:00.000Z', produtos: [ID_PRODUTO_KIPI] }),
+    ];
+    const resumo = (filtros: Partial<FiltrosMeuDia> = {}, opcoes: Partial<OpcoesDosFiltros> = {}) => resumoDoRecorte(lista, { ...FILTROS_MEU_DIA_INICIAIS, ...filtros }, { ...OPCOES, ...opcoes });
+
+    it('sem filtro, tudo', () => {
+      expect(resumo()).toEqual({ atrasadas: 2, hoje: 2, em_andamento: 1, aguardando: 1, bloqueadas: 0, concluidas: 1 });
+    });
+
+    it('o contexto global e a pessoa mudam todos', () => {
+      expect(resumo({}, { contextoGlobalId: ID_PRODUTO_KIPI })).toEqual({ atrasadas: 1, hoje: 1, em_andamento: 1, aguardando: 0, bloqueadas: 0, concluidas: 1 });
+      expect(resumo({ pessoa: ID_CAMILA })).toEqual({ atrasadas: 1, hoje: 0, em_andamento: 0, aguardando: 0, bloqueadas: 0, concluidas: 0 });
+    });
+
+    it('marcar "Atrasadas" não zera "Para hoje", e os outros seguem o recorte', () => {
+      expect(resumo({ periodo: 'atrasadas' })).toEqual({ atrasadas: 2, hoje: 2, em_andamento: 1, aguardando: 0, bloqueadas: 0, concluidas: 0 });
+    });
+
+    it('marcar "Em andamento" não zera "Aguardando retorno", e o prazo segue o recorte', () => {
+      expect(resumo({ destaque: 'em_andamento' })).toEqual({ atrasadas: 1, hoje: 0, em_andamento: 1, aguardando: 1, bloqueadas: 0, concluidas: 1 });
+    });
+
+    it('um período sem cartão reduz também "Atrasadas" e "Para hoje"', () => {
+      expect(resumo({ periodo: 'sem_prazo' })).toEqual({ atrasadas: 0, hoje: 0, em_andamento: 0, aguardando: 0, bloqueadas: 0, concluidas: 1 });
     });
   });
 
@@ -417,7 +470,7 @@ describe('T03.01', () => {
     });
 
     it('concluída ontem não aparece no quadro de hoje (CA-03.08)', () => {
-      const visiveis = atividadesVisiveis(base(dados.atividades), FILTROS_MEU_DIA_INICIAIS, 'quadro', HOJE).map((item) => item.titulo);
+      const visiveis = atividadesVisiveis(base(dados.atividades), FILTROS_MEU_DIA_INICIAIS, HOJE).map((item) => item.titulo);
       expect(visiveis).not.toContain('Atualizar a lista de fornecedores');
       expect(visiveis).not.toContain('Testar outra plataforma de e-mail');
       expect(visiveis).toContain('Enviar o logotipo final do Zupi');

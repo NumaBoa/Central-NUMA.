@@ -11,12 +11,13 @@ import type { Marca, Produto } from '@/dados/tipos/marca';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { ModeloDaRecorrencia, Recorrencia } from '@/dados/tipos/recorrencia';
 import { hojeISO, instanteNoFuso } from '@/lib/datas';
-import { cancelarAtividade, estaAberta, MAXIMO_NO_TITULO, prazoEfetivo } from './atividades';
+import { cancelarAtividade, estaAberta, MAXIMO_NO_TITULO, MINHAS, passaNoContexto, prazoEfetivo } from './atividades';
 import { definirContextos, definirParticipantes } from './atividades-painel';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { FASES, type Fase } from './navegacao';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
-import { datasDaRegra, errosDaRepeticao, esquemaCamposRepeticao, formularioDaRegra, mesmaAgenda, proximaData, proximasDatas, regraDoFormulario, repeticaoPadrao, somarDias, type RegraDeRepeticao } from './repeticao';
+import { normalizarTexto } from './duplicidade';
+import { datasDaRegra, errosDaRepeticao, esquemaCamposRepeticao, formularioDaRegra, mesmaAgenda, proximaData, proximasDatas, regraDoFormulario, regraPorExtenso, repeticaoPadrao, somarDias, type RegraDeRepeticao } from './repeticao';
 import { AVISO_CREDENCIAL, pareceCredencial } from './segredos';
 
 /** RN-03.15: até 30 dias à frente. */
@@ -505,6 +506,82 @@ export async function carregarRotinas(hoje: string = hojeISO()): Promise<DadosDa
     repositorios.configuracao.ler(),
   ]);
   return { rotinas: rotinas.map((rotina) => linhaDaRotina(rotina, atividades, hoje, fase_ativa)), pessoas, areas, produtos, marcas, hoje };
+}
+
+// ---------- Filtros de T03.05 (o mesmo padrão do Meu dia) ----------
+
+export type PeriodoDaRotina = '' | 'hoje' | 'semana' | '30dias' | 'sem_proxima' | 'intervalo';
+export const ROTULOS_PERIODO_ROTINA = { hoje: 'Hoje', semana: 'Esta semana', '30dias': 'Próximos 30 dias', sem_proxima: 'Sem próxima', intervalo: 'Intervalo' } as const;
+
+export type FiltrosRotinas = {
+  busca: string;
+  /** Vazio é Todas; 'minhas' é a pessoa atual; ou o id de uma pessoa. */
+  pessoa: string;
+  soResponsavel: boolean;
+  periodo: PeriodoDaRotina;
+  proximaDe: string;
+  proximaAte: string;
+  area: string;
+  tipo: string;
+  prioridades: string[];
+  /** O cartão clicado. */
+  situacao: '' | Recorrencia['situacao'];
+};
+
+export const FILTROS_ROTINAS_INICIAIS: FiltrosRotinas = { busca: '', pessoa: '', soResponsavel: false, periodo: '', proximaDe: '', proximaAte: '', area: '', tipo: '', prioridades: [], situacao: '' };
+
+export type OpcoesDasRotinas = { hoje: string; pessoaAtualId: string; contextoGlobalId: string; nomeDaPessoa: (id: string) => string };
+
+/** Domingo da semana de hoje, como no Meu dia. */
+function fimDaSemana(hoje: string): string {
+  const dia = new Date(`${hoje}T00:00:00Z`).getUTCDay();
+  return somarDias(hoje, dia === 0 ? 0 : 7 - dia);
+}
+
+function passaNaProxima({ proxima }: LinhaDaRotina, { periodo, proximaDe, proximaAte }: FiltrosRotinas, hoje: string): boolean {
+  switch (periodo) {
+    case 'hoje':
+      return proxima === hoje;
+    case 'semana':
+      return proxima !== null && proxima <= fimDaSemana(hoje);
+    case '30dias':
+      return proxima !== null && proxima <= somarDias(hoje, DIAS_A_FRENTE);
+    case 'sem_proxima':
+      return proxima === null;
+    case 'intervalo':
+      return proxima !== null && (!proximaDe || proxima >= proximaDe) && (!proximaAte || proxima <= proximaAte);
+    default:
+      return true;
+  }
+}
+
+function rotinasDoRecorte(rotinas: readonly LinhaDaRotina[], filtros: FiltrosRotinas, { hoje, pessoaAtualId, contextoGlobalId, nomeDaPessoa }: OpcoesDasRotinas): LinhaDaRotina[] {
+  const texto = normalizarTexto(filtros.busca);
+  const alvo = filtros.pessoa === MINHAS ? pessoaAtualId : filtros.pessoa;
+  return rotinas.filter(
+    (rotina) =>
+      (!texto || normalizarTexto(`${rotina.titulo} ${nomeDaPessoa(rotina.responsavel_id)} ${regraPorExtenso(rotina)}`).includes(texto)) &&
+      (!alvo || rotina.responsavel_id === alvo || (!filtros.soResponsavel && rotina.modelo.participantes.includes(alvo))) &&
+      passaNoContexto(rotina.modelo.produtos, contextoGlobalId) &&
+      passaNaProxima(rotina, filtros, hoje) &&
+      (!filtros.area || rotina.modelo.area_id === filtros.area) &&
+      (!filtros.tipo || rotina.modelo.tipo === filtros.tipo) &&
+      (!filtros.prioridades.length || filtros.prioridades.includes(rotina.modelo.prioridade)),
+  );
+}
+
+/** A próxima primeiro; as que não têm próxima vão para o fim. */
+export function rotinasVisiveis(rotinas: readonly LinhaDaRotina[], filtros: FiltrosRotinas, opcoes: OpcoesDasRotinas): LinhaDaRotina[] {
+  return rotinasDoRecorte(rotinas, filtros, opcoes)
+    .filter((rotina) => !filtros.situacao || rotina.situacao === filtros.situacao)
+    .sort((a, b) => (a.proxima ?? '9999').localeCompare(b.proxima ?? '9999') || a.titulo.localeCompare(b.titulo, 'pt-BR'));
+}
+
+/** RN-03.19: os contadores seguem o recorte. Só a situação, que é o que os cartões escolhem, não conta. */
+export function resumoDasRotinas(rotinas: readonly LinhaDaRotina[], filtros: FiltrosRotinas, opcoes: OpcoesDasRotinas): Record<Recorrencia['situacao'], number> {
+  const doRecorte = rotinasDoRecorte(rotinas, filtros, opcoes);
+  const conta = (situacao: Recorrencia['situacao']) => doRecorte.filter((rotina) => rotina.situacao === situacao).length;
+  return { ativa: conta('ativa'), pausada: conta('pausada'), encerrada: conta('encerrada') };
 }
 
 // ---------- Vínculos e a configuração do backup ----------

@@ -1,97 +1,148 @@
 'use client';
 
-import { etiquetasDoModulo } from '@/dominio/etiquetas';
 import type { ReactNode } from 'react';
+import { CalendarRange, Rows3, UserRound, type LucideIcon } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { Pilulas, PilulasMultiplas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
-import { BarraFiltros, PilulaFiltro, type FiltroAtivo } from '@/componentes/padroes/filtros';
+import type { FiltroAtivo } from '@/componentes/padroes/filtros';
+import { FiltrosEmLinha, type SeletorEmLinha } from '@/componentes/padroes/filtros-em-linha';
 import { Input } from '@/componentes/ui/input';
 import type { Atividade } from '@/dados/tipos/atividade';
+import type { Pessoa } from '@/dados/tipos/pessoa';
 import {
-  COLUNAS_DO_QUADRO,
   FILTROS_MEU_DIA_INICIAIS,
   MINHAS,
+  ROTULOS_AGRUPAR,
   ROTULOS_ORIGEM_ALERTA,
   ROTULOS_PERIODO,
   ROTULOS_PRIORIDADE_ATIVIDADE,
-  ROTULOS_SITUACAO_ATIVIDADE,
   ROTULOS_TIPO_ATIVIDADE,
+  type AgruparPor,
+  type CartaoDoResumo,
   type DadosMeuDia,
   type FiltrosComuns,
   type FiltrosMeuDia,
-  type PeriodoDoPrazo,
 } from '@/dominio/atividades';
-import { ID_INSTITUCIONAL } from '@/dominio/contextos';
+import { etiquetasDoModulo } from '@/dominio/etiquetas';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
+import { formatarDiaISO } from '@/lib/formatacao';
 
 const paraOpcoes = (rotulos: Record<string, string>) => Object.entries(rotulos).map(([valor, rotulo]) => ({ valor, rotulo }));
 const ORIGENS = [...new Set(Object.values(ROTULOS_ORIGEM_ALERTA))];
 
-type FiltrosProps = {
-  filtros: FiltrosMeuDia;
-  aoMudar: (parcial: Partial<FiltrosMeuDia>) => void;
-  dados: DadosMeuDia;
-  nomeDoContexto: (id: string) => string;
-};
+export const ROTULOS_CARTAO: Readonly<Record<CartaoDoResumo, string>> = { atrasadas: 'Atrasadas', hoje: 'Para hoje', em_andamento: 'Em andamento', aguardando: 'Aguardando retorno', bloqueadas: 'Bloqueadas', concluidas: 'Concluídas hoje' };
+
+type PessoaDoFiltro = Pick<Pessoa, 'id' | 'nome_completo'>;
+
+const nomeNoFiltro = (pessoa: string, pessoas: readonly PessoaDoFiltro[]) => (pessoa === MINHAS ? 'Minhas' : (pessoas.find((item) => item.id === pessoa)?.nome_completo ?? 'Pessoa removida'));
+
+/** Pessoa: um seletor só, com Todas, Minhas e os nomes. Responsável × participante vem junto, para não virar outro filtro. */
+export function seletorDePessoa<F extends { pessoa: string; soResponsavel: boolean }>(pessoas: readonly PessoaDoFiltro[]): SeletorEmLinha<F> {
+  return {
+    id: 'pessoa',
+    rotulo: 'Pessoa',
+    icone: UserRound,
+    largura: 164,
+    valor: ({ pessoa }) => (pessoa ? nomeNoFiltro(pessoa, pessoas) : 'Todas'),
+    ativo: ({ pessoa }) => Boolean(pessoa),
+    campos: (filtros, mudar) => (
+      <>
+        <Pilulas
+          rotulo="Pessoa"
+          valor={filtros.pessoa}
+          aoMudar={(pessoa) => mudar({ pessoa, ...(pessoa ? {} : { soResponsavel: false }) } as Partial<F>)}
+          opcoes={[{ valor: '', rotulo: 'Todas' }, { valor: MINHAS, rotulo: 'Minhas' }, ...pessoas.map((pessoa) => ({ valor: pessoa.id, rotulo: pessoa.nome_completo }))]}
+        />
+        {filtros.pessoa && (
+          <Pilulas
+            rotulo="Considerar"
+            valor={filtros.soResponsavel ? 'responsavel' : 'ambos'}
+            aoMudar={(valor) => mudar({ soResponsavel: valor === 'responsavel' } as Partial<F>)}
+            opcoes={[
+              { valor: 'ambos', rotulo: 'Responsável ou participante' },
+              { valor: 'responsavel', rotulo: 'Só responsável' },
+            ]}
+          />
+        )}
+      </>
+    ),
+  };
+}
+
+type PeriodoDoFiltro = { periodo: string; de: string; ate: string };
+
+/** Período: as opções da tela, e o intervalo abre duas datas. */
+export function seletorDePeriodo<F>({ id, rotulo, icone = CalendarRange, largura = 168, rotulos, ler, gravar }: { id: string; rotulo: string; icone?: LucideIcon; largura?: number; rotulos: Readonly<Record<string, string>>; ler: (filtros: F) => PeriodoDoFiltro; gravar: (periodo: PeriodoDoFiltro) => Partial<F> }): SeletorEmLinha<F> {
+  return {
+    id,
+    rotulo,
+    icone,
+    largura,
+    valor: (filtros) => rotulos[ler(filtros).periodo] ?? rotulo,
+    ativo: (filtros) => Boolean(ler(filtros).periodo),
+    campos: (filtros, mudar, fechar) => {
+      const atual = ler(filtros);
+      return (
+        <>
+          <Pilulas
+            rotulo={rotulo}
+            valor={atual.periodo}
+            aoMudar={(periodo) => {
+              mudar(gravar({ periodo, de: '', ate: '' }));
+              if (periodo !== 'intervalo') fechar();
+            }}
+            opcoes={[{ valor: '', rotulo: 'Todos' }, ...paraOpcoes(rotulos)]}
+          />
+          {atual.periodo === 'intervalo' && (
+            <div className="grid grid-cols-2 gap-3">
+              <Campo rotulo="De" id={`${id}-de`}>
+                {(controle) => <Input type="date" {...controle} value={atual.de} onChange={(evento) => mudar(gravar({ ...atual, de: evento.target.value }))} />}
+              </Campo>
+              <Campo rotulo="Até" id={`${id}-ate`}>
+                {(controle) => <Input type="date" {...controle} value={atual.ate} onChange={(evento) => mudar(gravar({ ...atual, ate: evento.target.value }))} />}
+              </Campo>
+            </div>
+          )}
+        </>
+      );
+    },
+  };
+}
+
+/** Os dias do intervalo, ou o nome do período, para a etiqueta do filtro. */
+export function textoDoPeriodo({ periodo, de, ate }: PeriodoDoFiltro, rotulos: Readonly<Record<string, string>>): string {
+  if (periodo !== 'intervalo' || (!de && !ate)) return rotulos[periodo] ?? '';
+  if (de && ate) return `${formatarDiaISO(de)} a ${formatarDiaISO(ate)}`;
+  return de ? `desde ${formatarDiaISO(de)}` : `até ${formatarDiaISO(ate)}`;
+}
+
+export const quantosComuns = (filtros: FiltrosComuns) => [filtros.area, filtros.tipo, filtros.origem, filtros.etiqueta].filter(Boolean).length + filtros.prioridades.length;
 
 /** As etiquetas do que o Meu dia e o Histórico filtram do mesmo jeito. */
-export function ativosComuns(filtros: FiltrosComuns, dados: DadosMeuDia, nomeDoContexto: (id: string) => string): FiltroAtivo[] {
+export function ativosComuns(filtros: FiltrosComuns, dados: DadosMeuDia): FiltroAtivo[] {
   const pessoas = pessoasDoSeletor(dados.pessoas);
   return [
-    ...(filtros.pessoa && filtros.pessoa !== MINHAS ? [{ id: 'pessoa', rotulo: `Pessoa: ${pessoas.find((pessoa) => pessoa.id === filtros.pessoa)?.nome_completo ?? ''}` }] : []),
-    ...(filtros.pessoa && filtros.soResponsavel ? [{ id: 'soResponsavel', rotulo: 'Só responsável' }] : []),
-    ...filtros.contextos.map((id) => ({ id: `contexto:${id}`, rotulo: `Contexto: ${nomeDoContexto(id)}` })),
+    ...(filtros.pessoa ? [{ id: 'pessoa', rotulo: `Pessoa: ${nomeNoFiltro(filtros.pessoa, pessoas)}${filtros.soResponsavel ? ' (só responsável)' : ''}` }] : []),
     ...(filtros.area ? [{ id: 'area', rotulo: `Área: ${dados.areas.find((area) => area.id === filtros.area)?.nome ?? ''}` }] : []),
     ...(filtros.tipo ? [{ id: 'tipo', rotulo: `Tipo: ${ROTULOS_TIPO_ATIVIDADE[filtros.tipo as Atividade['tipo']]}` }] : []),
     ...filtros.prioridades.map((prioridade) => ({ id: `prioridade:${prioridade}`, rotulo: `Prioridade: ${ROTULOS_PRIORIDADE_ATIVIDADE[prioridade as Atividade['prioridade']]}` })),
-    ...(filtros.periodo ? [{ id: 'periodo', rotulo: `Prazo: ${ROTULOS_PERIODO[filtros.periodo]}` }] : []),
     ...(filtros.origem ? [{ id: 'origem', rotulo: `Origem: ${ROTULOS_ORIGEM_ALERTA[filtros.origem] ?? filtros.origem}` }] : []),
     ...(filtros.etiqueta ? [{ id: 'etiqueta', rotulo: `Etiqueta: ${dados.etiquetas.find((etiqueta) => etiqueta.id === filtros.etiqueta)?.nome ?? ''}` }] : []),
   ];
 }
 
 export function removerComum(id: string, filtros: FiltrosComuns, aoMudar: (parcial: Partial<FiltrosComuns>) => void) {
-  if (id.startsWith('contexto:')) return aoMudar({ contextos: filtros.contextos.filter((item) => `contexto:${item}` !== id) });
   if (id.startsWith('prioridade:')) return aoMudar({ prioridades: filtros.prioridades.filter((item) => `prioridade:${item}` !== id) });
   if (id === 'pessoa') return aoMudar({ pessoa: '', soResponsavel: false });
-  if (id === 'soResponsavel') return aoMudar({ soResponsavel: false });
-  if (id === 'periodo') return aoMudar({ periodo: '', prazoDe: '', prazoAte: '' });
   aoMudar({ [id]: '' });
 }
 
-/** Os campos que o Meu dia e o Histórico têm em comum (T03.04). A situação de cada tela entra depois do tipo. */
-export function CamposComuns({ filtros, aoMudar, dados, situacao }: { filtros: FiltrosComuns; aoMudar: (parcial: Partial<FiltrosComuns>) => void; dados: DadosMeuDia; situacao?: ReactNode }) {
-  const pessoas = pessoasDoSeletor(dados.pessoas);
+/** Filtros avançados: área, tipo, prioridade, origem e etiqueta. O que vier a mais em cada tela entra em `extra`. */
+export function CamposAvancados({ filtros, aoMudar, dados, extra }: { filtros: FiltrosComuns; aoMudar: (parcial: Partial<FiltrosComuns>) => void; dados: DadosMeuDia; extra?: ReactNode }) {
   const areas = dados.areas.filter((area) => !area.arquivado_em);
-  const produtos = dados.produtos.filter((produto) => !produto.arquivado_em && produto.situacao === 'ativo');
   return (
     <>
-      <Campo rotulo="Pessoa" id="filtro-pessoa">
-        {(controle) => (
-          <Selecao {...controle} value={filtros.pessoa} onChange={(evento) => aoMudar({ pessoa: evento.target.value, ...(evento.target.value ? {} : { soResponsavel: false }) })}>
-            <option value="">Todas</option>
-            <option value={MINHAS}>Minhas</option>
-            {pessoas.map((pessoa) => (
-              <option key={pessoa.id} value={pessoa.id}>
-                {pessoa.nome_completo}
-              </option>
-            ))}
-          </Selecao>
-        )}
-      </Campo>
-      {filtros.pessoa && (
-        <Pilulas
-          rotulo="Considerar"
-          valor={filtros.soResponsavel ? 'responsavel' : 'ambos'}
-          aoMudar={(valor) => aoMudar({ soResponsavel: valor === 'responsavel' })}
-          opcoes={[
-            { valor: 'ambos', rotulo: 'Responsável ou participante' },
-            { valor: 'responsavel', rotulo: 'Só responsável' },
-          ]}
-        />
-      )}
-      <PilulasMultiplas rotulo="Contexto" valores={filtros.contextos} aoMudar={(contextos) => aoMudar({ contextos })} opcoes={[{ valor: ID_INSTITUCIONAL, rotulo: 'Numa' }, ...produtos.map((produto) => ({ valor: produto.id, rotulo: produto.nome }))]} />
       <Campo rotulo="Área" id="filtro-area">
         {(controle) => (
           <Selecao {...controle} value={filtros.area} onChange={(evento) => aoMudar({ area: evento.target.value })}>
@@ -116,42 +167,7 @@ export function CamposComuns({ filtros, aoMudar, dados, situacao }: { filtros: F
           </Selecao>
         )}
       </Campo>
-      {situacao}
       <PilulasMultiplas rotulo="Prioridade" valores={filtros.prioridades} aoMudar={(prioridades) => aoMudar({ prioridades })} opcoes={paraOpcoes(ROTULOS_PRIORIDADE_ATIVIDADE)} />
-      <Campo rotulo="Período do prazo" id="filtro-periodo">
-        {(controle) => (
-          <Selecao {...controle} value={filtros.periodo} onChange={(evento) => aoMudar({ periodo: evento.target.value as PeriodoDoPrazo, prazoDe: '', prazoAte: '' })}>
-            <option value="">Todos</option>
-            {paraOpcoes(ROTULOS_PERIODO).map(({ valor, rotulo }) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </Selecao>
-        )}
-      </Campo>
-      {filtros.periodo === 'intervalo' && (
-        <div className="grid grid-cols-2 gap-3">
-          <Campo rotulo="De" id="filtro-prazo-de">
-            {(controle) => <Input type="date" {...controle} value={filtros.prazoDe} onChange={(evento) => aoMudar({ prazoDe: evento.target.value })} />}
-          </Campo>
-          <Campo rotulo="Até" id="filtro-prazo-ate">
-            {(controle) => <Input type="date" {...controle} value={filtros.prazoAte} onChange={(evento) => aoMudar({ prazoAte: evento.target.value })} />}
-          </Campo>
-        </div>
-      )}
-      <Campo rotulo="Etiqueta" id="filtro-etiqueta">
-        {(controle) => (
-          <Selecao {...controle} value={filtros.etiqueta} onChange={(evento) => aoMudar({ etiqueta: evento.target.value })}>
-            <option value="">Todas</option>
-            {etiquetasDoModulo(dados.etiquetas, 'atividades').map((etiqueta) => (
-              <option key={etiqueta.id} value={etiqueta.id}>
-                {etiqueta.nome}
-              </option>
-            ))}
-          </Selecao>
-        )}
-      </Campo>
       <Campo rotulo="Origem do alerta" id="filtro-origem">
         {(controle) => (
           <Selecao {...controle} value={filtros.origem} onChange={(evento) => aoMudar({ origem: evento.target.value })}>
@@ -164,72 +180,115 @@ export function CamposComuns({ filtros, aoMudar, dados, situacao }: { filtros: F
           </Selecao>
         )}
       </Campo>
+      <Campo rotulo="Etiqueta" id="filtro-etiqueta">
+        {(controle) => (
+          <Selecao {...controle} value={filtros.etiqueta} onChange={(evento) => aoMudar({ etiqueta: evento.target.value })}>
+            <option value="">Todas</option>
+            {etiquetasDoModulo(dados.etiquetas, 'atividades').map((etiqueta) => (
+              <option key={etiqueta.id} value={etiqueta.id}>
+                {etiqueta.nome}
+              </option>
+            ))}
+          </Selecao>
+        )}
+      </Campo>
+      {extra}
     </>
   );
 }
 
-/** Barra de filtros de T03.01. Situação "abertas" é o padrão, e a pessoa começa em Todas (RN-03.01). */
-export function FiltrosMeuDia({ filtros, aoMudar, dados, nomeDoContexto }: FiltrosProps) {
+type EstadoDaBarra = FiltrosMeuDia & { visao: 'quadro' | 'lista'; agruparPor: AgruparPor };
+
+const SELETOR_DE_PERIODO = seletorDePeriodo<EstadoDaBarra>({
+  id: 'filtro-periodo',
+  rotulo: 'Período',
+  rotulos: ROTULOS_PERIODO,
+  ler: ({ periodo, prazoDe, prazoAte }) => ({ periodo, de: prazoDe, ate: prazoAte }),
+  gravar: ({ periodo, de, ate }) => ({ periodo: periodo as FiltrosMeuDia['periodo'], prazoDe: de, prazoAte: ate }),
+});
+
+/** "Agrupar por" só existe na lista. */
+const SELETOR_DE_AGRUPAR: SeletorEmLinha<EstadoDaBarra> = {
+  id: 'agrupar',
+  rotulo: 'Agrupar por',
+  icone: Rows3,
+  largura: 164,
+  visivel: ({ visao }) => visao === 'lista',
+  valor: ({ agruparPor }) => (agruparPor === 'nenhum' ? 'Agrupar por' : ROTULOS_AGRUPAR[agruparPor]),
+  ativo: () => false,
+  campos: ({ agruparPor }, mudar, fechar) => (
+    <Pilulas
+      rotulo="Agrupar por"
+      valor={agruparPor}
+      aoMudar={(valor) => {
+        mudar({ agruparPor: valor as AgruparPor });
+        fechar();
+      }}
+      opcoes={paraOpcoes(ROTULOS_AGRUPAR)}
+    />
+  ),
+};
+
+type BarraDoMeuDiaProps = {
+  filtros: FiltrosMeuDia;
+  aoMudar: (parcial: Partial<FiltrosMeuDia>) => void;
+  visao: 'quadro' | 'lista';
+  aoMudarVisao: (visao: 'quadro' | 'lista') => void;
+  agruparPor: AgruparPor;
+  aoMudarAgrupar: (agruparPor: AgruparPor) => void;
+  dados: DadosMeuDia;
+  /** Quadro | Lista, à direita da linha. */
+  alternancia: ReactNode;
+};
+
+/** T03.01: busca → pessoa → período → Filtros → Quadro | Lista. A situação e o bloqueio vêm dos cartões do resumo. */
+export function BarraDoMeuDia({ filtros, aoMudar, visao, aoMudarVisao, agruparPor, aoMudarAgrupar, dados, alternancia }: BarraDoMeuDiaProps) {
+  const estado: EstadoDaBarra = { ...filtros, visao, agruparPor };
+  const pessoas = pessoasDoSeletor(dados.pessoas);
+
+  function mudar({ visao: novaVisao, agruparPor: novoAgrupar, ...resto }: Partial<EstadoDaBarra>) {
+    if (novaVisao) aoMudarVisao(novaVisao);
+    if (novoAgrupar) aoMudarAgrupar(novoAgrupar);
+    if (Object.keys(resto).length) aoMudar(resto);
+  }
+
+  const periodo = textoDoPeriodo({ periodo: filtros.periodo, de: filtros.prazoDe, ate: filtros.prazoAte }, ROTULOS_PERIODO);
   const ativos: FiltroAtivo[] = [
-    ...ativosComuns(filtros, dados, nomeDoContexto),
-    ...(filtros.situacao !== 'abertas' ? [{ id: 'situacao', rotulo: `Situação: ${ROTULOS_SITUACAO_ATIVIDADE[filtros.situacao]}` }] : []),
-    ...(filtros.destaque ? [{ id: 'destaque', rotulo: ROTULOS_DESTAQUE[filtros.destaque] }] : []),
+    ...(filtros.destaque ? [{ id: 'destaque', rotulo: ROTULOS_CARTAO[filtros.destaque] }] : []),
+    ...(filtros.periodo ? [{ id: 'periodo', rotulo: `Período: ${periodo}` }] : []),
+    ...ativosComuns(filtros, dados),
   ];
 
   function remover(id: string) {
-    if (id === 'situacao') return aoMudar({ situacao: 'abertas' });
     if (id === 'destaque') return aoMudar({ destaque: '' });
+    if (id === 'periodo') return aoMudar({ periodo: '', prazoDe: '', prazoAte: '' });
     removerComum(id, filtros, aoMudar);
   }
 
   return (
-    <BarraFiltros
-      busca={filtros.busca}
-      aoBuscar={(busca) => aoMudar({ busca })}
+    <FiltrosEmLinha
+      filtros={estado}
+      aoMudar={mudar}
+      aoLimpar={() => aoMudar({ ...FILTROS_MEU_DIA_INICIAIS })}
       rotuloBusca="Buscar por título, código, descrição ou responsável"
+      seletores={[seletorDePessoa<EstadoDaBarra>(pessoas), SELETOR_DE_PERIODO, SELETOR_DE_AGRUPAR]}
+      avancados={(valor, mudarValor) => <CamposAvancados filtros={valor} aoMudar={mudarValor} dados={dados} />}
+      quantosAvancados={quantosComuns}
+      direita={alternancia}
+      larguraDireita={156}
+      soNaFolha={(valor, mudarValor) => (
+        <Pilulas
+          rotulo="Visão"
+          valor={valor.visao}
+          aoMudar={(novo) => mudarValor({ visao: novo as EstadoDaBarra['visao'] })}
+          opcoes={[
+            { valor: 'quadro', rotulo: 'Quadro' },
+            { valor: 'lista', rotulo: 'Lista' },
+          ]}
+        />
+      )}
       ativos={ativos}
       aoRemoverAtivo={remover}
-      aoLimpar={() => aoMudar({ ...FILTROS_MEU_DIA_INICIAIS })}
-      filtrosDetalhados={
-        <div className="grid gap-4 px-1 pb-2 md:px-3">
-          <CamposComuns
-            filtros={filtros}
-            aoMudar={aoMudar}
-            dados={dados}
-            situacao={
-              <Campo rotulo="Situação" id="filtro-situacao">
-                {(controle) => (
-                  <Selecao {...controle} value={filtros.situacao} onChange={(evento) => aoMudar({ situacao: evento.target.value as FiltrosMeuDia['situacao'] })}>
-                    <option value="abertas">Abertas</option>
-                    {COLUNAS_DO_QUADRO.map((coluna) => (
-                      <option key={coluna} value={coluna}>
-                        {coluna === 'concluida' ? 'Concluída hoje' : ROTULOS_SITUACAO_ATIVIDADE[coluna]}
-                      </option>
-                    ))}
-                  </Selecao>
-                )}
-              </Campo>
-            }
-          />
-        </div>
-      }
     />
   );
 }
-
-/** Todas é o padrão (RN-03.01); "Minhas" e cada pessoa são filtros opcionais. */
-export function PessoaRapida({ filtros, aoMudar }: Pick<FiltrosProps, 'filtros' | 'aoMudar'>) {
-  const ativa = filtros.pessoa === MINHAS ? MINHAS : filtros.pessoa ? '' : 'todas';
-  return (
-    <div role="group" aria-label="De quem" className="flex items-center gap-1.5">
-      {[
-        { id: 'todas', rotulo: 'Todas' },
-        { id: MINHAS, rotulo: 'Minhas' },
-      ].map((filtro) => (
-        <PilulaFiltro key={filtro.id} filtro={filtro} ativa={ativa === filtro.id} aoClicar={() => aoMudar({ pessoa: filtro.id === MINHAS ? MINHAS : '', soResponsavel: false })} />
-      ))}
-    </div>
-  );
-}
-
-export const ROTULOS_DESTAQUE: Readonly<Record<Exclude<FiltrosMeuDia['destaque'], ''>, string>> = { atrasadas: 'Atrasadas', hoje: 'Para hoje', em_andamento: 'Em andamento', aguardando: 'Aguardando retorno', bloqueadas: 'Bloqueadas', concluidas: 'Concluídas hoje' };
