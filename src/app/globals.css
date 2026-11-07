@@ -611,6 +611,12 @@
     font-weight: 600;
     white-space: nowrap;
   }
+  @media (max-width: 767.98px) {
+    .aviso-numa [data-button] {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
 
   /* Tela de abertura (18 §10.1) */
   .abertura {

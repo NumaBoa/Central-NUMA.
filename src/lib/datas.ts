@@ -4,6 +4,11 @@ import { FUSO_PADRAO, fusoConfigurado } from '@/dados/fuso';
 export { FUSO_PADRAO, fusoConfigurado };
 
 /** O instante de um dia e uma hora escritos no fuso configurado (RT-06). */
+/** O fuso, para dizer a que horário o campo se refere. */
+export function rotuloDoFuso(fuso: string = fusoConfigurado()): string {
+  return fuso === 'America/Sao_Paulo' ? `Horário de Brasília · ${fuso}` : fuso;
+}
+
 export function instanteNoFuso(dia: string, hora: string, fuso: string = fusoConfigurado()): string {
   return fromZonedTime(`${dia}T${hora}:00`, fuso).toISOString();
 }

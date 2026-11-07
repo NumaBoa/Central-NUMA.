@@ -1,6 +1,6 @@
 // Revisão do M03 (T03.01 a T03.06): protótipos aprovados e as orientações de Kimberly de 06/11/2026.
 // Meu dia em 1440, 1024, 768 e 360; as outras telas em 1440 e 360.
-import { iniciar } from './apoio.mjs';
+import { ID_KIMBERLY, iniciar } from './apoio.mjs';
 
 const h = await iniciar({ nome: 'm03', porta: 9368 });
 const { c, ok, passo, ir, texto, tabela, painelAberto, painelFechado, pularAbertura, conferirTela, esperarAviso, marcarPilula, pilulaMarcada, terminar } = h;
@@ -423,6 +423,128 @@ await passo('T03.02: no celular, tela inteira', async () => {
   await c.espera(280);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
   await painelFechado();
+  await c.tamanho(1440, 900);
+  await c.espera(300);
+});
+
+// ---------- T03.03: Nova atividade ----------
+
+const abrirAdicionar = async (tipo) => {
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Adicionar').click()`);
+  await c.ate(`document.querySelector('.menu-suspenso,.dialogo')`);
+  await c.espera(280);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button,.dialogo button')].find(b=>b.textContent.trim()===${js(tipo)}).click()`);
+  await painelAberto();
+  await c.espera(450);
+};
+const fechaSemSalvar = async () => {
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"],.janela button[aria-label="Voltar"]').click()`);
+  await c.espera(150);
+  const perguntou = await c.avaliar(`Boolean(document.querySelector('.dialogo'))`);
+  if (perguntou) await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+};
+const obrigatoriosNaJanela = () => c.avaliar(`[...document.querySelectorAll('.janela label,.janela legend')].filter(l=>l.textContent.trim().endsWith('*')&&!l.classList.contains('sr-only')).map(l=>l.textContent.replace('*','').trim())`);
+const rolaNoCorpo = () => c.avaliar(`(()=>{const e=[...document.querySelectorAll('.janela form > div')].find(d=>getComputedStyle(d).overflowY==='auto');return e.scrollHeight-e.clientHeight})()`);
+
+await passo('T03.03: as três variantes, sem rolar', async () => {
+  await ir('/meu-dia');
+  await c.ate(`document.querySelector('main article')`);
+  await c.espera(900);
+  await abrirAdicionar('Tarefa');
+  ok('título do protótipo', /Nova atividade/.test(await texto('.janela')) && /Registre o próximo passo/.test(await texto('.janela')));
+  ok('tarefa: título e responsável', js(await obrigatoriosNaJanela()) === js(['Título', 'Responsável']), js(await obrigatoriosNaJanela()));
+  ok('tarefa: sem rolar', (await rolaNoCorpo()) <= 0, await rolaNoCorpo());
+  ok('o foco no título', await c.avaliar(`document.activeElement?.id==='atividade-titulo'`));
+  ok('o responsável sugerido é a pessoa atual', (await h.valor('atividade-responsavel')) === ID_KIMBERLY);
+  await conferirTela('Nova tarefa', 1440);
+  await c.foto('adicionar-tarefa-1440');
+  await marcarPilula('Tipo', 'Demanda');
+  await c.ate(`document.getElementById('atividade-solicitante')`);
+  await c.espera(150);
+  ok('demanda: + solicitante', js(await obrigatoriosNaJanela()) === js(['Título', 'Solicitante', 'Responsável']), js(await obrigatoriosNaJanela()));
+  ok('demanda: resultado esperado, opcional, à vista', /Resultado esperado/.test(await texto('.janela')));
+  ok('demanda: sem rolar', (await rolaNoCorpo()) <= 0, await rolaNoCorpo());
+  await conferirTela('Nova demanda', 1440);
+  await c.foto('adicionar-demanda-1440');
+  await marcarPilula('Tipo', 'Lembrete');
+  await c.ate(`document.getElementById('atividade-aviso-dia')`);
+  await c.espera(150);
+  ok('lembrete: data e hora do aviso', js(await obrigatoriosNaJanela()) === js(['Título', 'Responsável', 'Data do aviso', 'Hora do aviso']), js(await obrigatoriosNaJanela()));
+  ok('lembrete: sem prazo separado', !(await c.avaliar(`Boolean(document.getElementById('atividade-prazo'))`)));
+  ok('lembrete: sem rolar', (await rolaNoCorpo()) <= 0, await rolaNoCorpo());
+  ok('lembrete: o botão diz o que salva', await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Salvar lembrete')`));
+  await conferirTela('Novo lembrete', 1440);
+  await c.foto('adicionar-lembrete-1440');
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Salvar lembrete').click()`);
+  await c.ate(`document.getElementById('atividade-aviso-dia-erro')`);
+  ok('lembrete sem data é barrado no campo (CA-03.06)', (await h.erroDe('atividade-aviso-dia')).includes('Informe a data do aviso.'));
+  await fechaSemSalvar();
+});
+
+await passo('T03.03: "Mais opções", o prazo e a sugestão pela área', async () => {
+  await abrirAdicionar('Tarefa');
+  await c.avaliar(`[...document.querySelectorAll('.janela button[role=group] button,.janela [role=group] button')].find(b=>b.textContent.trim()==='Amanhã').click()`);
+  await c.espera(100);
+  ok('o atalho preenche o prazo', Boolean(await h.valor('atividade-prazo')));
+  ok('e fica marcado', await c.avaliar(`[...document.querySelectorAll('.janela [role=group] button')].find(b=>b.textContent.trim()==='Amanhã').getAttribute('aria-pressed')==='true'`));
+  await c.avaliar(`[...document.querySelectorAll('.janela [role=group] button')].find(b=>b.textContent.trim()==='Amanhã').click()`);
+  await c.espera(100);
+  ok('clicar de novo tira: sem data, fica sem prazo', (await h.valor('atividade-prazo')) === '');
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.startsWith('Mais opções')).click()`);
+  await c.ate(`document.getElementById('atividade-area')`);
+  await c.espera(150);
+  await c.foto('adicionar-mais-opcoes-1440');
+  const area = (await tabela('area')).find((item) => !item.compartilhada && item.responsavel_padrao_id && item.responsavel_padrao_id !== (0, 0));
+  const compartilhada = (await tabela('area')).find((item) => item.compartilhada);
+  h.escolher('atividade-area', area.id);
+  await c.espera(150);
+  ok('a área sugere a responsável (RN-03.02)', (await h.valor('atividade-responsavel')) === area.responsavel_padrao_id, area.nome);
+  h.escolher('atividade-responsavel', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
+  await c.espera(150);
+  ok('e a sugestão é editável', (await h.valor('atividade-responsavel')) === (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
+  h.escolher('atividade-area', compartilhada.id);
+  await c.espera(150);
+  ok('área compartilhada pede a escolha', (await h.valor('atividade-responsavel')) === '' && /Esta área é compartilhada/.test(await texto('.janela')));
+  await fechaSemSalvar();
+});
+
+await passo('T03.03: "Salvar e adicionar outro" mantém tipo, contexto e responsável (CA-03.07)', async () => {
+  await abrirAdicionar('Demanda');
+  const camila = (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id;
+  await h.preencher('atividade-titulo', 'Primeira demanda da revisão');
+  h.escolher('atividade-responsavel', camila);
+  await c.avaliar(`document.getElementById('atividade-contexto').click()`);
+  await c.ate(`[...document.querySelectorAll('.menu-suspenso label')].some(l=>l.textContent.includes('Kipi'))`);
+  await c.espera(250);
+  await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label')].find(l=>l.textContent.includes('Kipi')).querySelector('input').click()`);
+  await c.espera(100);
+  await c.tecla('Escape');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(200);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Salvar e adicionar outro').click()`);
+  await esperarAviso('Demanda criada.');
+  await c.ate(`document.getElementById('atividade-titulo').value===''`);
+  ok('continua demanda', await pilulaMarcada('Tipo', 'Demanda'));
+  ok('continua com a responsável', (await h.valor('atividade-responsavel')) === camila);
+  ok('continua com o contexto', /Kipi/.test(await texto('.janela')));
+  ok('limpou o título, com o foco nele', await c.ate(`document.activeElement?.id==='atividade-titulo'`).then(() => true));
+  await fechaSemSalvar();
+});
+
+await passo('T03.03: no celular, tela inteira, sem folha', async () => {
+  await c.tamanho(360, 800);
+  await c.espera(300);
+  await abrirAdicionar('Lembrete');
+  const m = await c.avaliar(`(()=>{const b=document.querySelector('.janela').getBoundingClientRect();return {l:Math.round(b.width),a:Math.round(b.height)}})()`);
+  ok('tela inteira', m.l === 360 && m.a === 800, js(m));
+  await conferirTela('Novo lembrete', 360);
+  await c.foto('adicionar-lembrete-360');
+  await marcarPilula('Tipo', 'Demanda');
+  await c.espera(200);
+  await conferirTela('Nova demanda', 360);
+  await c.foto('adicionar-demanda-360');
+  await fechaSemSalvar();
   await c.tamanho(1440, 900);
   await c.espera(300);
 });

@@ -57,7 +57,7 @@ import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { repetirAtividade, type EscopoDaEdicao } from '@/dominio/recorrencias';
 import { errosDaRepeticao, regraDoFormulario, regraPorExtenso, repeticaoPadrao, fimPorExtenso } from '@/dominio/repeticao';
 import { AVISO_CREDENCIAL, pareceCredencial } from '@/dominio/segredos';
-import { diaEHoraNoFuso, fusoConfigurado, hojeISO } from '@/lib/datas';
+import { diaEHoraNoFuso, hojeISO, rotuloDoFuso } from '@/lib/datas';
 import { formatarData, formatarDataHora, formatarDiaISO, formatarHora } from '@/lib/formatacao';
 import { useEhCelular } from '@/lib/use-eh-celular';
 import { cn } from '@/lib/utils';
@@ -378,7 +378,7 @@ function AbaGeral({ atividade, painel, dados, acoes, doDia, rascunho, erros, mud
                 {(controle) => <Input type="time" {...controle} disabled={!aberta} value={rascunho.aviso_hora} onChange={(evento) => mudar({ aviso_hora: evento.target.value })} />}
               </Campo>
             </div>
-            <p className="mt-1.5 text-xs text-ink-soft">Fuso: {fusoConfigurado()}. Lembrete não tem prazo separado.</p>
+            <p className="mt-1.5 text-xs text-ink-soft">{rotuloDoFuso()}. Lembrete não tem prazo separado.</p>
           </div>
         )}
         {!lembrete && !alerta && (

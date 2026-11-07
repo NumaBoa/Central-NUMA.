@@ -100,7 +100,7 @@ export function JanelaFormulario({
           }}
         >
           <form noValidate onSubmit={aoEnviar} className="flex min-h-0 flex-1 flex-col">
-            <header className="flex items-start gap-3 border-b border-line px-4 py-3 md:px-6 md:py-5">
+            <header className="flex items-start gap-3 border-b border-line px-4 py-3 md:px-7 md:py-4">
               <Button variante="icone" tamanho="icone" aria-label="Voltar" className="md:hidden" onClick={pedirFechar}>
                 <ArrowLeft aria-hidden />
               </Button>
@@ -110,11 +110,11 @@ export function JanelaFormulario({
               </div>
               <BotaoFechar className="hidden md:inline-grid" onClick={pedirFechar} />
             </header>
-            <div className={cn('min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-7', colunas === 2 && 'janela-colunas')}>
+            <div className={cn('min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-7', colunas === 2 && 'janela-colunas')}>
               <ResumoErros erros={erros} />
               {children}
             </div>
-            <footer className="flex flex-wrap justify-end gap-2 border-t border-line px-4 pt-3 pb-[calc(12px+var(--area-segura-baixo))] md:px-7 md:py-4 max-md:[&>*]:flex-1">
+            <footer className="flex flex-wrap justify-end gap-2 border-t border-line px-4 pt-3 pb-[calc(12px+var(--area-segura-baixo))] md:px-7 md:py-3 max-md:[&>*]:flex-1">
               {/* Com três botões, "Cancelar" fica à parte; no celular, o "Voltar" do topo faz o mesmo e sobra lugar para os outros. */}
               <Button variante={aoSalvarEOutro ? 'terciario' : 'secundario'} className={aoSalvarEOutro ? 'mr-auto max-md:hidden' : undefined} onClick={pedirFechar}>
                 {soLeitura ? 'Fechar' : 'Cancelar'}
