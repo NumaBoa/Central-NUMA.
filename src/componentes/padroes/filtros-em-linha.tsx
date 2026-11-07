@@ -34,6 +34,12 @@ type FiltrosEmLinhaProps<F extends { busca: string }> = {
   aoMudar: Mudar<F>;
   aoLimpar: () => void;
   rotuloBusca: string;
+  /** O texto de dentro da busca, quando "Buscar…" não basta. */
+  placeholderBusca?: string;
+  /** O nome do botão, quando não é "Filtros". */
+  rotuloAvancados?: string;
+  /** A largura do menu no computador, para os muitos campos caberem sem rolar. */
+  larguraAvancados?: number;
   seletores: readonly SeletorEmLinha<F>[];
   /** O conteúdo de "Filtros". */
   avancados: (filtros: F, mudar: Mudar<F>) => ReactNode;
@@ -144,13 +150,14 @@ function FolhaDeFiltros<F>({ filtros, aoAplicar, aoLimpar, conteudo, botao }: { 
  * Filtros do M03, numa linha só: busca, seletores, "Filtros" e o que vier à direita. Sem espaço, o seletor
  * menos usado passa para dentro de "Filtros". No celular, sobram a busca e "Filtros"; o resto vai para a folha.
  */
-export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, aoLimpar, rotuloBusca, seletores, avancados, quantosAvancados, direita, larguraDireita = 0, soNaFolha, ativos, aoRemoverAtivo }: FiltrosEmLinhaProps<F>) {
+export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, aoLimpar, rotuloBusca, placeholderBusca = 'Buscar…', rotuloAvancados = 'Filtros', larguraAvancados = 360, seletores, avancados, quantosAvancados, direita, larguraDireita = 0, soNaFolha, ativos, aoRemoverAtivo }: FiltrosEmLinhaProps<F>) {
   const celular = useEhCelular();
   const { elemento, largura } = useLarguraDoElemento();
   const emUso = seletores.filter((seletor) => seletor.visivel?.(filtros) ?? true);
 
   // Do mais usado para o menos usado: o primeiro que não couber leva junto os que vêm depois.
-  let ocupado = BUSCA_MINIMA + ESPACO + LARGURA_DO_BOTAO_FILTROS + (larguraDireita ? ESPACO + larguraDireita : 0);
+  const larguraDoBotao = rotuloAvancados === 'Filtros' ? LARGURA_DO_BOTAO_FILTROS : LARGURA_DO_BOTAO_FILTROS + 40;
+  let ocupado = BUSCA_MINIMA + ESPACO + larguraDoBotao + (larguraDireita ? ESPACO + larguraDireita : 0);
   let cabe = !celular;
   const naLinha: SeletorEmLinha<F>[] = [];
   const dentro: SeletorEmLinha<F>[] = [];
@@ -177,7 +184,7 @@ export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, 
   const botao = (
     <Button variante="secundario" className="shrink-0">
       <SlidersHorizontal aria-hidden />
-      {quantos ? `Filtros (${quantos})` : 'Filtros'}
+      {quantos ? `${rotuloAvancados} (${quantos})` : rotuloAvancados}
     </Button>
   );
 
@@ -186,7 +193,7 @@ export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, 
       <div ref={elemento} className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1 md:max-w-sm">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft" aria-hidden />
-          <Input type="search" aria-label={rotuloBusca} placeholder="Buscar…" value={filtros.busca} onChange={(evento) => aoMudar({ busca: evento.target.value } as Partial<F>)} className="rounded-pill bg-paper pl-10" />
+          <Input type="search" aria-label={rotuloBusca} placeholder={placeholderBusca} value={filtros.busca} onChange={(evento) => aoMudar({ busca: evento.target.value } as Partial<F>)} className="rounded-pill bg-paper pl-10" />
         </div>
         {naLinha.map((seletor) => (
           <SeletorNaLinha key={seletor.id} seletor={seletor} filtros={filtros} aoMudar={aoMudar} />
@@ -195,8 +202,8 @@ export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, 
           <FolhaDeFiltros filtros={filtros} aoAplicar={(rascunho) => aoMudar(rascunho)} aoLimpar={aoLimpar} conteudo={conteudoDosFiltros} botao={botao} />
         ) : (
           <MenuSobreposto
-            titulo="Filtros"
-            largura={360}
+            titulo={rotuloAvancados}
+            largura={larguraAvancados}
             gatilho={botao}
             acaoCabecalho={
               quantos > 0 ? (

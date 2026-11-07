@@ -1,43 +1,73 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, ArrowDownLeft, ArrowUpRight, Check, Plus, Receipt } from 'lucide-react';
-import { Campo } from '@/componentes/campos/campo';
-import { Selecao } from '@/componentes/campos/selecao';
+import { Ban, CalendarClock, CheckCircle2, Circle, CircleAlert, CircleCheck, Contrast, Ellipsis, FileText, FileX2, Info, Paperclip, Plus, Receipt, TriangleAlert, Users, type LucideIcon } from 'lucide-react';
 import { AbasFinanceiro } from '@/componentes/financeiro/abas-financeiro';
+import { DialogoDeBaixa } from '@/componentes/financeiro/dialogo-baixa';
 import { DialogoDeBaixaEmLote } from '@/componentes/financeiro/dialogo-baixa-lote';
 import { FormularioDeDespesa } from '@/componentes/financeiro/formulario-despesa';
 import { useCentral } from '@/componentes/layout/central-provider';
+import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { EtiquetaContexto, EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
-import { BarraFiltros, type FiltroAtivo } from '@/componentes/padroes/filtros';
 import { Indicador } from '@/componentes/padroes/indicador';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
+import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { BotaoExportarCsv, MenuColunas, MenuVisoes, usePreferenciasDaLista } from '@/componentes/padroes/recursos-lista';
 import { Button } from '@/componentes/ui/button';
-import { Input } from '@/componentes/ui/input';
-import { SITUACOES_DO_TITULO, type Titulo } from '@/dados/tipos/titulo';
+import type { Titulo } from '@/dados/tipos/titulo';
 import { useConsulta } from '@/dados/use-consulta';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { nomeDaContraparte } from '@/dominio/contrapartes';
 import { tintaDaCor } from '@/dominio/cores';
-import { ABAS_DE_LANCAMENTOS, carregarLancamentos, contadoresDosLancamentos, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, periodoDosTotais, totaisDosLancamentos, type DadosDosLancamentos, type FiltrosLancamentos, type IdDaAbaDeLancamentos, type LinhaDoTitulo } from '@/dominio/lancamentos';
+import { carregarLancamentos, comprovanteDoTitulo, filtrarTitulos, FILTROS_LANCAMENTOS_INICIAIS, pagoDoTitulo, periodoDosTotais, ROTULO_ORDEM_PADRAO, totaisDosLancamentos, type DadosDosLancamentos, type FiltrosLancamentos, type LinhaDoTitulo, type ValorPorMoeda } from '@/dominio/lancamentos';
 import { salvarColunas } from '@/dominio/preferencias-lista';
 import { ROTULOS_ORIGEM_TITULO, ROTULOS_SITUACAO_TITULO, rotuloDaCompetencia } from '@/dominio/titulos';
 import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro, formatarNumero } from '@/lib/formatacao';
+import { BarraDeLancamentos, rotuloDaCompetenciaDoFiltro } from './filtros-lancamentos';
 
 const LISTA = 'lancamentos';
-const COLUNAS_PADRAO = ['descricao', 'contexto', 'vencimento', 'valor', 'saldo', 'situacao'];
+const COLUNAS_PADRAO = ['descricao', 'contexto', 'vencimento', 'valor', 'saldo', 'situacao', 'comprovante'];
+const POR_PAGINA = 8;
+/** Abaixo de 1440, a seta de ordenar só aparece na coluna ordenada: é o que faz a tabela caber. */
+const SEM_SETA_PARADA = 'max-xl:[&_button_svg.opacity-50]:hidden';
+/** O título quebra em duas linhas quando falta largura. */
+const NUMERICA_ESTREITA = `${SEM_SETA_PARADA} max-xl:whitespace-normal`;
 
-const TIPOS_DA_SITUACAO: Readonly<Record<Titulo['situacao'], TipoSituacao>> = { previsto: 'info', aberto: 'atencao', parcial: 'atencao', quitado: 'sucesso', cancelado: 'neutro' };
+const SITUACOES: Readonly<Record<Titulo['situacao'], { tipo: TipoSituacao; icone: LucideIcon }>> = {
+  previsto: { tipo: 'info', icone: CalendarClock },
+  aberto: { tipo: 'neutro', icone: Circle },
+  parcial: { tipo: 'atencao', icone: Contrast },
+  quitado: { tipo: 'sucesso', icone: CheckCircle2 },
+  cancelado: { tipo: 'neutro', icone: Ban },
+};
 
+/** "Vencido" é uma condição, não uma situação: o parcial vencido mostra as duas coisas (M05 §2). */
 export function SituacaoDoTitulo({ titulo }: { titulo: Pick<LinhaDoTitulo, 'situacao' | 'vencido'> }) {
-  if (titulo.vencido) return <EtiquetaSituacao tipo="erro">Vencido</EtiquetaSituacao>;
-  return <EtiquetaSituacao tipo={TIPOS_DA_SITUACAO[titulo.situacao]}>{ROTULOS_SITUACAO_TITULO[titulo.situacao]}</EtiquetaSituacao>;
+  const situacao = SITUACOES[titulo.situacao];
+  if (!titulo.vencido) {
+    return (
+      <EtiquetaSituacao tipo={situacao.tipo} icone={situacao.icone}>
+        {ROTULOS_SITUACAO_TITULO[titulo.situacao]}
+      </EtiquetaSituacao>
+    );
+  }
+  return (
+    <span className="inline-flex flex-wrap items-start gap-1">
+      {titulo.situacao === 'parcial' && (
+        <EtiquetaSituacao tipo={situacao.tipo} icone={situacao.icone}>
+          Parcial
+        </EtiquetaSituacao>
+      )}
+      <EtiquetaSituacao tipo="erro" icone={CircleAlert}>
+        Vencido
+      </EtiquetaSituacao>
+    </span>
+  );
 }
 
 export function contextosDoTitulo(titulo: Pick<LinhaDoTitulo, 'rateio'>, dados: Pick<DadosDosLancamentos, 'produtos' | 'marcas'>) {
@@ -55,20 +85,217 @@ export function nomeDoFavorecido(titulo: Pick<Titulo, 'contraparte_id' | 'benefi
   return dados.pessoas.find((item) => item.id === titulo.beneficiario_pessoa_id)?.nome_completo ?? '';
 }
 
-function Totais({ linhas, dados, filtros, hoje }: { linhas: readonly LinhaDoTitulo[]; dados: DadosDosLancamentos; filtros: FiltrosLancamentos; hoje: string }) {
-  const periodo = periodoDosTotais(filtros, hoje);
-  const totais = totaisDosLancamentos(linhas, dados.cambios, periodo);
-  const nota = [totais.estimado ? 'Moeda estrangeira: estimado' : '', totais.naoIncluidos ? `${totais.naoIncluidos === 1 ? '1 sem câmbio, não incluído' : `${totais.naoIncluidos} sem câmbio, não incluídos`}` : ''].filter(Boolean).join(' · ');
+const textoDosValores = (valores: readonly ValorPorMoeda[]) => valores.map(({ valor, moeda }) => formatarDinheiro(valor, moeda)).join(' + ');
+
+function textoDoPeriodoDoPago({ de, ate }: { de: string; ate: string }): string {
+  const inicio = de === '0000-01-01' ? '' : formatarDiaISO(de);
+  const fim = ate === '9999-12-31' ? '' : formatarDiaISO(ate);
+  if (inicio && fim) return `de ${inicio} a ${fim}`;
+  return inicio ? `a partir de ${inicio}` : `até ${fim}`;
+}
+
+/** D17: anexado, exceção com motivo, ou falta. Sem pagamento de pé, ainda não há o que comprovar. */
+function ComprovanteDoTitulo({ titulo }: { titulo: Pick<LinhaDoTitulo, 'baixas'> }) {
+  const { estado, motivo } = comprovanteDoTitulo(titulo);
+  if (estado === 'anexado') {
+    return (
+      <EtiquetaSituacao tipo="sucesso" icone={Paperclip}>
+        Anexado
+      </EtiquetaSituacao>
+    );
+  }
+  if (estado === 'excecao') {
+    return (
+      <span title={motivo} aria-label={`Sem comprovante, exceção justificada: ${motivo}`}>
+        <EtiquetaSituacao tipo="neutro" icone={FileX2}>
+          Exceção
+        </EtiquetaSituacao>
+      </span>
+    );
+  }
+  if (estado === 'pendente') {
+    return (
+      <EtiquetaSituacao tipo="erro" icone={TriangleAlert}>
+        Pendente
+      </EtiquetaSituacao>
+    );
+  }
   return (
-    <section className="grid grid-cols-2 gap-2 md:grid-cols-3" aria-label="Totais dos lançamentos">
-      <Indicador titulo="Em aberto a pagar" valor={formatarDinheiro(totais.emAbertoPagar, 'BRL')} contexto={nota || undefined} className="max-md:col-span-2" />
-      <Indicador titulo="Vencido" valor={formatarDinheiro(totais.vencido, 'BRL')} />
-      <Indicador titulo={periodo.doMes ? 'Pago no mês' : 'Pago no período'} valor={formatarDinheiro(totais.pagoNoPeriodo, 'BRL')} />
+    <>
+      <span aria-hidden>—</span>
+      <span className="sr-only">Sem pagamento</span>
+    </>
+  );
+}
+
+function textoDoComprovante(titulo: Pick<LinhaDoTitulo, 'baixas'>): string {
+  const { estado, motivo } = comprovanteDoTitulo(titulo);
+  if (estado === 'anexado') return 'Anexado';
+  if (estado === 'excecao') return `Exceção: ${motivo}`;
+  return estado === 'pendente' ? 'Pendente' : '';
+}
+
+function ContextoDoTitulo({ titulo, dados }: { titulo: LinhaDoTitulo; dados: DadosDosLancamentos }) {
+  const itens = contextosDoTitulo(titulo, dados);
+  if (itens.length > 1) {
+    const nomes = itens.map((item) => item.nome).join(', ');
+    return (
+      <span title={nomes} aria-label={`Rateado entre ${nomes}`} className="inline-flex items-center gap-1.5 rounded-pill bg-mist px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap text-ink [&_svg]:size-[13px]">
+        <Users aria-hidden />
+        Rateado: {itens.length}
+      </span>
+    );
+  }
+  return itens[0] ? <EtiquetaContexto contexto={itens[0]} /> : <>—</>;
+}
+
+const podeBaixar = (titulo: LinhaDoTitulo) => titulo.situacao !== 'cancelado' && titulo.saldo > 0 && !titulo.arquivado_em;
+
+/** As ações sempre à mão no "…" (18 §9.6), sem depender de hover. */
+function AcoesDoTitulo({ titulo, aoRegistrarBaixa }: { titulo: LinhaDoTitulo; aoRegistrarBaixa: () => void }) {
+  return (
+    <MenuSobreposto
+      titulo="Ações"
+      largura={240}
+      alinhar="end"
+      gatilho={
+        <Button variante="icone" tamanho="icone" className="shrink-0" aria-label={`Ações de ${titulo.descricao}`}>
+          <Ellipsis aria-hidden />
+        </Button>
+      }
+    >
+      {(fechar) => (
+        <ul className="grid gap-0.5">
+          <li>
+            <LinkCentral href={`/financeiro/${titulo.id}`} className={`${CLASSE_LINHA_MENU} hover:bg-hover`}>
+              <FileText aria-hidden />
+              Abrir ficha
+            </LinkCentral>
+          </li>
+          {podeBaixar(titulo) && (
+            <li>
+              <button
+                type="button"
+                className={`${CLASSE_LINHA_MENU} hover:bg-hover`}
+                onClick={() => {
+                  fechar();
+                  aoRegistrarBaixa();
+                }}
+              >
+                <Receipt aria-hidden />
+                Registrar baixa
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
+    </MenuSobreposto>
+  );
+}
+
+function Nota({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-start gap-1.5 text-[13px] leading-[18px] text-ink-soft [&_svg]:mt-px [&_svg]:size-4 [&_svg]:shrink-0">
+      <Info aria-hidden />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+type Totais = ReturnType<typeof totaisDosLancamentos>;
+
+function CartoesDeTotais({ totais, periodo }: { totais: Totais; periodo: ReturnType<typeof periodoDosTotais> }) {
+  const foraDosReais = (valores: readonly ValorPorMoeda[]) => (valores.length ? <span className="block">+ {textoDosValores(valores)} sem conversão</span> : null);
+  return (
+    <section className="grid grid-cols-2 gap-2 min-[1200px]:grid-cols-4" aria-label="Totais dos lançamentos">
+      <Indicador
+        titulo="Em aberto a pagar"
+        valor={formatarDinheiro(totais.emAbertoPagar, 'BRL')}
+        icone={FileText}
+        tom="indigo"
+        contexto={
+          <>
+            {totais.estimados.length ? <span className="block">Inclui {textoDosValores(totais.estimados)}: estimado</span> : null}
+            {foraDosReais(totais.semConversao)}
+            {!totais.estimados.length && !totais.semConversao.length && <span className="block">Saldo dos títulos em reais</span>}
+          </>
+        }
+      />
+      <Indicador
+        titulo="Vencidos"
+        valor={formatarDinheiro(totais.vencido, 'BRL')}
+        icone={TriangleAlert}
+        tom="erro"
+        contexto={
+          <>
+            <span className="block">Incluídos no em aberto</span>
+            {foraDosReais(totais.vencidoSemConversao)}
+          </>
+        }
+      />
+      <Indicador titulo={periodo.doMes ? 'Pago no mês' : 'Pago no período'} valor={formatarDinheiro(totais.pagoNoPeriodo, 'BRL')} icone={CircleCheck} tom="sucesso" contexto={<span className="block">Pela data da baixa, {textoDoPeriodoDoPago(periodo)}</span>} />
+      <Indicador
+        titulo="Previstos"
+        valor={formatarDinheiro(totais.previsto, 'BRL')}
+        icone={CalendarClock}
+        contexto={
+          <>
+            <span className="block">Incluídos no em aberto</span>
+            {foraDosReais(totais.previstoSemConversao)}
+          </>
+        }
+      />
     </section>
   );
 }
 
-/** T05.01 (P1): todo dinheiro que sai da Numa, de quem é cada custo, e o que está em aberto. */
+function CartaoDoTitulo({ titulo, dados, aoRegistrarBaixa }: { titulo: LinhaDoTitulo; dados: DadosDosLancamentos; aoRegistrarBaixa: () => void }) {
+  const favorecido = nomeDoFavorecido(titulo, dados);
+  const pago = pagoDoTitulo(titulo);
+  const encerrado = titulo.situacao === 'cancelado';
+  return (
+    <div className="grid gap-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <LinkCentral href={`/financeiro/${titulo.id}`} className="grid min-h-11 min-w-0 content-center gap-0.5">
+          <span className="font-semibold break-words">{titulo.descricao}</span>
+          <span className="text-[13px] break-words text-ink-soft tabular-nums">
+            {titulo.codigo}
+            {favorecido ? ` · ${favorecido}` : ''}
+          </span>
+        </LinkCentral>
+        <AcoesDoTitulo titulo={titulo} aoRegistrarBaixa={aoRegistrarBaixa} />
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <SituacaoDoTitulo titulo={titulo} />
+        <ContextoDoTitulo titulo={titulo} dados={dados} />
+      </div>
+      <p className="text-[13px] text-ink-soft tabular-nums">Vence em {formatarDiaISO(titulo.vencimento)}</p>
+      <dl className={`grid gap-x-3 text-[13px] ${pago !== 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <div>
+          <dt className="text-ink-soft">Valor original</dt>
+          <dd className="font-medium tabular-nums">{formatarDinheiro(titulo.valor, titulo.moeda)}</dd>
+        </div>
+        {pago !== 0 && (
+          <div>
+            <dt className="text-ink-soft">Pagamentos</dt>
+            <dd className="font-medium tabular-nums">{formatarDinheiro(pago, titulo.moeda)}</dd>
+          </div>
+        )}
+        <div>
+          <dt className="text-ink-soft">Saldo a pagar</dt>
+          <dd className="font-semibold tabular-nums">{encerrado ? '—' : formatarDinheiro(titulo.saldo, titulo.moeda)}</dd>
+        </div>
+      </dl>
+      {comprovanteDoTitulo(titulo).estado !== 'nao_se_aplica' && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-ink-soft">
+          Comprovante: <ComprovanteDoTitulo titulo={titulo} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** T05.01 (P1): o que vence, o que foi pago e o que ainda está em aberto. */
 export function TelaLancamentos() {
   const roteador = useRouter();
   const { pessoa, contexto } = useCentral();
@@ -76,6 +303,7 @@ export function TelaLancamentos() {
   const consulta = useConsulta(() => carregarLancamentos(hoje), [hoje]);
   const [selecionados, setSelecionados] = useState<ReadonlySet<string>>(new Set());
   const [emLote, setEmLote] = useState(false);
+  const [baixando, setBaixando] = useState<LinhaDoTitulo | null>(null);
   const [filtros, setFiltros] = useState<FiltrosLancamentos>(FILTROS_LANCAMENTOS_INICIAIS);
   const [cadastrando, setCadastrando] = useState(false);
   const { colunasVisiveis, visoes } = usePreferenciasDaLista(pessoa.id, LISTA, COLUNAS_PADRAO);
@@ -90,7 +318,6 @@ export function TelaLancamentos() {
     [contexto.id, hoje, dados],
   );
   const linhas = useMemo(() => (dados ? filtrarTitulos(dados.titulos, filtros, opcoes) : []), [dados, filtros, opcoes]);
-  const contadores = useMemo(() => (dados ? contadoresDosLancamentos(dados.titulos, filtros, opcoes) : null), [dados, filtros, opcoes]);
 
   const colunas = useMemo<readonly Coluna<LinhaDoTitulo>[]>(() => {
     if (!dados) return [];
@@ -99,20 +326,22 @@ export function TelaLancamentos() {
     return [
       {
         id: 'descricao',
-        titulo: 'Título',
+        titulo: 'Descrição / fornecedor',
         fixa: true,
         essencial: true,
+        classe: SEM_SETA_PARADA,
         ordenar: (a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'),
-        texto: (titulo) => `${titulo.codigo} ${titulo.descricao}`,
+        texto: (titulo) => [titulo.codigo, titulo.descricao, nomeDoFavorecido(titulo, dados)].filter(Boolean).join(' · '),
         celula: (titulo) => (
-          <span className="flex min-w-52 items-start gap-2">
-            {titulo.natureza === 'pagar' ? <ArrowUpRight aria-label="A pagar" className="mt-0.5 size-4 shrink-0 text-ink-soft" /> : <ArrowDownLeft aria-label="A receber" className="mt-0.5 size-4 shrink-0 text-ink-soft" />}
-            <span className="grid gap-0.5">
-              <span className="font-medium break-words">{titulo.descricao}</span>
-              <span className="text-xs text-ink-soft tabular-nums">
-                {titulo.codigo}
-                {nomeDoFavorecido(titulo, dados) ? ` · ${nomeDoFavorecido(titulo, dados)}` : ''}
-              </span>
+          <span className="grid min-w-36 gap-0.5 xl:min-w-52">
+            <span className="font-semibold break-words">{titulo.descricao}</span>
+            <span className="text-xs text-ink-soft tabular-nums">
+              {titulo.codigo}
+              {nomeDoFavorecido(titulo, dados) ? ` · ${nomeDoFavorecido(titulo, dados)}` : ''}
+            </span>
+            {/* Sem largura para a coluna Contexto, ele fica aqui: a informação não some. */}
+            <span className="mt-0.5 @min-[750px]:hidden">
+              <ContextoDoTitulo titulo={titulo} dados={dados} />
             </span>
           </span>
         ),
@@ -122,25 +351,19 @@ export function TelaLancamentos() {
       {
         id: 'contexto',
         titulo: 'Contexto',
+        classe: 'hidden @min-[750px]:table-cell',
+        essencial: true,
         texto: (titulo) => contextosDoTitulo(titulo, dados).map((item) => item.nome).join(', '),
-        celula: (titulo) => {
-          const itens = contextosDoTitulo(titulo, dados);
-          if (itens.length > 1) return <span className="whitespace-nowrap text-ink-soft">Rateado: {itens.length}</span>;
-          return itens[0] ? <EtiquetaContexto contexto={itens[0]} /> : '—';
-        },
+        celula: (titulo) => <ContextoDoTitulo titulo={titulo} dados={dados} />,
       },
       { id: 'competencia', titulo: 'Competência', ordenar: (a, b) => a.competencia.localeCompare(b.competencia), texto: (titulo) => rotuloDaCompetencia(titulo.competencia), celula: (titulo) => <span className="whitespace-nowrap">{rotuloDaCompetencia(titulo.competencia)}</span> },
-      { id: 'vencimento', titulo: 'Vencimento', essencial: true, ordenar: (a, b) => a.vencimento.localeCompare(b.vencimento), texto: (titulo) => formatarDiaISO(titulo.vencimento), celula: (titulo) => <span className="whitespace-nowrap tabular-nums">{formatarDiaISO(titulo.vencimento)}</span> },
-      { id: 'valor', titulo: 'Valor', numerica: true, essencial: true, ordenar: (a, b) => a.valor - b.valor, texto: (titulo) => formatarDinheiro(titulo.valor, titulo.moeda), celula: (titulo) => <span className="whitespace-nowrap">{formatarDinheiro(titulo.valor, titulo.moeda)}</span> },
-      { id: 'saldo', titulo: 'Saldo', numerica: true, essencial: true, ordenar: (a, b) => a.saldo - b.saldo, texto: (titulo) => formatarDinheiro(titulo.saldo, titulo.moeda), celula: (titulo) => <span className="whitespace-nowrap">{titulo.saldo > 0 ? formatarDinheiro(titulo.saldo, titulo.moeda) : '—'}</span> },
-      { id: 'situacao', titulo: 'Situação', essencial: true, texto: (titulo) => (titulo.vencido ? 'Vencido' : ROTULOS_SITUACAO_TITULO[titulo.situacao]), celula: (titulo) => <SituacaoDoTitulo titulo={titulo} /> },
+      { id: 'vencimento', titulo: 'Vencimento', essencial: true, classe: SEM_SETA_PARADA, ordenar: (a, b) => a.vencimento.localeCompare(b.vencimento), texto: (titulo) => formatarDiaISO(titulo.vencimento), celula: (titulo) => <span className="whitespace-nowrap tabular-nums">{formatarDiaISO(titulo.vencimento)}</span> },
+      { id: 'valor', titulo: 'Valor original', numerica: true, essencial: true, classe: NUMERICA_ESTREITA, ordenar: (a, b) => a.valor - b.valor, texto: (titulo) => formatarDinheiro(titulo.valor, titulo.moeda), celula: (titulo) => <span className="whitespace-nowrap">{formatarDinheiro(titulo.valor, titulo.moeda)}</span> },
+      { id: 'pagamentos', titulo: 'Pagamentos', numerica: true, ordenar: (a, b) => pagoDoTitulo(a) - pagoDoTitulo(b), texto: (titulo) => formatarDinheiro(pagoDoTitulo(titulo), titulo.moeda), celula: (titulo) => <span className="whitespace-nowrap">{formatarDinheiro(pagoDoTitulo(titulo), titulo.moeda)}</span> },
+      { id: 'saldo', titulo: 'Saldo a pagar', numerica: true, essencial: true, classe: NUMERICA_ESTREITA, ordenar: (a, b) => a.saldo - b.saldo, texto: (titulo) => (titulo.situacao === 'cancelado' ? '' : formatarDinheiro(titulo.saldo, titulo.moeda)), celula: (titulo) => <span className="whitespace-nowrap">{titulo.situacao === 'cancelado' ? '—' : formatarDinheiro(titulo.saldo, titulo.moeda)}</span> },
+      { id: 'situacao', titulo: 'Situação', essencial: true, texto: (titulo) => (titulo.vencido ? (titulo.situacao === 'parcial' ? 'Parcial, vencido' : 'Vencido') : ROTULOS_SITUACAO_TITULO[titulo.situacao]), celula: (titulo) => <SituacaoDoTitulo titulo={titulo} /> },
       { id: 'origem', titulo: 'Origem', texto: (titulo) => ROTULOS_ORIGEM_TITULO[titulo.origem], celula: (titulo) => ROTULOS_ORIGEM_TITULO[titulo.origem] },
-      {
-        id: 'comprovante',
-        titulo: 'Comprovante',
-        texto: (titulo) => (titulo.baixas.some((baixa) => baixa.comprovante_url) ? 'Sim' : ''),
-        celula: (titulo) => (titulo.baixas.some((baixa) => baixa.comprovante_url) ? <Check aria-label="Com comprovante" className="size-4 text-ok" /> : '—'),
-      },
+      { id: 'comprovante', titulo: 'Comprovante', classe: 'hidden @min-[870px]:table-cell', essencial: true, texto: textoDoComprovante, celula: (titulo) => <ComprovanteDoTitulo titulo={titulo} /> },
       { id: 'responsavel', titulo: 'Responsável', ordenar: (a, b) => nomeDaPessoa(a.responsavel_id).localeCompare(nomeDaPessoa(b.responsavel_id), 'pt-BR'), texto: (titulo) => nomeDaPessoa(titulo.responsavel_id), celula: (titulo) => <NomeDaPessoa nome={nomeDaPessoa(titulo.responsavel_id)} className="min-w-max [&>span:last-child]:overflow-visible" /> },
     ];
   }, [dados]);
@@ -157,156 +380,21 @@ export function TelaLancamentos() {
     );
   }
 
-  const arquivados = dados.titulos.filter((titulo) => titulo.arquivado_em).length;
   const mudar = (parcial: Partial<FiltrosLancamentos>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
-  const limpar = () => setFiltros((atuais) => ({ ...FILTROS_LANCAMENTOS_INICIAIS, aba: atuais.aba, arquivados: atuais.arquivados }));
-  const nomeDoContexto = (id: string) => (id === ID_INSTITUCIONAL ? 'Numa' : (dados.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido'));
-  const nomeDaCategoria = (id: string) => dados.categorias.find((categoria) => categoria.id === id)?.nome ?? 'Categoria removida';
-  const ativos: FiltroAtivo[] = [
-    ...(filtros.situacao ? [{ id: 'situacao', rotulo: `Situação: ${ROTULOS_SITUACAO_TITULO[filtros.situacao as Titulo['situacao']]}` }] : []),
-    ...(filtros.vencimentoDe ? [{ id: 'vencimentoDe', rotulo: `Vence a partir de ${formatarDiaISO(filtros.vencimentoDe)}` }] : []),
-    ...(filtros.vencimentoAte ? [{ id: 'vencimentoAte', rotulo: `Vence até ${formatarDiaISO(filtros.vencimentoAte)}` }] : []),
-    ...(filtros.competencia ? [{ id: 'competencia', rotulo: `Competência: ${rotuloDaCompetencia(`${filtros.competencia}-01`)}` }] : []),
-    ...(filtros.contexto ? [{ id: 'contexto', rotulo: `Contexto: ${nomeDoContexto(filtros.contexto)}` }] : []),
-    ...(filtros.categoria ? [{ id: 'categoria', rotulo: `Categoria: ${nomeDaCategoria(filtros.categoria)}` }] : []),
-    ...(filtros.contraparte ? [{ id: 'contraparte', rotulo: `Contraparte: ${nomeDaContraparte(dados.contrapartes.find((item) => item.id === filtros.contraparte) as (typeof dados.contrapartes)[number])}` }] : []),
-    ...(filtros.conta ? [{ id: 'conta', rotulo: `Conta: ${dados.contas.find((conta) => conta.id === filtros.conta)?.nome ?? ''}` }] : []),
-    ...(filtros.origem ? [{ id: 'origem', rotulo: `Origem: ${ROTULOS_ORIGEM_TITULO[filtros.origem as Titulo['origem']]}` }] : []),
-    ...(filtros.moeda ? [{ id: 'moeda', rotulo: `Moeda: ${filtros.moeda}` }] : []),
-  ];
-  const { arquivados: _semArquivados, aba: _semAba, ...filtrosDaVisao } = filtros;
+  const { arquivados: _semArquivados, ...filtrosDaVisao } = filtros;
   const selecionadas = linhas.filter((linha) => selecionados.has(linha.id));
-  const moedas = [...new Set(dados.titulos.map((titulo) => titulo.moeda))].sort();
-  const categorias = dados.categorias.filter((categoria) => categoria.pai_id && categoria.tipo === 'despesa' && !categoria.arquivado_em);
-  const contrapartesUsadas = dados.contrapartes.filter((item) => dados.titulos.some((titulo) => titulo.contraparte_id === item.id));
+  const periodo = periodoDosTotais(filtros, hoje);
+  const totais = totaisDosLancamentos(linhas, dados.cambios, periodo);
+  const nomeDaCompetencia = rotuloDaCompetenciaDoFiltro(filtros.competencia);
+  const abrirBaixa = (titulo: LinhaDoTitulo) => () => setBaixando(titulo);
+  const filtrando = JSON.stringify(filtros) !== JSON.stringify(FILTROS_LANCAMENTOS_INICIAIS);
 
   return (
     <div className="space-y-5">
       <CabecalhoPagina
         kicker="Financeiro"
         titulo="Lançamentos"
-        resumo="Todo dinheiro que sai da Numa: de quem é cada custo, quem pagou e o que ainda está em aberto."
-        acoes={
-          <Button onClick={() => setCadastrando(true)}>
-            <Plus aria-hidden />
-            Nova despesa
-          </Button>
-        }
-      />
-      <AbasFinanceiro ativa="lancamentos" />
-      <Totais linhas={linhas} dados={dados} filtros={filtros} hoje={hoje} />
-      <BarraFiltros
-        busca={filtros.busca}
-        aoBuscar={(busca) => mudar({ busca })}
-        rotuloBusca="Buscar por código, descrição ou contraparte"
-        rapidos={[...ABAS_DE_LANCAMENTOS.map(({ id, rotulo }) => ({ id, rotulo, contador: contadores?.[id] || undefined })), { id: 'receber', rotulo: 'A receber', emBreve: true }]}
-        rapidoAtivo={filtros.aba}
-        aoEscolherRapido={(aba) => mudar({ aba: aba as IdDaAbaDeLancamentos })}
-        ativos={ativos}
-        aoRemoverAtivo={(id) => mudar({ [id]: '' })}
-        aoLimpar={limpar}
-        filtrosDetalhados={
-          <div className="grid gap-4 px-1 pb-2 md:px-3">
-            <Campo rotulo="Situação" id="filtro-situacao">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.situacao} onChange={(evento) => mudar({ situacao: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {SITUACOES_DO_TITULO.map((valor) => (
-                    <option key={valor} value={valor}>
-                      {ROTULOS_SITUACAO_TITULO[valor]}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <div className="grid grid-cols-2 gap-3">
-              <Campo rotulo="Vence de" id="filtro-vencimento-de">
-                {(controle) => <Input type="date" {...controle} value={filtros.vencimentoDe} onChange={(evento) => mudar({ vencimentoDe: evento.target.value })} />}
-              </Campo>
-              <Campo rotulo="até" id="filtro-vencimento-ate">
-                {(controle) => <Input type="date" {...controle} value={filtros.vencimentoAte} onChange={(evento) => mudar({ vencimentoAte: evento.target.value })} />}
-              </Campo>
-            </div>
-            <Campo rotulo="Competência" id="filtro-competencia">
-              {(controle) => <Input type="month" {...controle} value={filtros.competencia} onChange={(evento) => mudar({ competencia: evento.target.value })} />}
-            </Campo>
-            <Campo rotulo="Contexto" id="filtro-contexto">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.contexto} onChange={(evento) => mudar({ contexto: evento.target.value })}>
-                  <option value="">Todos</option>
-                  <option value={ID_INSTITUCIONAL}>Numa</option>
-                  {dados.produtos
-                    .filter((produto) => !produto.arquivado_em)
-                    .map((produto) => (
-                      <option key={produto.id} value={produto.id}>
-                        {produto.nome}
-                      </option>
-                    ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Categoria" id="filtro-categoria">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.categoria} onChange={(evento) => mudar({ categoria: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nome}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Contraparte" id="filtro-contraparte">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.contraparte} onChange={(evento) => mudar({ contraparte: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {contrapartesUsadas.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {nomeDaContraparte(item)}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Conta da baixa" id="filtro-conta">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.conta} onChange={(evento) => mudar({ conta: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {dados.contas.map((conta) => (
-                    <option key={conta.id} value={conta.id}>
-                      {conta.nome}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Origem" id="filtro-origem">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.origem} onChange={(evento) => mudar({ origem: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {(['manual', 'assinatura', 'reembolso', 'ajuste'] as const).map((valor) => (
-                    <option key={valor} value={valor}>
-                      {ROTULOS_ORIGEM_TITULO[valor]}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Moeda" id="filtro-moeda">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.moeda} onChange={(evento) => mudar({ moeda: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {moedas.map((moeda) => (
-                    <option key={moeda} value={moeda}>
-                      {moeda}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-          </div>
-        }
+        resumo="O que vence, o que foi pago e o que ainda está em aberto."
         acoes={
           <>
             <MenuVisoes
@@ -316,21 +404,26 @@ export function TelaLancamentos() {
               filtros={filtrosDaVisao}
               colunas={colunasVisiveis}
               aoAplicar={(visao) => {
-                setFiltros((atuais) => ({ ...FILTROS_LANCAMENTOS_INICIAIS, ...(visao.filtros as Partial<FiltrosLancamentos>), aba: atuais.aba, arquivados: atuais.arquivados }));
+                setFiltros((atuais) => ({ ...FILTROS_LANCAMENTOS_INICIAIS, ...(visao.filtros as Partial<FiltrosLancamentos>), arquivados: atuais.arquivados }));
                 salvarColunas(pessoa.id, LISTA, visao.colunas);
               }}
             />
-            <MenuColunas pessoaId={pessoa.id} lista={LISTA} colunas={colunas} visiveis={colunasVisiveis} padrao={COLUNAS_PADRAO} />
             <BotaoExportarCsv nomeDoArquivo="lancamentos" colunas={visiveis} linhas={linhas} />
-            {arquivados > 0 && (
-              <Button variante="terciario" aria-pressed={filtros.arquivados} onClick={() => mudar({ arquivados: !filtros.arquivados })}>
-                <Archive aria-hidden />
-                {filtros.arquivados ? 'Voltar aos lançamentos' : `Arquivados (${arquivados})`}
-              </Button>
-            )}
+            <Button onClick={() => setCadastrando(true)}>
+              <Plus aria-hidden />
+              Nova despesa
+            </Button>
           </>
         }
       />
+      <AbasFinanceiro ativa="lancamentos" />
+      <div className="space-y-2">
+        <CartoesDeTotais totais={totais} periodo={periodo} />
+        <p className="text-[13px] leading-[18px] text-ink-soft" data-base-dos-totais>
+          Base dos totais: {formatarNumero(totais.quantos)} {totais.quantos === 1 ? 'título' : 'títulos'} · {nomeDaCompetencia} · {contexto.nome}. Título rateado conta pelo valor inteiro. Pagamentos em reais, pelo valor efetivo.
+        </p>
+      </div>
+      <BarraDeLancamentos filtros={filtros} aoMudar={mudar} dados={dados} hoje={hoje} colunas={<MenuColunas pessoaId={pessoa.id} lista={LISTA} colunas={colunas} visiveis={colunasVisiveis} padrao={COLUNAS_PADRAO} />} />
       {selecionadas.length > 0 && (
         <div className="hidden flex-wrap items-center gap-2 rounded-lg border border-line bg-mist px-4 py-2 text-[13px] md:flex" role="region" aria-label="Ações em lote">
           <span className="font-semibold">{selecionadas.length === 1 ? '1 selecionado' : `${selecionadas.length} selecionados`}</span>
@@ -348,32 +441,34 @@ export function TelaLancamentos() {
         colunas={visiveis}
         chave={(titulo) => titulo.id}
         aoAbrir={(titulo) => roteador.push(`/financeiro/${titulo.id}`)}
+        cartaoInterativo
+        compacta
+        acoesDaLinha={(titulo) => <AcoesDoTitulo titulo={titulo} aoRegistrarBaixa={abrirBaixa(titulo)} />}
         selecao={{ selecionados, aoMudar: setSelecionados, rotuloDaLinha: (titulo) => titulo.descricao }}
-        filtrando={ativos.length > 0 || Boolean(filtros.busca.trim()) || filtros.arquivados || filtros.aba !== 'todos' || contexto.id !== 'consolidada'}
-        aoLimparFiltros={() => setFiltros((atuais) => ({ ...FILTROS_LANCAMENTOS_INICIAIS, arquivados: atuais.arquivados }))}
+        filtrando={filtrando || Boolean(filtros.busca.trim()) || contexto.id !== 'consolidada'}
+        aoLimparFiltros={() => setFiltros(FILTROS_LANCAMENTOS_INICIAIS)}
         vazio={<EstadoVazio icone={Receipt} titulo="Nenhum lançamento ainda." texto="Que tal lançar a primeira despesa?" acao={<Button onClick={() => setCadastrando(true)}>Nova despesa</Button>} />}
-        cartao={(titulo) => {
-          const itens = contextosDoTitulo(titulo, dados);
-          return (
-            <span className="grid gap-1.5">
-              <span className="font-semibold break-words">{titulo.descricao}</span>
-              <span className="flex flex-wrap items-center justify-between gap-2">
-                <SituacaoDoTitulo titulo={titulo} />
-                <span className="font-semibold tabular-nums">{formatarDinheiro(titulo.valor, titulo.moeda)}</span>
-              </span>
-              <span className="text-[13px] text-ink-soft">
-                Vence em {formatarDiaISO(titulo.vencimento)}
-                {titulo.saldo > 0 && titulo.saldo < titulo.valor ? ` · Saldo ${formatarDinheiro(titulo.saldo, titulo.moeda)}` : ''}
-              </span>
-              <span className="flex flex-wrap gap-1">
-                {itens.length > 1 ? <span className="text-[13px] text-ink-soft">Rateado: {itens.length}</span> : itens[0] ? <EtiquetaContexto contexto={itens[0]} /> : null}
-              </span>
-            </span>
-          );
+        cartao={(titulo) => <CartaoDoTitulo titulo={titulo} dados={dados} aoRegistrarBaixa={abrirBaixa(titulo)} />}
+        paginacao={{
+          porPagina: POR_PAGINA,
+          reiniciarCom: `${JSON.stringify(filtros)}:${contexto.id}`,
+          resumo: (ordenada) => `${formatarNumero(linhas.length)} ${linhas.length === 1 ? 'lançamento' : 'lançamentos'} · ${nomeDaCompetencia}${ordenada ? '' : ` · ${ROTULO_ORDEM_PADRAO}`}`,
         }}
       />
-      <p className="text-xs text-ink-soft">{formatarNumero(linhas.length)} de {formatarNumero(dados.titulos.filter((titulo) => !titulo.arquivado_em).length)} lançamentos.</p>
+      <div className="grid gap-1.5" data-notas-dos-lancamentos>
+        {totais.semConversao.length > 0 && (
+          <Nota>
+            {textoDosValores(totais.semConversao)} {totais.semConversao.length === 1 && totais.semConversao[0]?.valor === 1 ? 'não incluído' : 'não incluídos'} nos totais em reais: câmbio de referência não informado.{' '}
+            <LinkCentral href="/configuracoes" className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-0">
+              Informar câmbio
+            </LinkCentral>
+          </Nota>
+        )}
+        {totais.estimados.length > 0 && <Nota>{textoDosValores(totais.estimados)} em aberto {totais.estimados.length === 1 ? 'entra' : 'entram'} nos totais pelo câmbio de referência, como estimativa.</Nota>}
+        <Nota>Critério atual, a confirmar: previstos entram em “Em aberto a pagar”; o cartão Previstos mostra essa parte.</Nota>
+      </div>
       <FormularioDeDespesa aberto={cadastrando} aoFechar={() => setCadastrando(false)} dados={dados} />
+      {baixando && <DialogoDeBaixa titulo={baixando} contas={dados.contas} aoFechar={() => setBaixando(null)} />}
       {emLote && (
         <DialogoDeBaixaEmLote
           titulos={selecionadas}

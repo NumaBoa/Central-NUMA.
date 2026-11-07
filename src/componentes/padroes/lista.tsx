@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/componentes/ui/button';
 import { cn } from '@/lib/utils';
 import { EstadoCarregando, EstadoErro, EstadoVazioFiltro } from './estados';
@@ -52,12 +52,61 @@ type ListaProps<T> = {
   rodape?: ReactNode;
   /** Menos espaço entre as colunas, para caber mais sem rolar. */
   compacta?: boolean;
+  /** Páginas no lugar de "Ver mais", para limitar a altura da lista. */
+  paginacao?: {
+    porPagina: number;
+    /** Quando muda (os filtros, por exemplo), volta à primeira página. */
+    reiniciarCom: string;
+    /** À esquerda das páginas. `ordenada`: a pessoa escolheu uma coluna para ordenar. */
+    resumo?: (ordenada: boolean) => ReactNode;
+  };
 };
 
+/** ‹ 1 2 3 ›: com muitas páginas, mostra a primeira, a última e as vizinhas da atual. */
+function numerosDasPaginas(atual: number, total: number): (number | 'salto')[] {
+  const numeros: (number | 'salto')[] = [];
+  for (let pagina = 1; pagina <= total; pagina += 1) {
+    if (pagina === 1 || pagina === total || Math.abs(pagina - atual) <= 1) numeros.push(pagina);
+    else if (numeros[numeros.length - 1] !== 'salto') numeros.push('salto');
+  }
+  return numeros;
+}
+
+function Paginas({ atual, total, aoMudar }: { atual: number; total: number; aoMudar: (pagina: number) => void }) {
+  const classe = 'inline-flex size-11 items-center justify-center rounded-md border border-line bg-paper text-[13px] font-semibold tabular-nums hover:border-ink-soft disabled:cursor-default disabled:opacity-40 disabled:hover:border-line md:size-9 [&_svg]:size-4';
+  return (
+    <nav aria-label="Páginas" className="flex items-center gap-1">
+      <button type="button" aria-label="Página anterior" disabled={atual <= 1} onClick={() => aoMudar(atual - 1)} className={classe}>
+        <ChevronLeft aria-hidden />
+      </button>
+      {numerosDasPaginas(atual, total).map((numero, indice) =>
+        numero === 'salto' ? (
+          <span key={`salto-${indice}`} aria-hidden className="px-1 text-ink-soft">
+            …
+          </span>
+        ) : (
+          <button key={numero} type="button" aria-label={`Página ${numero}`} aria-current={numero === atual ? 'page' : undefined} onClick={() => aoMudar(numero)} className={cn(classe, numero === atual && 'border-indigo-wash bg-indigo-wash text-ink hover:border-indigo-wash')}>
+            {numero}
+          </button>
+        ),
+      )}
+      <button type="button" aria-label="Próxima página" disabled={atual >= total} onClick={() => aoMudar(atual + 1)} className={classe}>
+        <ChevronRight aria-hidden />
+      </button>
+    </nav>
+  );
+}
+
 /** Lista (P1 e 18 §9.6): tabela em papel; no celular, cartões. */
-export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, selecao, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape, compacta = false }: ListaProps<T>) {
+export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cartaoInterativo = false, acoesDaLinha, selecao, estado = 'pronto', aoTentarDeNovo, filtrando = false, aoLimparFiltros, vazio, rodape, compacta = false, paginacao }: ListaProps<T>) {
   const [ordem, setOrdem] = useState<{ id: string; sentido: 1 | -1 } | null>(null);
   const [limite, setLimite] = useState(TAMANHO_PAGINA);
+  const [pagina, setPagina] = useState(1);
+  const [reiniciarCom, setReiniciarCom] = useState(paginacao?.reiniciarCom);
+  if (paginacao && paginacao.reiniciarCom !== reiniciarCom) {
+    setReiniciarCom(paginacao.reiniciarCom);
+    setPagina(1);
+  }
 
   const ordenadas = useMemo(() => {
     if (!ordem) return linhas;
@@ -66,7 +115,10 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
     const { sentido } = ordem;
     return [...linhas].sort((a, b) => comparar(a, b) * sentido);
   }, [linhas, colunas, ordem]);
-  const visiveis = ordenadas.slice(0, limite);
+  // Pagar o último título da última página não pode deixar a tela numa página que não existe mais.
+  const totalDePaginas = paginacao ? Math.max(1, Math.ceil(ordenadas.length / paginacao.porPagina)) : 1;
+  const paginaAtual = Math.min(pagina, totalDePaginas);
+  const visiveis = paginacao ? ordenadas.slice((paginaAtual - 1) * paginacao.porPagina, paginaAtual * paginacao.porPagina) : ordenadas.slice(0, limite);
 
   if (estado === 'carregando') return <EstadoCarregando />;
   if (estado === 'erro') return <EstadoErro aoTentarDeNovo={aoTentarDeNovo} />;
@@ -74,6 +126,7 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
 
   function alternarOrdem(id: string) {
     setOrdem((atual) => (atual?.id === id ? (atual.sentido === 1 ? { id, sentido: -1 } : null) : { id, sentido: 1 }));
+    setPagina(1);
   }
 
   function aoTeclarLinha(evento: KeyboardEvent<HTMLTableRowElement>, linha: T) {
@@ -212,7 +265,14 @@ export function Lista<T>({ rotulo, linhas, colunas, chave, cartao, aoAbrir, cart
         {rodape && <li className="rounded-lg bg-mist p-4 text-sm font-semibold">{rodape}</li>}
       </ul>
 
-      {ordenadas.length > limite && (
+      {paginacao && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
+          <div className="min-w-0 text-[13px] text-ink-soft">{paginacao.resumo?.(ordem !== null)}</div>
+          {totalDePaginas > 1 && <Paginas atual={paginaAtual} total={totalDePaginas} aoMudar={setPagina} />}
+        </div>
+      )}
+
+      {!paginacao && ordenadas.length > limite && (
         <div className="mt-4 flex justify-center">
           <Button variante="secundario" onClick={() => setLimite((atual) => atual + TAMANHO_PAGINA)}>
             Ver mais {Math.min(TAMANHO_PAGINA, ordenadas.length - limite)}
