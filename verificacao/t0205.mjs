@@ -25,11 +25,11 @@ const irContrapartes = async () => { await ir(CONTRAPARTES); await linhasProntas
 const irEntidades = async () => { await ir(ENTIDADES); await linhasProntas(); };
 const irPessoas = async () => { await ir(PESSOAS); await linhasProntas(); };
 const irFicha = async (id, nome) => { await ir(`${CONTRAPARTES}/${id}`); await c.ate(`document.querySelector('main h1')?.textContent===${JSON.stringify(nome)}`); };
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
 const novaContraparte = async () => { await c.clicar('texto=Nova contraparte'); await painelAberto(); await c.espera(450); };
 const novaEntidade = async () => { await c.clicar('texto=Nova entidade'); await painelAberto(); await c.espera(450); };
 const clicarBotaoPrincipal = (rotulo) => c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()===${JSON.stringify(rotulo)}&&b.getBoundingClientRect().height>0).click()`);
-const painelTemErro = (parte) => c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes(${JSON.stringify(parte)})`);
+const painelTemErro = (parte) => c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes(${JSON.stringify(parte)})`);
 const salvarESaber = async (avisoEsperado) => { await salvarPainel(); await esperarAviso(avisoEsperado); await painelFechado(); };
 const aba = async (indice) => { await c.clicar(`main [role=tab]:nth-child(${indice})`); await c.espera(80); };
 const painelAtivo = () => texto('main [role=tabpanel][data-state=active]');
@@ -135,14 +135,14 @@ await passo('busca e filtros', async () => {
 
 await passo('formulário: padrões', async () => {
   await novaContraparte();
-  ok('título', (await texto('.painel-lateral h2')).includes('Nova contraparte'));
+  ok('título', (await texto('.janela h2')).includes('Nova contraparte'));
   ok('pessoa jurídica e fornecedor por padrão', (await pilulaMarcada('Tipo de pessoa', 'Pessoa jurídica')) && (await pilulaMarcada('Papéis', 'Fornecedor')));
   ok('situação ativa por padrão', await pilulaMarcada('Situação', 'Ativa'));
   ok('Brasil por padrão, e em primeiro', (await valor(await idPorRotulo('País'))) === 'BR' && (await opcoes(await idPorRotulo('País')))[0] === 'Brasil');
   ok('lista completa de países', (await opcoes(await idPorRotulo('País'))).length > 200);
   ok('a responsável sugerida é a pessoa atual', (await valor('contraparte-responsavel')) === ID_KIMBERLY);
   ok('só pessoas internas ativas como responsável', (await opcoes('contraparte-responsavel')).join('|') === 'Kimberly Grebe|Camila Lima|Bruna Alves', (await opcoes('contraparte-responsavel')).join('|'));
-  ok('sem campo de classe (03 §0)', !(await texto('.painel-lateral')).includes('Classe'));
+  ok('sem campo de classe (03 §0)', !(await texto('.janela')).includes('Classe'));
   ok('origens da especificação', (await opcoes(await idPorRotulo('Origem'))).join('|') === 'Não informada|Indicação|Rede social|Site|Evento|Busca ativa|Outro', (await opcoes(await idPorRotulo('Origem'))).join('|'));
   await c.foto('c-formulario');
 });
@@ -168,7 +168,7 @@ await passo('formulário: validações', async () => {
 
   await marcarPilula('Tipo de pessoa', 'Pessoa física');
   await c.espera(60);
-  ok('pessoa física pede CPF', await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].some(l=>l.textContent.startsWith('CPF'))`));
+  ok('pessoa física pede CPF', await c.avaliar(`[...document.querySelectorAll('.janela label')].some(l=>l.textContent.startsWith('CPF'))`));
   await preencher('contraparte-documento', '52998224700');
   ok('máscara de CPF', (await valor('contraparte-documento')) === '529.982.247-00', await valor('contraparte-documento'));
   await salvarPainel();
@@ -177,7 +177,7 @@ await passo('formulário: validações', async () => {
 
   await marcarPilula('Tipo de pessoa', 'Estrangeira');
   await c.espera(60);
-  ok('estrangeira pede ID estrangeiro e explica', await c.avaliar(`document.querySelector('.painel-lateral').textContent.includes('ID estrangeiro')&&document.querySelector('.painel-lateral').textContent.includes('não precisa de CPF nem CNPJ')`));
+  ok('estrangeira pede ID estrangeiro e explica', await c.avaliar(`document.querySelector('.janela').textContent.includes('ID estrangeiro')&&document.querySelector('.janela').textContent.includes('não precisa de CPF nem CNPJ')`));
   await preencher('contraparte-documento', '12-3456789');
   ok('sem máscara no ID estrangeiro', (await valor('contraparte-documento')) === '12-3456789');
 
@@ -187,7 +187,7 @@ await passo('formulário: validações', async () => {
   await preencher('contraparte-endereco-cep', '2004');
   await salvarPainel();
   await painelTemErro('Use o endereço completo');
-  const r = await texto('.painel-lateral [role=alert]');
+  const r = await texto('.janela [role=alert]');
   ok('site, e-mail, telefone e CEP, todos no resumo', r.includes('Informe um e-mail válido.') && r.includes('Use o formato (00) 00000-0000.') && r.includes('Use o formato 00000-000.'), r);
   await c.foto('d-erros');
   await preencher('contraparte-telefone', '21999998888');
@@ -200,7 +200,7 @@ await passo('formulário: validações', async () => {
 
   await escolher(await idPorRotulo('País'), 'US');
   await c.espera(100);
-  ok('fora do Brasil, código postal e estado em texto', (await texto('.painel-lateral')).includes('Código postal') && (await c.avaliar(`document.getElementById('contraparte-endereco-uf').tagName`)) === 'INPUT');
+  ok('fora do Brasil, código postal e estado em texto', (await texto('.janela')).includes('Código postal') && (await c.avaliar(`document.getElementById('contraparte-endereco-uf').tagName`)) === 'INPUT');
   ok('o estado do Brasil não vai junto', (await valor('contraparte-endereco-uf')) === '');
   await preencher('contraparte-telefone', '+1 415 555 0100');
   await preencher('contraparte-endereco-cep', '94103-1234');
@@ -211,7 +211,7 @@ await passo('formulário: validações', async () => {
   ok('o texto de fora não vira estado do Brasil', (await c.avaliar(`document.getElementById('contraparte-endereco-uf').tagName`)) === 'SELECT' && (await valor('contraparte-endereco-uf')) === '');
   await salvarPainel();
   await painelTemErro('Use o formato (00) 00000-0000.');
-  ok('voltou ao Brasil, o que veio de fora é conferido', (await texto('.painel-lateral [role=alert]')).includes('Use o formato 00000-000.'));
+  ok('voltou ao Brasil, o que veio de fora é conferido', (await texto('.janela [role=alert]')).includes('Use o formato 00000-000.'));
 
   // sair sem salvar pergunta antes
   await c.tecla('Escape');
@@ -244,9 +244,9 @@ await passo('cadastrar e duplicidade', async () => {
   await preencher('contraparte-nome', 'Outro Nome Qualquer');
   await preencher('contraparte-documento', '11222333000181');
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Abrir a ficha de Lumi')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Abrir a ficha de Lumi')`);
   ok('CNPJ repetido bloqueia e oferece a ficha (CA-02.05)', (await erroDe('contraparte-documento')).includes('Já existe: Lumi.'), await erroDe('contraparte-documento'));
-  const href = await c.avaliar(`[...document.querySelectorAll('.painel-lateral a')].find(a=>a.textContent.includes('Abrir a ficha de Lumi')).getAttribute('href')`);
+  const href = await c.avaliar(`[...document.querySelectorAll('.janela a')].find(a=>a.textContent.includes('Abrir a ficha de Lumi')).getAttribute('href')`);
   ok('o link abre a ficha certa', href === `${CONTRAPARTES}/${lumi.id}`, href);
   ok('não cria nada', (await tabela('contraparte')).length === 4);
   await c.foto('e-repetido');
@@ -266,7 +266,7 @@ await passo('cadastrar e duplicidade', async () => {
   await preencher('contraparte-email', '');
   await preencher('contraparte-nome', 'Clínica Sol');
   await preencher(await idPorRotulo('Observações'), 'senha: abc123');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('senha ou um token') || document.querySelector('.painel-lateral').textContent.includes('Parece')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('senha ou um token') || document.querySelector('.janela').textContent.includes('Parece')`);
   ok('observação com segredo: avisa na hora (RT-14)', true);
   await c.foto('e-segredo');
   await salvarPainel();
@@ -364,7 +364,7 @@ await passo('ficha da contraparte', async () => {
   await painelAberto();
   await c.espera(450);
   ok('o formulário vem preenchido', (await valor('contraparte-nome')) === 'Souza Contabilidade Ltda' && (await valor(await idPorRotulo('Nome fantasia'))) === 'Souza Contabilidade' && (await valor('contraparte-endereco-uf')) === 'RJ');
-  ok('título de edição', (await texto('.painel-lateral h2')).includes('Editar contraparte'));
+  ok('título de edição', (await texto('.janela h2')).includes('Editar contraparte'));
   await preencher('contraparte-telefone', '21988887777');
   await preencher('contraparte-documento', CNPJ.replace('11.222.333/0001-81', '11.444.777/0001-61'));
   await marcarPilula('Papéis', 'Institucional');
@@ -449,7 +449,7 @@ await passo('responsável fora da lista', async () => {
   await clicarBotaoPrincipal('Editar');
   await painelAberto();
   await c.espera(450);
-  ok('o formulário pede outra, sem trocar sozinho', (await texto('.painel-lateral')).includes('A pessoa responsável não está mais na lista.') && (await valor('contraparte-responsavel')) === '');
+  ok('o formulário pede outra, sem trocar sozinho', (await texto('.janela')).includes('A pessoa responsável não está mais na lista.') && (await valor('contraparte-responsavel')) === '');
   await salvarPainel();
   await painelTemErro('Escolha a pessoa responsável.');
   ok('não salva sem responsável', true);
@@ -493,13 +493,13 @@ await passo('vínculo em Pessoas', async () => {
   await c.clicar('texto=Nova pessoa');
   await painelAberto();
   await c.espera(450);
-  ok('interna: sem contraparte', !(await texto('.painel-lateral')).includes('Contraparte'));
+  ok('interna: sem contraparte', !(await texto('.janela')).includes('Contraparte'));
   await marcarPilula('Tipo', 'Externa');
   await c.espera(80);
   ok('externa: pode escolher a contraparte', (await opcoes(await idPorRotulo('Contraparte'))).includes('Souza Contabilidade'));
   ok('é opcional', (await opcoes(await idPorRotulo('Contraparte')))[0] === 'Nenhuma');
   await c.tecla('Escape');
-  await c.ate(`!document.querySelector('.painel-lateral') || document.querySelector('.dialogo')`);
+  await c.ate(`!document.querySelector('.janela') || document.querySelector('.dialogo')`);
   if (await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) { await c.espera(350); await clicarNoDialogo('Descartar alterações'); await dialogoFechado(); }
   await painelFechado();
 
@@ -520,7 +520,7 @@ await passo('vínculo em Pessoas', async () => {
   await c.espera(80);
   ok('contraparte inativa não é oferecida', !(await opcoes(await idPorRotulo('Contraparte'))).includes('Nuvem Clara Inc.'));
   await c.tecla('Escape');
-  await c.ate(`!document.querySelector('.painel-lateral') || document.querySelector('.dialogo')`);
+  await c.ate(`!document.querySelector('.janela') || document.querySelector('.dialogo')`);
   if (await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) { await c.espera(350); await clicarNoDialogo('Descartar alterações'); await dialogoFechado(); }
   await painelFechado();
 });
@@ -539,17 +539,17 @@ await passo('lista de entidades', async () => {
 await passo('entidade: validações', async () => {
   await novaEntidade();
   ok('planejada por padrão', await pilulaMarcada('Situação', 'Planejada'));
-  ok('todas as situações', await c.avaliar(`['Planejada','Em constituição','Ativa','Encerrada'].every(t=>[...document.querySelectorAll('.painel-lateral fieldset label')].some(l=>l.textContent===t))`));
+  ok('todas as situações', await c.avaliar(`['Planejada','Em constituição','Ativa','Encerrada'].every(t=>[...document.querySelectorAll('.janela fieldset label')].some(l=>l.textContent===t))`));
   await salvarPainel();
   await painelTemErro('Informe o nome ou a razão social.');
   ok('nome obrigatório, com resumo', true);
   await preencher('entidade-nome', 'Numa Tecnologia Ltda');
   await marcarPilula('Situação', 'Ativa');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Para ativar, são obrigatórios')`);
-  ok('ativa: explica o que precisa', (await texto('.painel-lateral')).includes('CNPJ válido, endereço, representante legal e data de abertura'));
+  await c.ate(`document.querySelector('.janela').textContent.includes('Para ativar, são obrigatórios')`);
+  ok('ativa: explica o que precisa', (await texto('.janela')).includes('CNPJ válido, endereço, representante legal e data de abertura'));
   await salvarPainel();
   await painelTemErro('Para ativar, informe o CNPJ.');
-  const r = await texto('.painel-lateral [role=alert]');
+  const r = await texto('.janela [role=alert]');
   ok('ativa exige os quatro, todos no resumo', r.includes('Para ativar, preencha o endereço') && r.includes('Para ativar, escolha pelo menos um representante legal.') && r.includes('Para ativar, informe a data de abertura.'), r);
   ok('o erro do representante aparece junto do campo', (await texto('#entidade-representantes')).includes('Para ativar, escolha pelo menos um representante legal.'));
   await c.foto('g-ativa-erros');
@@ -561,7 +561,7 @@ await passo('entidade: validações', async () => {
   ok('máscara de CNPJ', (await valor('entidade-documento')) === CNPJ);
   await marcarPilula('Tipo', 'Pessoa física');
   await c.espera(60);
-  ok('pessoa física pede CPF', await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].some(l=>l.textContent.startsWith('CPF'))`));
+  ok('pessoa física pede CPF', await c.avaliar(`[...document.querySelectorAll('.janela label')].some(l=>l.textContent.startsWith('CPF'))`));
   await marcarPilula('Tipo', 'Pessoa jurídica');
   await c.espera(60);
   await preencher('entidade-documento', '11222333000181');
@@ -629,11 +629,11 @@ await passo('entidade: padrão único, representantes, histórico', async () => 
   await c.clicar('button[aria-label="Editar Numa Tecnologia Ltda"]');
   await painelAberto();
   await c.espera(450);
-  const p = await texto('.painel-lateral');
+  const p = await texto('.janela');
   ok('representante fora da lista: avisa, e continua marcado até alguém tirar', p.includes('Camila Lima (fora da lista)') && p.includes('não está mais entre as pessoas internas ativas') && (await pilulaMarcada('Representantes legais', 'Camila Lima (fora da lista)')), p.slice(0, 200));
   await c.foto('g-representante-fora');
   await marcarPilula('Representantes legais', 'Camila Lima (fora da lista)');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('(fora da lista)')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('(fora da lista)')`);
   ok('tirando, o aviso some', true);
   await c.tecla('Escape');
   await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar as alterações?')`);
@@ -852,7 +852,7 @@ await passo('celular', async () => {
   await c.clicar('texto=Editar');
   await painelAberto();
   await c.espera(450);
-  ok('formulário em tela inteira', await c.avaliar(`(()=>{const r=document.querySelector('.painel-lateral').getBoundingClientRect();return r.width===360&&r.height===800})()`));
+  ok('formulário em tela inteira', await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return r.width===360&&r.height===800})()`));
   await c.tecla('Escape');
   await painelFechado();
   await irEntidades();
@@ -891,7 +891,7 @@ await passo('teclado', async () => {
   await c.espera(100);
   ok('com erro, o foco vai para o primeiro campo errado', (await c.avaliar(`document.activeElement.id`)) === 'contraparte-nome', await c.avaliar(`document.activeElement.id`));
   await c.avaliar(`document.getElementById('contraparte-site').focus()`);
-  await c.avaliar(`document.querySelector('.painel-lateral [role=alert] a, .painel-lateral [role=alert] button').click()`);
+  await c.avaliar(`document.querySelector('.janela [role=alert] a, .janela [role=alert] button').click()`);
   await c.espera(100);
   ok('o resumo leva ao campo', (await c.avaliar(`document.activeElement.id`)) === 'contraparte-nome', await c.avaliar(`document.activeElement.id`));
 });

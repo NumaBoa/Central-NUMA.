@@ -72,7 +72,7 @@ export function DialogoDeBaixa({ titulo, contas, aoFechar, tipoInicial = 'pagame
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent semFechar comDescricao>
+      <DialogContent telaCheia semFechar comDescricao>
         <form onSubmit={(evento) => void enviar(evento)} noValidate>
           <DialogTitle>Registrar baixa</DialogTitle>
           <DialogDescription className="mt-3 leading-[1.6]">

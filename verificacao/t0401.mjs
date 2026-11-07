@@ -35,10 +35,10 @@ const abrirNova = async () => {
   await c.espera(320);
 };
 const irParaEtapa = async (numero) => {
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral ol[aria-label="Etapas"] button')][${numero - 1}].click()`);
+  await c.avaliar(`[...document.querySelectorAll('.janela ol[aria-label="Etapas"] button')][${numero - 1}].click()`);
   await c.espera(60);
 };
-const etapaAtual = () => c.avaliar(`[...document.querySelectorAll('.painel-lateral ol[aria-label="Etapas"] button')].findIndex(b=>b.getAttribute('aria-current')==='step')+1`);
+const etapaAtual = () => c.avaliar(`[...document.querySelectorAll('.janela ol[aria-label="Etapas"] button')].findIndex(b=>b.getAttribute('aria-current')==='step')+1`);
 const preencherEtapa1 = async (nome, categoria = 'Outras') => {
   await preencher('ferramenta-nome', nome);
   await escolherTexto('ferramenta-categoria', categoria);
@@ -277,8 +277,8 @@ await passo('T04.03: etapas e erros', async () => {
   await irLista();
   await abrirNova();
   ok('abre na etapa 1, com o foco no nome', (await etapaAtual()) === 1 && (await c.avaliar(`document.activeElement.id`)) === 'ferramenta-nome', await c.avaliar(`document.activeElement.id`));
-  ok('três etapas com os nomes da especificação', js(await c.avaliar(`[...document.querySelectorAll('.painel-lateral ol[aria-label="Etapas"] button')].map(b=>b.textContent)`)) === js(['1O que é', '2Conta e titularidade', '3Custo']));
-  ok('"Cancelada" só pela ação', !(await texto('.painel-lateral')).includes('Cancelada'));
+  ok('três etapas com os nomes da especificação', js(await c.avaliar(`[...document.querySelectorAll('.janela ol[aria-label="Etapas"] button')].map(b=>b.textContent)`)) === js(['1O que é', '2Conta e titularidade', '3Custo']));
+  ok('"Cancelada" só pela ação', !(await texto('.janela')).includes('Cancelada'));
   await c.foto('b-nova-etapa1');
   await clicarNoDialogo('Continuar');
   await c.espera(120);
@@ -289,7 +289,7 @@ await passo('T04.03: etapas e erros', async () => {
   await c.espera(120);
   ok('nome em branco acusa ao salvar', (await erroDe('ferramenta-nome')) === 'Informe o nome.');
   ok('contexto obrigatório', (await texto('#ferramenta-contextos')).includes('Escolha ao menos um'));
-  ok('o resumo lista os erros da etapa', (await texto('.painel-lateral')).includes('Corrija') || (await c.avaliar(`Boolean(document.querySelector('.painel-lateral [role=alert] a, .painel-lateral [role=alert] button'))`)));
+  ok('o resumo lista os erros da etapa', (await texto('.janela')).includes('Corrija') || (await c.avaliar(`Boolean(document.querySelector('.janela [role=alert] a, .janela [role=alert] button'))`)));
   await preencher('ferramenta-nome', 'Ferramenta de Verdade');
   await escolherTexto('ferramenta-categoria', 'Hospedagem');
   await c.espera(60);
@@ -306,7 +306,7 @@ await passo('T04.03: etapas e erros', async () => {
   ok('titular padrão: pessoa física de quem cadastra', (await pilulaMarcada('Titular atual', 'Pessoa física')) && (await valor('ferramenta-titular-pessoa')) === ID_KIMBERLY);
   ok('titular desejado padrão: Numa', (await valor('ferramenta-titular-desejado')) === 'Numa');
   ok('responsáveis vêm das áreas', (await valor('ferramenta-tecnica')) === ID_CAMILA && (await valor('ferramenta-financeira')) === ID_KIMBERLY, await valor('ferramenta-tecnica'));
-  ok('o login avisa que não é senha', (await texto('.painel-lateral')).includes('Senha nunca fica aqui'));
+  ok('o login avisa que não é senha', (await texto('.janela')).includes('Senha nunca fica aqui'));
   await marcarPilula('Titular atual', 'Terceiro');
   await c.espera(60);
   ok('terceiro pede o nome', await c.avaliar(`Boolean(document.getElementById('ferramenta-titular-texto'))&&!document.getElementById('ferramenta-titular-pessoa')`));
@@ -318,12 +318,12 @@ await passo('T04.03: etapas e erros', async () => {
   await clicarNoDialogo('Continuar');
   await c.espera(120);
   ok('avança para a etapa 3', (await etapaAtual()) === 3);
-  ok('sem Continuar na última', !(await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].some(b=>b.textContent.trim()==='Continuar')`)));
-  ok('sem modalidade, o custo fica a definir', (await texto('.painel-lateral')).includes('fica “a definir”'));
+  ok('sem Continuar na última', !(await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Continuar')`)));
+  ok('sem modalidade, o custo fica a definir', (await texto('.janela')).includes('fica “a definir”'));
   await c.foto('c-nova-etapa3');
   await marcarPilula('Modalidade', 'Gratuita');
   await c.espera(60);
-  ok('gratuita avisa que não gera títulos', (await texto('.painel-lateral')).includes('não gera títulos'));
+  ok('gratuita avisa que não gera títulos', (await texto('.janela')).includes('não gera títulos'));
   ok('gratuita não pede valor', !(await c.avaliar(`Boolean(document.getElementById('ferramenta-valor'))`)));
   await clicarNoDialogo('Salvar ferramenta');
   await esperarAviso('Ferramenta criada.');
@@ -332,7 +332,7 @@ await passo('T04.03: etapas e erros', async () => {
   const f = await ferramenta('Ferramenta de Verdade');
   ok('grava sem marca de exemplo, com código', f.exemplo === false && /^FER-\d{4}-\d{4}$/.test(f.codigo) && f.codigo.endsWith('0007'), f.codigo);
   ok('CA-04.03: gratuita não tem valor nem geração', (await ativa(f.id)).modalidade === 'gratuita' && (await ativa(f.id)).valor === null && (await ativa(f.id)).gerar_titulos === false);
-  ok('a contagem e o foco voltam ao normal', await c.avaliar(`!document.querySelector('.painel-lateral')`));
+  ok('a contagem e o foco voltam ao normal', await c.avaliar(`!document.querySelector('.janela')`));
 });
 
 await passo('T04.03: etapa salvável', async () => {
@@ -427,7 +427,7 @@ await passo('T04.03: paga, com prévia', async () => {
   await preencher('ferramenta-valor', '50,00');
   await escolherTexto('ferramenta-moeda', 'USD');
   await c.espera(80);
-  ok('moeda estrangeira avisa que é estimativa', (await texto('.painel-lateral')).includes('O equivalente em reais é uma estimativa'));
+  ok('moeda estrangeira avisa que é estimativa', (await texto('.janela')).includes('O equivalente em reais é uma estimativa'));
   await clicarNoDialogo('Salvar ferramenta');
   await dialogoAberto();
   await c.espera(150);
@@ -519,9 +519,9 @@ await passo('T04.03: fornecedor (seletor de contraparte)', async () => {
   await irLista();
   await abrirNova();
   await preencherEtapa1('Com fornecedor');
-  const opcoesDoSeletor = () => c.avaliar(`[...document.querySelectorAll('.painel-lateral [role=option]')].map(o=>o.textContent)`);
+  const opcoesDoSeletor = () => c.avaliar(`[...document.querySelectorAll('.janela [role=option]')].map(o=>o.textContent)`);
   await c.avaliar(`document.getElementById('ferramenta-fornecedor').focus()`);
-  await c.ate(`document.querySelector('.painel-lateral [role=listbox]')`);
+  await c.ate(`document.querySelector('.janela [role=listbox]')`);
   await c.espera(60);
   const todas = await opcoesDoSeletor();
   ok('abre com fornecedores e a criação rápida', todas.at(-1).includes('Cadastrar nova contraparte') && todas.length >= 2, js(todas));
@@ -541,21 +541,21 @@ await passo('T04.03: fornecedor (seletor de contraparte)', async () => {
   ok('Esc só fecha a lista, e o painel fica', await (async () => {
     await c.tecla('Escape');
     await c.espera(80);
-    return c.avaliar(`!document.querySelector('.painel-lateral [role=listbox]')&&Boolean(document.querySelector('.painel-lateral'))`);
+    return c.avaliar(`!document.querySelector('.janela [role=listbox]')&&Boolean(document.querySelector('.janela'))`);
   })());
   await preencher('ferramenta-fornecedor', 'Fornecedor Rápido');
   await c.espera(80);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral [role=option] button')].at(-1).click()`);
-  await c.ate(`document.querySelectorAll('.painel-lateral').length>=2`);
+  await c.avaliar(`[...document.querySelectorAll('.janela [role=option] button')].at(-1).click()`);
+  await c.ate(`document.querySelectorAll('.janela').length>=2`);
   await c.espera(320);
-  ok('abre o cadastro rápido, com o nome e o papel', await c.avaliar(`(()=>{const p=[...document.querySelectorAll('.painel-lateral')].at(-1);return [...p.querySelectorAll('input')].some(i=>i.value==='Fornecedor Rápido')})()`));
+  ok('abre o cadastro rápido, com o nome e o papel', await c.avaliar(`(()=>{const p=[...document.querySelectorAll('.janela')].at(-1);return [...p.querySelectorAll('input')].some(i=>i.value==='Fornecedor Rápido')})()`));
   await c.foto('g-cadastro-rapido');
-  await c.avaliar(`(()=>{const p=[...document.querySelectorAll('.painel-lateral')].at(-1);[...p.querySelectorAll('button[type=submit]')].at(-1).click()})()`);
-  await c.ate(`document.querySelectorAll('.painel-lateral').length===1`);
+  await c.avaliar(`(()=>{const p=[...document.querySelectorAll('.janela')].at(-1);[...p.querySelectorAll('button[type=submit]')].at(-1).click()})()`);
+  await c.ate(`document.querySelectorAll('.janela').length===1`);
   await esperarAviso('Contraparte cadastrada.');
   await c.espera(160);
   ok('volta para o formulário, com o fornecedor escolhido', (await valor('ferramenta-fornecedor')) === 'Fornecedor Rápido' && (await valor('ferramenta-nome')) === 'Com fornecedor', await valor('ferramenta-fornecedor'));
-  ok('tem como tirar o fornecedor', await c.avaliar(`Boolean(document.querySelector('.painel-lateral button[aria-label="Tirar a contraparte"]'))`));
+  ok('tem como tirar o fornecedor', await c.avaliar(`Boolean(document.querySelector('.janela button[aria-label="Tirar a contraparte"]'))`));
   await clicarNoDialogo('Salvar ferramenta');
   await esperarAviso('Ferramenta criada.');
   await painelFechado();
@@ -663,7 +663,7 @@ await passo('T04.02: ficha, resumo e abas', async () => {
   await c.espera(320);
   await marcarPilula('Trata dados pessoais', 'Sim');
   await c.espera(60);
-  ok('explica de onde vêm os apps', (await texto('.painel-lateral')).includes('Os apps afetados são os produtos da ferramenta'));
+  ok('explica de onde vêm os apps', (await texto('.janela')).includes('Os apps afetados são os produtos da ferramenta'));
   await clicarNoDialogo('Salvar');
   await c.ate(`document.getElementById('dados-acordo-erro')`);
   await c.espera(60);
@@ -722,7 +722,7 @@ await passo('RN-04.17: reajuste, e trocar plano', async () => {
   ok('editar começa na etapa 1, com o que está salvo', (await etapaAtual()) === 1 && (await valor('ferramenta-nome')) === 'Traço Editor');
   await irParaEtapa(3);
   ok('o valor salvo aparece no formato brasileiro', (await valor('ferramenta-valor')) === '89,90', await valor('ferramenta-valor'));
-  ok('a moeda trava, com o caminho para trocar', await c.avaliar(`document.getElementById('ferramenta-moeda').disabled`) && (await texto('.painel-lateral')).includes('Para trocar, use Trocar plano.'));
+  ok('a moeda trava, com o caminho para trocar', await c.avaliar(`document.getElementById('ferramenta-moeda').disabled`) && (await texto('.janela')).includes('Para trocar, use Trocar plano.'));
   await preencher('ferramenta-valor', '99,90');
   await clicarNoDialogo('Salvar');
   await dialogoAberto();
@@ -752,7 +752,7 @@ await passo('RN-04.17: reajuste, e trocar plano', async () => {
   await clicarBotao('Trocar plano');
   await painelAberto();
   await c.espera(320);
-  ok('trocar plano abre direto no custo, sem as etapas', (await c.avaliar(`!document.querySelector('.painel-lateral ol[aria-label="Etapas"]')`)) && (await texto('.painel-lateral')).includes('Trocar plano'));
+  ok('trocar plano abre direto no custo, sem as etapas', (await c.avaliar(`!document.querySelector('.janela ol[aria-label="Etapas"]')`)) && (await texto('.janela')).includes('Trocar plano'));
   ok('começa em branco', (await pilulaMarcada('Modalidade', 'Paga')) === false);
   await clicarNoDialogo('Salvar');
   await c.ate(`document.querySelector('#ferramenta-modalidade').textContent.includes('Escolha a modalidade do novo plano.')`);
@@ -907,12 +907,12 @@ await passo('vínculo com atividade', async () => {
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
   await c.espera(420);
-  const seletor = await c.avaliar(`[...document.querySelectorAll('.painel-lateral select')].find(s=>[...s.options].some(o=>o.value.startsWith('ferramenta:')))?.id`);
+  const seletor = await c.avaliar(`[...document.querySelectorAll('.janela select')].find(s=>[...s.options].some(o=>o.value.startsWith('ferramenta:')))?.id`);
   ok('o painel da atividade oferece as ferramentas', Boolean(seletor), seletor);
   await c.avaliar(`(()=>{const s=document.getElementById(${js(seletor)});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${js('ferramenta:' + f.id)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
   await c.espera(100);
-  await c.avaliar(`(()=>{const b=[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Vincular');if(b)b.click()})()`);
-  await c.ate(`(document.querySelector('.painel-lateral').textContent||'').includes('Estúdio Verde Registro')`);
+  await c.avaliar(`(()=>{const b=[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Vincular');if(b)b.click()})()`);
+  await c.ate(`(document.querySelector('.janela').textContent||'').includes('Estúdio Verde Registro')`);
   ok('vincula', (await tabela('vinculo')).some((v) => [v.origem_id, v.destino_id].includes(f.id) && !v.arquivado_em));
   await abrirFicha('Estúdio Verde Registro');
   await aba('Atividades');
@@ -956,7 +956,7 @@ await passo('busca global e "+ Novo"', async () => {
   await clicarBotao('Ferramenta', '.menu-suspenso');
   await painelAberto();
   await c.espera(320);
-  ok('abre sem sair da tela', (await c.avaliar(`location.pathname`)) === '/meu-dia' && (await texto('.painel-lateral')).includes('Nova ferramenta'));
+  ok('abre sem sair da tela', (await c.avaliar(`location.pathname`)) === '/meu-dia' && (await texto('.janela')).includes('Nova ferramenta'));
   await preencherEtapa1('Criada pelo Novo');
   await clicarNoDialogo('Salvar ferramenta');
   await esperarAviso('Ferramenta criada.');
@@ -972,7 +972,7 @@ await passo('busca global e "+ Novo"', async () => {
   await clicarBotao('Contraparte', '.menu-suspenso');
   await painelAberto();
   await c.espera(320);
-  ok('Contraparte também abre de qualquer tela', (await texto('.painel-lateral')).includes('contraparte') || (await texto('.painel-lateral')).includes('Contraparte'));
+  ok('Contraparte também abre de qualquer tela', (await texto('.janela')).includes('contraparte') || (await texto('.janela')).includes('Contraparte'));
   await cancelarPainel();
 });
 
@@ -1002,7 +1002,7 @@ await passo('rotina do dia: "Atualizar situações" (RN-04.09)', async () => {
   await clicarBotao('Editar');
   await painelAberto();
   await c.espera(320);
-  ok('o formulário diz o que decidir', (await texto('.painel-lateral')).includes('Decida se assina ou cancela'));
+  ok('o formulário diz o que decidir', (await texto('.janela')).includes('Decida se assina ou cancela'));
   await irParaEtapa(3);
   await preencher('ferramenta-fim-teste', diaISO(20));
   await c.espera(60);
@@ -1063,7 +1063,7 @@ await passo('responsivo: 360', async () => {
   await c.espera(160);
   await abrirNova();
   await conferirTela('formulário, etapa 1', 360);
-  ok('tela inteira no celular', await c.avaliar(`(()=>{const p=document.querySelector('.painel-lateral').getBoundingClientRect();return p.width>=359&&p.height>=700})()`));
+  ok('tela inteira no celular', await c.avaliar(`(()=>{const p=document.querySelector('.janela').getBoundingClientRect();return p.width>=359&&p.height>=700})()`));
   await c.foto('r-nova-360');
   await irParaEtapa(2);
   await conferirTela('formulário, etapa 2', 360);
@@ -1074,9 +1074,9 @@ await passo('responsivo: 360', async () => {
   await c.foto('s-custo-360', { inteira: true });
   await irParaEtapa(1);
   await c.avaliar(`document.getElementById('ferramenta-fornecedor').focus()`);
-  await c.ate(`document.querySelector('.painel-lateral [role=listbox]')`);
+  await c.ate(`document.querySelector('.janela [role=listbox]')`);
   await c.espera(100);
-  ok('as opções do seletor têm 44px', await c.avaliar(`[...document.querySelectorAll('.painel-lateral [role=option] button')].every(b=>b.getBoundingClientRect().height>=44)`));
+  ok('as opções do seletor têm 44px', await c.avaliar(`[...document.querySelectorAll('.janela [role=option] button')].every(b=>b.getBoundingClientRect().height>=44)`));
   await c.foto('t-seletor-360');
   await c.tecla('Escape');
   await cancelarPainel();
@@ -1105,7 +1105,7 @@ await passo('Limpar exemplos, e o estado vazio', async () => {
   await irParaEtapa(3);
   await marcarPilula('Modalidade', 'Paga');
   await c.espera(100);
-  ok('sem contas, diz onde cadastrar', (await texto('.painel-lateral')).includes('Nenhuma conta ativa ainda'));
+  ok('sem contas, diz onde cadastrar', (await texto('.janela')).includes('Nenhuma conta ativa ainda'));
   await marcarPilula('Modalidade', 'Gratuita');
   await c.espera(60);
   await clicarNoDialogo('Salvar ferramenta');

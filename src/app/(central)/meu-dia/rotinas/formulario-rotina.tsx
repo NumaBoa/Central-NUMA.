@@ -13,7 +13,7 @@ import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
@@ -127,7 +127,7 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={rotina ? 'Editar rotina' : 'Nova rotina'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={rotina ? 'Salvar' : 'Criar rotina'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={rotina ? 'Editar rotina' : 'Nova rotina'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={rotina ? 'Salvar' : 'Criar rotina'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Controller control={control} name="tipo" render={({ field }) => <Pilulas rotulo="Tipo" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={TIPOS} />} />
           <Campo id={ID_DO_CAMPO.titulo} rotulo="Título" obrigatorio erro={erroDoTitulo} ajuda={titulo.length > MAXIMO_NO_TITULO - 20 ? `${titulo.length} de ${MAXIMO_NO_TITULO} caracteres.` : undefined}>
@@ -234,7 +234,7 @@ export function FormularioDeRotina({ aberto, aoFechar, rotina, dados }: Formular
           )}
           {errors.root?.message && <MensagemErro>{errors.root.message}</MensagemErro>}
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={Boolean(aConfirmar)}
         aoFechar={() => setAConfirmar(null)}

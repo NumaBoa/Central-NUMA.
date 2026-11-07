@@ -10,7 +10,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -122,7 +122,7 @@ export function FormularioDeAtivo({ aberto, aoFechar, dados, ativo, tipoInicial,
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={ativo ? 'Editar ativo' : 'Novo ativo'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={ativo ? 'Salvar' : 'Salvar ativo'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={ativo ? 'Editar ativo' : 'Novo ativo'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={ativo ? 'Salvar' : 'Salvar ativo'} salvando={isSubmitting} erros={erros}>
         <div className="grid gap-[18px]">
           <Controller
             control={control}
@@ -316,7 +316,7 @@ export function FormularioDeAtivo({ aberto, aoFechar, dados, ativo, tipoInicial,
             {(controle) => <Textarea {...controle} {...register('observacoes')} />}
           </Campo>
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={avisos !== null}
         aoFechar={() => setAvisos(null)}

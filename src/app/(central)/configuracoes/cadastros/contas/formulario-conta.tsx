@@ -11,7 +11,7 @@ import { SelecaoMoeda } from '@/componentes/campos/selecao-moeda';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -104,7 +104,7 @@ export function FormularioConta({ aberto, aoFechar, conta, dados }: FormularioCo
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={conta ? 'Editar conta' : 'Nova conta'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={conta ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={conta ? 'Editar conta' : 'Nova conta'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={conta ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Campo id="conta-nome" rotulo="Nome" obrigatorio erro={errors.nome?.message} ajuda="Como “Cartão pessoal — Kimberly” ou “Conta PJ Numa”.">
             {(controle) => <Input autoComplete="off" {...controle} {...register('nome')} />}
@@ -208,7 +208,7 @@ export function FormularioConta({ aberto, aoFechar, conta, dados }: FormularioCo
             </Campo>
           )}
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

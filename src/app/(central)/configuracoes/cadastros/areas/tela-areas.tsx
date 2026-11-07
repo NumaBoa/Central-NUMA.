@@ -14,7 +14,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -87,7 +87,7 @@ function FormularioDaArea({ aberto, aoFechar, area, dados }: { aberto: boolean; 
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={area ? 'Editar área' : 'Nova área'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={area ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={area ? 'Editar área' : 'Nova área'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={area ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         <Campo id="area-nome" rotulo="Nome da área" obrigatorio erro={errors.nome?.message}>
           {(controle) => <Input autoComplete="off" {...controle} {...register('nome')} />}
@@ -123,7 +123,7 @@ function FormularioDaArea({ aberto, aoFechar, area, dados }: { aberto: boolean; 
           </>
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

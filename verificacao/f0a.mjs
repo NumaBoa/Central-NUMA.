@@ -87,12 +87,12 @@ await passo('FL-01: o vencimento da assinatura, pago com o cartão pessoal', asy
   ok('o alerta é do título, com o vencimento e a responsável dele', alerta?.alerta_motivo === 'Vencimento próximo' && alerta.origem_id === nuvem.id && alerta.prazo === nuvem.vencimento && alerta.responsavel_id === nuvem.responsavel_id, js(alerta));
   await ir(`/meu-dia?atividade=${alerta.id}`);
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral')?.textContent.includes('Concluir aqui não executa a ação de origem.')`);
+  await c.ate(`document.querySelector('.janela')?.textContent.includes('Concluir aqui não executa a ação de origem.')`);
   await c.espera(200);
-  const painel = espacos(await texto('.painel-lateral'));
+  const painel = espacos(await texto('.janela'));
   ok('o painel mostra a origem, o motivo e a data, e avisa que concluir não paga', painel.includes('Origem:Financeiro') && painel.includes('Motivo:Vencimento próximo') && painel.includes('Data de referência:'), painel.slice(0, 400));
   await c.foto('b-painel-alerta');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral a')].find(a=>a.textContent.trim()==='Registrar pagamento').click()`);
+  await c.avaliar(`[...document.querySelectorAll('.janela a')].find(a=>a.textContent.trim()==='Registrar pagamento').click()`);
   await c.ate(`location.pathname==='/financeiro/${nuvem.id}'&&document.querySelector('.dialogo')?.textContent.includes('Registrar baixa')`);
   await c.espera(300);
   ok('abre T05.04 com o título já preenchido', (await texto('.dialogo')).includes('Nuvem Clara Hosting · Pro') && (await valor('baixa-valor')) === '20,00', await valor('baixa-valor'));
@@ -125,8 +125,8 @@ await passo('FL-01: o vencimento da assinatura, pago com o cartão pessoal', asy
   ok('CA-03.11: o alerta é concluído na hora, pelo Sistema, com a nota', concluido.situacao === 'concluida' && concluido.concluida_por === null && concluido.conclusao_nota === 'Concluído por Registrar pagamento em Financeiro.', js(concluido));
   await ir(`/meu-dia?atividade=${alerta.id}`);
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral')?.textContent.includes('Concluído por Registrar pagamento em Financeiro.')`);
-  ok('o painel diz quem concluiu e por quê', (await texto('.painel-lateral')).includes('por Sistema. Concluído por Registrar pagamento em Financeiro.'));
+  await c.ate(`document.querySelector('.janela')?.textContent.includes('Concluído por Registrar pagamento em Financeiro.')`);
+  ok('o painel diz quem concluiu e por quê', (await texto('.janela')).includes('por Sistema. Concluído por Registrar pagamento em Financeiro.'));
   await c.tecla('Escape');
 });
 
@@ -145,7 +145,7 @@ await passo('CA-03.13: adiar o vencimento atualiza o mesmo alerta', async () => 
     await c.espera(100);
     await clicarNoDialogo('Salvar');
     await esperarAviso('Lançamento atualizado.');
-    await c.ate(`!document.querySelector('.painel-lateral')`);
+    await c.ate(`!document.querySelector('.janela')`);
     await c.espera(300);
     const dele = (await alertas()).filter((a) => a.origem_id === anuncio.id);
     ok(`adiado para ${dias} dias: um alerta só, aberto, com a data nova`, dele.length === 1 && dele[0].id === antes.id && dele[0].situacao === 'a_fazer' && dele[0].prazo === diaISO(dias) && dele[0].alerta_data_referencia === diaISO(dias), js(dele.map((a) => [a.situacao, a.prazo])));
@@ -236,7 +236,7 @@ await passo('o domínio renovado conclui o alerta', async () => {
   await c.espera(60);
   await clicarNoDialogo('Salvar');
   await esperarAviso('Ativo atualizado.');
-  await c.ate(`!document.querySelector('.painel-lateral')`);
+  await c.ate(`!document.querySelector('.janela')`);
   await c.espera(300);
   ok('vencimento novo: o alerta se resolve, com a nota', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota === 'Concluído: o vencimento do domínio foi atualizado.', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota);
 });
@@ -250,7 +250,7 @@ await passo('responsivo', async () => {
     const alerta = await alertaDe('Pagamento vencido: Certificado digital');
     await ir(`/meu-dia?atividade=${alerta.id}`);
     await painelAberto();
-    await c.ate(`document.querySelector('.painel-lateral')?.textContent.includes('Concluir aqui não executa a ação de origem.')`);
+    await c.ate(`document.querySelector('.janela')?.textContent.includes('Concluir aqui não executa a ação de origem.')`);
     await c.espera(300);
     await conferirTela('Painel do alerta', largura);
     if (largura === 360) await c.foto('e-painel-360');

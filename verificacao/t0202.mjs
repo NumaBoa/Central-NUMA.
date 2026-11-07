@@ -13,7 +13,7 @@ const linhas = () => c.avaliar(`[...document.querySelectorAll('main table tbody 
 const irPessoas = async () => { await ir(PESSOAS); await listaPronta(); };
 const irAreas = async () => { await ir(AREAS); await listaPronta(); };
 const novoPainel = async () => { await c.clicar('texto=Nova pessoa'); await painelAberto(); await c.espera(450); };
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
 
 await c.tamanho(1440, 900);
 
@@ -84,27 +84,27 @@ await passo('filtro de situação', async () => {
 
 await passo('nova pessoa: formulário', async () => {
   await novoPainel();
-  ok('abre em painel lateral', (await texto('.painel-lateral')).includes('Nova pessoa'));
+  ok('abre em painel lateral', (await texto('.janela')).includes('Nova pessoa'));
   ok('foco no primeiro campo', (await c.avaliar(`document.activeElement.id`)) === 'pessoa-nome');
   await c.foto('b-painel');
   ok('interna mostra É sócia e Áreas', (await existeGrupo('É sócia')) && (await existeGrupo('Áreas em que atua')) && !(await existeGrupo('Papel do contato')));
   await marcarPilula('Tipo', 'Externa');
   await c.espera(80);
   ok('externa mostra Papel do contato', (await existeGrupo('Papel do contato')) && !(await existeGrupo('É sócia')) && !(await existeGrupo('Áreas em que atua')));
-  ok('com o campo de contraparte, desde a T02.06', (await texto('.painel-lateral')).includes('Contraparte'));
+  ok('com o campo de contraparte, desde a T02.06', (await texto('.janela')).includes('Contraparte'));
   await marcarPilula('Tipo', 'Interna');
   await c.espera(80);
   // validação
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')`);
-  ok('nome obrigatório, com resumo', (await texto('.painel-lateral [role=alert]')).includes('Informe o nome completo.'));
+  await c.ate(`document.querySelector('.janela [role=alert]')`);
+  ok('nome obrigatório, com resumo', (await texto('.janela [role=alert]')).includes('Informe o nome completo.'));
   await preencher('pessoa-nome', 'Dora Nunes');
   await preencher('pessoa-email', 'dora');
   await preencher('pessoa-telefone', '123');
   await preencher('pessoa-cpf', '52998224724');
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes('CPF')`);
-  const r = await texto('.painel-lateral [role=alert]');
+  await c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes('CPF')`);
+  const r = await texto('.janela [role=alert]');
   ok('mensagens de e-mail, telefone e CPF', r.includes('e-mail válido') && r.includes('(00) 00000-0000') && r.includes('Este CPF não é válido'), r);
   await c.foto('b-erros');
   // máscaras de verdade: digitando
@@ -144,7 +144,7 @@ await passo('duplicidade', async () => {
   await c.espera(60);
   await salvarPainel();
   await c.ate(`document.getElementById('pessoa-cpf-erro')?.textContent.includes('Já existe: Dora Nunes.')`);
-  ok('CPF repetido bloqueia (CA-02.01)', (await texto('.painel-lateral')).includes('Abrir a ficha de Dora Nunes'));
+  ok('CPF repetido bloqueia (CA-02.01)', (await texto('.janela')).includes('Abrir a ficha de Dora Nunes'));
   ok('não cadastrou', (await tabela('pessoa')).length === 5);
   await c.foto('c-cpf');
   await preencher('pessoa-cpf', '');
@@ -174,7 +174,7 @@ await passo('observações que parecem segredo (RT-14)', async () => {
   await novoPainel();
   await preencher('pessoa-nome', 'Elisa Prado');
   await preencher(await idPorRotulo('Observações'), 'senha: 123456');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('parece uma senha')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('parece uma senha')`);
   ok('avisa enquanto digita', true);
   await salvarPainel();
   await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Salvar mesmo assim?')`);
@@ -185,13 +185,13 @@ await passo('observações que parecem segredo (RT-14)', async () => {
   await c.espera(60);
   await preencher(await idPorRotulo('Observações'), 'Prefere contato por e-mail.');
   await c.espera(60);
-  ok('sem o segredo, o aviso some', !(await texto('.painel-lateral')).includes('parece uma senha'));
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent==='Salvar e adicionar outra').click()`);
+  ok('sem o segredo, o aviso some', !(await texto('.janela')).includes('parece uma senha'));
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent==='Salvar e adicionar outra').click()`);
   await esperarAviso('Pessoa cadastrada.');
   await c.ate(`document.getElementById('pessoa-nome')?.value===''`);
   await c.espera(150);
   ok('"Salvar e adicionar outra" limpa e volta ao nome', (await c.avaliar(`document.activeElement.id`)) === 'pessoa-nome', await c.avaliar(`document.activeElement.id`));
-  ok('continua no painel', await c.avaliar(`Boolean(document.querySelector('.painel-lateral'))`));
+  ok('continua no painel', await c.avaliar(`Boolean(document.querySelector('.janela'))`));
   await preencher('pessoa-nome', 'Algo digitado');
   await c.espera(60);
   await c.tecla('Escape');
@@ -361,8 +361,8 @@ await passo('áreas: criar e editar', async () => {
   await painelAberto();
   await c.espera(450);
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')`);
-  const r = await texto('.painel-lateral [role=alert]');
+  await c.ate(`document.querySelector('.janela [role=alert]')`);
+  const r = await texto('.janela [role=alert]');
   ok('nome e responsável obrigatórios', r.includes('Informe o nome da área.') && r.includes('Escolha a responsável padrão'), r);
   await preencher('area-nome', 'TECNOLOGIA');
   await escolher('area-responsavel', ID_KIMBERLY);
@@ -375,7 +375,7 @@ await passo('áreas: criar e editar', async () => {
   await c.foto('g-painel');
   await marcarPilula('Compartilhada', 'Sim');
   await c.ate(`!document.getElementById('area-responsavel')`);
-  ok('compartilhada esconde a responsável e explica', (await texto('.painel-lateral')).includes('escolhida em cada registro'));
+  ok('compartilhada esconde a responsável e explica', (await texto('.janela')).includes('escolhida em cada registro'));
   await marcarPilula('Compartilhada', 'Não');
   await c.ate(`document.getElementById('area-responsavel')`);
   await escolher('area-responsavel', ID_KIMBERLY);
@@ -586,7 +586,7 @@ await passo('celular', async () => {
   await c.clicar('texto=Editar');
   await painelAberto();
   await c.espera(450);
-  const painel = await c.avaliar(`(()=>{const r=document.querySelector('.painel-lateral').getBoundingClientRect();return {l:r.width,a:r.height}})()`);
+  const painel = await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return {l:r.width,a:r.height}})()`);
   ok('formulário em tela inteira', painel.l === 360 && painel.a === 800, JSON.stringify(painel));
   await c.foto('j-painel');
   await conferirTela('Formulário', 360);

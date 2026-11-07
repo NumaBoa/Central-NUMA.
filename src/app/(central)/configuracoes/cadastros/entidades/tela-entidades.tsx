@@ -16,7 +16,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaLivre, EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { mensagemDoErro } from '@/dados/erros';
@@ -99,7 +99,7 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={entidade ? 'Editar entidade' : 'Nova entidade'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={entidade ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={entidade ? 'Editar entidade' : 'Nova entidade'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={entidade ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         <Controller
           control={control}
@@ -179,7 +179,7 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
           )}
         />
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

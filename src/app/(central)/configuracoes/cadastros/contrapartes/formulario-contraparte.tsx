@@ -11,7 +11,7 @@ import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -120,7 +120,7 @@ export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, 
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={contraparte ? 'Editar contraparte' : 'Nova contraparte'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={contraparte ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={contraparte ? 'Editar contraparte' : 'Nova contraparte'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={contraparte ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Controller
             control={control}
@@ -260,7 +260,7 @@ export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, 
             )}
           />
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

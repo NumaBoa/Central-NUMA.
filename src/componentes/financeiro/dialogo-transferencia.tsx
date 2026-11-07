@@ -86,7 +86,7 @@ export function DialogoDeTransferencia({ contas, aoFechar }: { contas: readonly 
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent semFechar comDescricao>
+      <DialogContent telaCheia semFechar comDescricao>
         <form onSubmit={(evento) => void enviar(evento)} noValidate>
           <DialogTitle>Nova transferência</DialogTitle>
           <DialogDescription className="mt-3 leading-[1.6]">Entre contas da Numa. Sai de uma, entra na outra, e não conta como receita nem despesa.</DialogDescription>

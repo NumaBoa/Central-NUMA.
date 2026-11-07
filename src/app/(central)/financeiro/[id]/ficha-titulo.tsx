@@ -21,7 +21,7 @@ import { EtiquetaContexto, EtiquetaLivre } from '@/componentes/padroes/etiquetas
 import { Ficha } from '@/componentes/padroes/ficha';
 import { ListaHistorico } from '@/componentes/padroes/historico';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
-import { PainelFormulario } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario } from '@/componentes/padroes/janela-formulario';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
@@ -317,7 +317,7 @@ function FormularioDoTitulo({ ficha, aberto, aoFechar }: { ficha: FichaDoTitulo;
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo="Editar lançamento" alterado={isDirty} aoEnviar={enviar} salvando={isSubmitting}>
+    <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo="Editar lançamento" alterado={isDirty} aoEnviar={enviar} salvando={isSubmitting}>
       <div className="grid gap-[18px]">
         <Campo id="titulo-descricao" rotulo="Descrição" obrigatorio erro={errors.descricao?.message}>
           {(controle) => <Input autoComplete="off" {...controle} {...register('descricao')} />}
@@ -379,7 +379,7 @@ function FormularioDoTitulo({ ficha, aberto, aoFechar }: { ficha: FichaDoTitulo;
           </Campo>
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

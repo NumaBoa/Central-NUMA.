@@ -26,22 +26,25 @@ export function BotaoFechar({ className, ...props }: ComponentProps<'button'>) {
 }
 
 type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
-  /** `dialogo`: centralizado, folha inferior no celular. `painel`: lateral, tela inteira no celular. */
-  variante?: 'dialogo' | 'painel';
+  /** `dialogo`: centralizado, folha inferior no celular. `janela`: formulário ou detalhe, centralizado, tela inteira no celular. */
+  variante?: 'dialogo' | 'janela';
+  /** Diálogo que é formulário: no celular, tela inteira em vez de folha inferior. */
+  telaCheia?: boolean;
   /** Quem desenha o próprio botão fechar liga esta opção. */
   semFechar?: boolean;
   /** Ligue quando houver um DialogDescription dentro do diálogo. */
   comDescricao?: boolean;
 };
 
-export function DialogContent({ className, children, variante = 'dialogo', semFechar = false, comDescricao = false, onOpenAutoFocus, ...props }: DialogContentProps) {
+export function DialogContent({ className, children, variante = 'dialogo', telaCheia = false, semFechar = false, comDescricao = false, onOpenAutoFocus, ...props }: DialogContentProps) {
   const descricao = comDescricao ? {} : { 'aria-describedby': undefined };
   const origemDoFoco = useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fundo-sobreposicao" />
       <DialogPrimitive.Content
-        className={cn(variante === 'painel' ? 'painel-lateral' : 'dialogo', className)}
+        className={cn(variante === 'janela' ? 'janela' : 'dialogo', className)}
+        data-tela-cheia={telaCheia ? '' : undefined}
         onOpenAutoFocus={(evento) => {
           origemDoFoco.current = quemAbriu();
           if (onOpenAutoFocus) {

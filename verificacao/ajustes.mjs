@@ -37,8 +37,8 @@ await passo('sem etiquetas cadastradas, o campo diz o caminho', async () => {
   const atividade = (await tabela('atividade')).find((a) => a.titulo === 'Definir o preço da oferta anual');
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral')?.textContent.includes('Ainda não há etiquetas para este módulo.')`);
-  ok('o painel explica e leva ao cadastro', await c.avaliar(`Boolean(document.querySelector('.painel-lateral a[href="/configuracoes/cadastros/etiquetas"]'))`));
+  await c.ate(`document.querySelector('.janela')?.textContent.includes('Ainda não há etiquetas para este módulo.')`);
+  ok('o painel explica e leva ao cadastro', await c.avaliar(`Boolean(document.querySelector('.janela a[href="/configuracoes/cadastros/etiquetas"]'))`));
 });
 
 await passo('cadastra as etiquetas', async () => {
@@ -50,9 +50,9 @@ await passo('atividade: o campo no painel', async () => {
   const atividade = (await tabela('atividade')).find((a) => a.titulo === 'Definir o preço da oferta anual');
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
-  await c.ate(`[...document.querySelectorAll('.painel-lateral legend')].some(l=>l.textContent.startsWith('Etiquetas'))`);
+  await c.ate(`[...document.querySelectorAll('.janela legend')].some(l=>l.textContent.startsWith('Etiquetas'))`);
   await c.espera(200);
-  const opcoes = await c.avaliar(`[...[...document.querySelectorAll('.painel-lateral fieldset')].find(f=>f.querySelector('legend').textContent.startsWith('Etiquetas')).querySelectorAll('label')].map(l=>l.textContent)`);
+  const opcoes = await c.avaliar(`[...[...document.querySelectorAll('.janela fieldset')].find(f=>f.querySelector('legend').textContent.startsWith('Etiquetas')).querySelectorAll('label')].map(l=>l.textContent)`);
   ok('só as do módulo: a do financeiro e a das ferramentas ficam de fora', js(opcoes) === js(['Lançamento']), js(opcoes));
   await marcarPilula('Etiquetas', 'Lançamento');
   await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:etiqueta_vinculo')).some(v=>v.registro_id===${js(atividade.id)}&&!v.arquivado_em)`);
@@ -190,7 +190,7 @@ await passo('responsivo', async () => {
   const atividade = (await tabela('atividade')).find((a) => a.titulo === 'Definir o preço da oferta anual');
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
-  await c.ate(`[...document.querySelectorAll('.painel-lateral legend')].some(l=>l.textContent.startsWith('Etiquetas'))`);
+  await c.ate(`[...document.querySelectorAll('.janela legend')].some(l=>l.textContent.startsWith('Etiquetas'))`);
   await c.espera(300);
   await conferirTela('Painel com etiquetas', 360);
   const traco = (await tabela('ferramenta')).find((f) => f.nome === 'Traço Editor');

@@ -26,7 +26,7 @@ import { EtiquetaContexto, EtiquetaLivre } from '@/componentes/padroes/etiquetas
 import { Ficha } from '@/componentes/padroes/ficha';
 import { ListaHistorico } from '@/componentes/padroes/historico';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
-import { PainelFormulario } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario } from '@/componentes/padroes/janela-formulario';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
@@ -314,7 +314,7 @@ function FormularioDadosDaFerramenta({ ferramenta, aberto, aoFechar }: { ferrame
     }
   });
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo="Dados pessoais" alterado={isDirty} aoEnviar={enviar} salvando={isSubmitting}>
+    <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo="Dados pessoais" alterado={isDirty} aoEnviar={enviar} salvando={isSubmitting}>
       <div className="grid gap-[18px]">
         <Controller
           control={control}
@@ -368,7 +368,7 @@ function FormularioDadosDaFerramenta({ ferramenta, aberto, aoFechar }: { ferrame
           </>
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

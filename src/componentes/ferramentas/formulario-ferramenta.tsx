@@ -13,7 +13,7 @@ import { SelecaoMoeda } from '@/componentes/campos/selecao-moeda';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Previa } from '@/componentes/padroes/previa';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
@@ -220,7 +220,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={titulo} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={ferramenta ? 'Salvar' : 'Salvar ferramenta'} {...(etapa < ETAPAS_DA_FERRAMENTA.length - 1 && !trocandoPlano ? { aoSalvarEOutro: () => void proximaEtapa(), rotuloSalvarEOutro: 'Continuar' } : {})} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={titulo} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={ferramenta ? 'Salvar' : 'Salvar ferramenta'} {...(etapa < ETAPAS_DA_FERRAMENTA.length - 1 && !trocandoPlano ? { aoSalvarEOutro: () => void proximaEtapa(), rotuloSalvarEOutro: 'Continuar' } : {})} salvando={isSubmitting} erros={erros}>
         {!trocandoPlano && (
           <ol className="mb-5 grid grid-cols-3 gap-1.5" aria-label="Etapas">
             {ETAPAS_DA_FERRAMENTA.map((nomeDaEtapa, indice) => (
@@ -532,7 +532,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
             )}
           </div>
         )}
-      </PainelFormulario>
+      </JanelaFormulario>
 
       <Confirmacao
         aberto={passo === 'avisos'}

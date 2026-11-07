@@ -26,9 +26,9 @@ const irRotinas = async () => { await ir(ROTINAS); await c.ate(`document.querySe
 const irMeuDia = async () => { await ir(MEU_DIA); await c.ate(`document.querySelector('main article')`); };
 const cartao = (titulo) => `[...document.querySelectorAll('main article')].find(a=>a.querySelector('h3')?.textContent===${js(titulo)})`;
 const titulosDaTabela = () => c.avaliar(`[...document.querySelectorAll('main table tbody tr')].map(l=>l.querySelector('td span span').textContent)`);
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
-const painelTemErro = (parte) => c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes(${js(parte)})`);
-const clicarBotaoPainel = (rotulo) => c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
+const painelTemErro = (parte) => c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes(${js(parte)})`);
+const clicarBotaoPainel = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
 const abrirFiltros = async () => { await c.clicar('texto=Filtros'); await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`); await c.espera(180); };
 const fecharFiltros = async () => { await c.tecla('Escape'); await c.ate(`!document.querySelector('.menu-suspenso')&&!document.querySelector('.dialogo')`); };
 const menuDaLinha = async (rotulo) => {
@@ -110,7 +110,7 @@ await passo('Meu dia', async () => {
   ok('a ocorrência aparece no quadro, com a marca de rotina', await c.avaliar(`Boolean((${cartao(t)})?.querySelector('[title="Faz parte de uma rotina"]'))`));
   await c.foto('a-meu-dia');
   await abrirPainelDe(t);
-  const p = await texto('.painel-lateral');
+  const p = await texto('.janela');
   ok('o painel diz a regra e o número', p.includes('Toda segunda · Ocorrência 1') && p.includes('Ver rotina'), p.slice(0, 200));
   ok('a data muda só nesta ocorrência', p.includes('A data muda só nesta ocorrência. Para mudar as próximas, edite a rotina.'));
   await c.foto('a-painel');
@@ -270,12 +270,12 @@ await passo('rotinas: criar', async () => {
   ok('título obrigatório', true);
   await preencher('rotina-titulo', 'Conferir o caixa');
   // dias
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral fieldset')].find(f=>f.querySelector('legend').textContent.startsWith('Nos dias')).querySelectorAll('input:checked').forEach(i=>i.click())`);
+  await c.avaliar(`[...document.querySelectorAll('.janela fieldset')].find(f=>f.querySelector('legend').textContent.startsWith('Nos dias')).querySelectorAll('input:checked').forEach(i=>i.click())`);
   await painelTemErro('Escolha ao menos um dia.');
   ok('semanal precisa de um dia, e o erro some ao escolher', true);
   await marcarPilula('Nos dias', 'Seg');
   await marcarPilula('Nos dias', 'Qua');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   ok('toda segunda e quarta', (await resumo()).startsWith('Toda segunda e quarta'), await resumo());
   // intervalo
   await preencher('rotina-repeticao-intervalo', '0');
@@ -290,7 +290,7 @@ await passo('rotinas: criar', async () => {
   await marcarPilula('Frequência', 'Mensal');
   await c.ate(`Boolean(document.getElementById('rotina-repeticao-dia-mes'))`);
   await preencher('rotina-repeticao-dia-mes', '31');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Nos meses sem o dia 31, a ocorrência cai no último dia do mês.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Nos meses sem o dia 31, a ocorrência cai no último dia do mês.')`);
   ok('o formulário informa os meses sem o dia 31 (CA-03.10)', true);
   await c.foto('e-dia-31');
   await preencher('rotina-repeticao-dia-mes', '32');
@@ -347,7 +347,7 @@ await passo('rotinas: criar', async () => {
   await marcarPilula('Frequência', 'Semanal');
   await c.espera(60);
   await marcarPilula('Termina', 'Sem fim');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   // mais opções
   await clicarBotaoPainel('Mais opções');
   await c.ate(`Boolean(document.getElementById('rotina-area'))`);
@@ -377,8 +377,8 @@ await passo('rotinas: editar', async () => {
   await c.avaliar(`(${linhaDeTabela(t)}).click()`);
   await painelAberto();
   await c.espera(480);
-  ok('a linha abre a edição', (await c.avaliar(`location.search`)) === `?rotina=${rotina.id}` && (await texto('.painel-lateral h2')) === 'Editar rotina' && (await valor('rotina-titulo')) === t);
-  ok('avisa até onde a mudança vai', (await texto('.painel-lateral')).includes('O que mudar aqui vale para as próximas ocorrências que ninguém editou à parte.'));
+  ok('a linha abre a edição', (await c.avaliar(`location.search`)) === `?rotina=${rotina.id}` && (await texto('.janela h2')) === 'Editar rotina' && (await valor('rotina-titulo')) === t);
+  ok('avisa até onde a mudança vai', (await texto('.janela')).includes('O que mudar aqui vale para as próximas ocorrências que ninguém editou à parte.'));
   await c.foto('f-editar');
   await preencher('rotina-titulo', 'Conferir o caixa da semana');
   await salvarPainel();
@@ -392,7 +392,7 @@ await passo('rotinas: editar', async () => {
   await painelAberto();
   await c.espera(480);
   await marcarPilula('Nos dias', 'Qua');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Ao salvar, esta regra termina e outra começa a partir de hoje.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Ao salvar, esta regra termina e outra começa a partir de hoje.')`);
   ok('mudar a agenda avisa antes (RN-03.17)', true);
   await c.foto('f-agenda');
   await salvarPainel();
@@ -413,7 +413,7 @@ await passo('rotinas: editar', async () => {
   ok('e aparece no filtro de encerradas', (await texto('main table tbody')).includes('Encerrada'));
   await c.avaliar(`document.querySelector('main table tbody tr').click()`);
   await esperarAviso('Esta rotina está encerrada.');
-  ok('encerrada só informa', !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral'))`)));
+  ok('encerrada só informa', !(await c.avaliar(`Boolean(document.querySelector('.janela'))`)));
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Limpar filtros').click()`);
   await c.ate(`document.querySelectorAll('main table tbody tr').length===7+1`);
 });
@@ -495,7 +495,7 @@ await passo('ocorrência: até onde vale a mudança (RN-03.17)', async () => {
   await c.espera(380);
   await clicarNoDialogo('Somente esta');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Nesta abertura, as mudanças valem para somente esta ocorrência.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Nesta abertura, as mudanças valem para somente esta ocorrência.')`);
   const depois = await tabela('atividade');
   ok('"Somente esta" muda só ela e fica marcada', depois.find((a) => a.id === segunda.id).titulo === 'Só esta semana' && depois.find((a) => a.id === segunda.id).editada_individualmente === true && depois.find((a) => a.id === terceira.id).titulo === segunda.titulo);
   ok('a rotina não muda', (await tabela('recorrencia')).find((r) => r.id === ID_DESPESAS).titulo === 'Lançar despesas e comprovantes da semana');
@@ -503,8 +503,8 @@ await passo('ocorrência: até onde vale a mudança (RN-03.17)', async () => {
   await escolher('painel-prioridade', 'alta');
   await c.espera(150);
   ok('a resposta vale até fechar o painel', !(await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) && (await tabela('atividade')).find((a) => a.id === segunda.id).prioridade === 'alta');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Perguntar de novo').click()`);
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('Nesta abertura')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Perguntar de novo').click()`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('Nesta abertura')`);
   await escolher('painel-prioridade', 'normal');
   await dialogoAberto();
   await c.espera(380);
@@ -527,7 +527,7 @@ await passo('ocorrência: até onde vale a mudança (RN-03.17)', async () => {
   await c.espera(380);
   await clicarNoDialogo('Esta e as próximas');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Nesta abertura, as mudanças valem para esta e as próximas.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Nesta abertura, as mudanças valem para esta e as próximas.')`);
   const velha = (await tabela('recorrencia')).find((r) => r.id === ID_DESPESAS);
   const nova = (await tabela('recorrencia')).find((r) => r.substitui_id === ID_DESPESAS);
   ok('"Esta e as próximas" encerra a regra e cria outra', velha.situacao === 'encerrada' && velha.fim_data === somar(terceira.ocorrencia_data, -1) && nova.titulo === 'Despesas daqui em diante' && nova.inicio === terceira.ocorrencia_data);
@@ -550,7 +550,7 @@ await passo('uma atividade passa a repetir', async () => {
   await irMeuDia();
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
-  ok('diz que não repete', (await texto('.painel-lateral')).includes('Não repete.'));
+  ok('diz que não repete', (await texto('.janela')).includes('Não repete.'));
   await clicarBotaoPainel('Repetir');
   await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Repetir esta atividade')`);
   await c.espera(420);
@@ -583,17 +583,17 @@ await passo('adicionar com repetição (T03.03)', async () => {
   await c.ate(`Boolean(document.getElementById('atividade-repeticao-inicio'))`);
   const d = await hoje();
   ok('parte do prazo escolhido', (await valor('atividade-repeticao-inicio')) === somar(d, 1));
-  ok('prazo, início e aviso saem: as datas vêm da regra', !(await c.avaliar(`[...document.querySelectorAll('.painel-lateral legend')].some(l=>l.textContent==='Prazo')||Boolean(document.getElementById('atividade-inicio')||document.getElementById('atividade-aviso-dia'))`)));
+  ok('prazo, início e aviso saem: as datas vêm da regra', !(await c.avaliar(`[...document.querySelectorAll('.janela legend')].some(l=>l.textContent==='Prazo')||Boolean(document.getElementById('atividade-inicio')||document.getElementById('atividade-aviso-dia'))`)));
   await c.foto('j-adicionar');
   await marcarPilula('Frequência', 'Mensal');
   await c.ate(`Boolean(document.getElementById('atividade-repeticao-dia-mes'))`);
   await preencher('atividade-repeticao-dia-mes', '40');
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes('Use um dia de 1 a 31.')`);
-  ok('a regra é conferida, e o resumo leva até o campo', await c.avaliar(`[...document.querySelectorAll('.painel-lateral [role=alert] a')].some(a=>a.getAttribute('href')==='#atividade-repeticao-dia-mes')`));
+  await c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes('Use um dia de 1 a 31.')`);
+  ok('a regra é conferida, e o resumo leva até o campo', await c.avaliar(`[...document.querySelectorAll('.janela [role=alert] a')].some(a=>a.getAttribute('href')==='#atividade-repeticao-dia-mes')`));
   ok('nada foi gravado', !(await tabela('recorrencia')).some((r) => r.titulo === 'Repetir pelo Adicionar'));
   await preencher('atividade-repeticao-dia-mes', '20');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   await salvarPainel();
   await esperarAviso('Tarefa criada.');
   await painelFechado();
@@ -617,10 +617,10 @@ await passo('adicionar com repetição (T03.03)', async () => {
   await c.ate(`Boolean(document.getElementById('atividade-repeticao-hora'))`);
   ok('lembrete repetido não pede data e hora soltas', !(await c.avaliar(`Boolean(document.getElementById('atividade-aviso-dia'))`)));
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes('Lembrete exige a hora do aviso.')`);
+  await c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes('Lembrete exige a hora do aviso.')`);
   ok('lembrete repetido exige a hora', true);
   await preencher('atividade-repeticao-hora', '10:00');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   await salvarPainel();
   await esperarAviso('Lembrete criado.');
   await painelFechado();
@@ -646,7 +646,7 @@ await passo('alerta de backup (05-M03 §5)', async () => {
   ok('não duplica no dia seguinte', (await reais()).length === 1);
   // o painel do alerta real
   await abrirOcorrenciaPorId(alerta.id);
-  const p = await texto('.painel-lateral');
+  const p = await texto('.janela');
   ok('o painel oferece a ação', p.includes('Backup atrasado') && p.includes('Exportar dados'));
   await c.tecla('Escape');
   await painelFechado();
@@ -664,8 +664,8 @@ await passo('alerta de backup (05-M03 §5)', async () => {
   ok('no Histórico, concluída pelo Sistema', (await c.avaliar(`(${linhaResolvida}).textContent`)).includes('Sistema'));
   await c.avaliar(`(${linhaResolvida}).click()`);
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('por Sistema')`);
-  ok('e o painel diz por quê', (await texto('.painel-lateral')).includes('Concluído por Exportar dados em Configurações.'));
+  await c.ate(`document.querySelector('.janela').textContent.includes('por Sistema')`);
+  ok('e o painel diz por quê', (await texto('.janela')).includes('Concluído por Exportar dados em Configurações.'));
   await c.foto('k-alerta');
   await c.espera(400);
   await c.tecla('Escape');
@@ -753,7 +753,7 @@ await passo('celular', async () => {
   await painelAberto();
   await c.espera(500);
   ok('o cartão abre o painel', (await c.avaliar(`location.search`)).startsWith('?atividade='));
-  await c.clicar('.painel-lateral [aria-label="Voltar"]');
+  await c.clicar('.janela [aria-label="Voltar"]');
   await painelFechado();
   await ir(ROTINAS);
   await c.ate(`[...document.querySelectorAll('main ul li')].length>0`);

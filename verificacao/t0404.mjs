@@ -99,7 +99,7 @@ await passo('T04.05: cadastro', async () => {
   await irLista();
   await abrirNovo();
   ok('abre com o tipo Domínio, sugerindo crítico', (await valor('ativo-tipo')) === 'dominio' && (await pilulaMarcada('Crítico', 'Sim')));
-  ok('D14: sem campo de acessos nem senha', !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral input[type=password]'))`)) && !(await texto('.painel-lateral')).includes('Acessos'));
+  ok('D14: sem campo de acessos nem senha', !(await c.avaliar(`Boolean(document.querySelector('.janela input[type=password]'))`)) && !(await texto('.janela')).includes('Acessos'));
   await c.foto('b-novo');
   await clicarNoDialogo('Salvar ativo');
   await c.ate(`document.getElementById('ativo-identificador-erro')`);
@@ -267,12 +267,12 @@ await passo('vínculo com atividade e busca', async () => {
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
   await c.espera(420);
-  const seletor = await c.avaliar(`[...document.querySelectorAll('.painel-lateral select')].find(s=>[...s.options].some(o=>o.value.startsWith('ativo_digital:')))?.id`);
+  const seletor = await c.avaliar(`[...document.querySelectorAll('.janela select')].find(s=>[...s.options].some(o=>o.value.startsWith('ativo_digital:')))?.id`);
   ok('o painel da atividade oferece os ativos', Boolean(seletor), seletor);
   await c.avaliar(`(()=>{const s=document.getElementById(${js(seletor)});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${js('ativo_digital:' + a.id)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
   await c.espera(100);
-  await c.avaliar(`(()=>{const b=[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Vincular');if(b)b.click()})()`);
-  await c.ate(`(document.querySelector('.painel-lateral').textContent||'').includes('urbana-exemplo.com.br')`);
+  await c.avaliar(`(()=>{const b=[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Vincular');if(b)b.click()})()`);
+  await c.ate(`(document.querySelector('.janela').textContent||'').includes('urbana-exemplo.com.br')`);
   ok('vincula', true);
   await abrirFicha('urbana-exemplo.com.br');
   await aba('Atividades');

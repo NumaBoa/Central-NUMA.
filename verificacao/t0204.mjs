@@ -12,7 +12,7 @@ const { c, ok, passo, ir, texto, valor, preencher, escolher, opcoes, esperarAvis
 
 const pronta = () => c.ate(`document.querySelector('nav[aria-label="Marcas"] button')`);
 const irMarcas = async (extra = '') => { await ir(MARCAS + extra); await pronta(); };
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
 const escolherMarca = async (nome) => { await c.clicar(`nav[aria-label="Marcas"] button[data-marca="${nome}"]`); };
 const nomesDasMarcas = () => c.avaliar(`[...document.querySelectorAll('nav[aria-label="Marcas"] button')].map(b=>b.textContent)`);
 const produtosNaTela = () => c.avaliar(`[...document.querySelectorAll('main table tbody tr')].map(t=>t.children[0].textContent)`);
@@ -94,8 +94,8 @@ await passo('nova marca', async () => {
   await painelAberto();
   await c.espera(450);
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')`);
-  ok('nome obrigatório', (await texto('.painel-lateral [role=alert]')).includes('Informe o nome da marca.'));
+  await c.ate(`document.querySelector('.janela [role=alert]')`);
+  ok('nome obrigatório', (await texto('.janela [role=alert]')).includes('Informe o nome da marca.'));
   await preencher('marca-nome', 'KIPI');
   await preencher('marca-cor', '#FFEEAA');
   await c.espera(60);
@@ -108,8 +108,8 @@ await passo('nova marca', async () => {
   await c.ate(`document.getElementById('marca-cor-erro')?.textContent.includes('#RRGGBB')`);
   ok('formato da cor', true);
   await preencher('marca-cor', '#884EA0');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Como aparece:')`);
-  ok('prévia da etiqueta', (await texto('.painel-lateral')).includes('Como aparece:KIPI'));
+  await c.ate(`document.querySelector('.janela').textContent.includes('Como aparece:')`);
+  ok('prévia da etiqueta', (await texto('.janela')).includes('Como aparece:KIPI'));
   await c.foto('b-marca');
   await salvarPainel();
   await c.ate(`document.getElementById('marca-nome-erro')?.textContent.includes('Já existe uma marca com esse nome.')`);
@@ -137,12 +137,12 @@ await passo('novo produto', async () => {
   await painelAberto();
   await c.espera(450);
   ok('já vem com a marca escolhida', (await c.avaliar(`document.getElementById('produto-marca').selectedOptions[0].textContent`)) === 'Lumi');
-  ok('estágio padrão: Ideia', await c.avaliar(`[...document.querySelectorAll('.painel-lateral select')].some(s=>s.selectedOptions[0].textContent==='Ideia')`));
-  ok('com o campo de entidade, desde a T02.05', (await texto('.painel-lateral')).includes('Entidade'));
+  ok('estágio padrão: Ideia', await c.avaliar(`[...document.querySelectorAll('.janela select')].some(s=>s.selectedOptions[0].textContent==='Ideia')`));
+  ok('com o campo de entidade, desde a T02.05', (await texto('.janela')).includes('Entidade'));
   await c.foto('c-produto');
   await salvarPainel();
-  await c.ate(`document.querySelector('.painel-lateral [role=alert]')`);
-  const r = await texto('.painel-lateral [role=alert]');
+  await c.ate(`document.querySelector('.janela [role=alert]')`);
+  const r = await texto('.janela [role=alert]');
   ok('obrigatórios', r.includes('Informe o nome do produto.') && r.includes('Use de 3 a 6 letras') && r.includes('Escolha a pessoa responsável'), r);
   await preencher('produto-nome', 'Lumi App');
   await c.avaliar(`document.getElementById('produto-codigo').focus()`);
@@ -214,7 +214,7 @@ await passo('editar produto e descontinuar', async () => {
   await c.clicar('texto=Editar');
   await painelAberto();
   await c.espera(450);
-  ok('avisa e pede a responsável', (await texto('.painel-lateral')).includes('Escolha uma pessoa') && (await valor('produto-responsavel')) === '');
+  ok('avisa e pede a responsável', (await texto('.janela')).includes('Escolha uma pessoa') && (await valor('produto-responsavel')) === '');
   await escolher('produto-responsavel', ID_KIMBERLY);
   await marcarPilula('Situação', 'Descontinuado');
   await c.ate(`document.getElementById('produto-motivo')`);
@@ -383,7 +383,7 @@ await passo('celular', async () => {
   await c.clicar('texto=Editar');
   await painelAberto();
   await c.espera(450);
-  const p = await c.avaliar(`(()=>{const r=document.querySelector('.painel-lateral').getBoundingClientRect();return r.width===360&&r.height===800})()`);
+  const p = await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return r.width===360&&r.height===800})()`);
   ok('formulário em tela inteira', p);
   await conferirTela('Formulário de produto', 360);
   await c.foto('j-painel');
@@ -410,7 +410,7 @@ await passo('teclado', async () => {
   await c.tecla('Enter');
   await painelAberto();
   await c.espera(450);
-  ok('a institucional explica e esconde o que não muda', (await texto('.painel-lateral')).includes('marca institucional') && !(await h.existeGrupo('Situação')) && !(await h.existeGrupo('Nome provisório')));
+  ok('a institucional explica e esconde o que não muda', (await texto('.janela')).includes('marca institucional') && !(await h.existeGrupo('Situação')) && !(await h.existeGrupo('Nome provisório')));
   await c.tecla('Escape');
   await painelFechado();
   await c.espera(100);

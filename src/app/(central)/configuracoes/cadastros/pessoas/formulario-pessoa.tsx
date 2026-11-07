@@ -9,7 +9,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -133,7 +133,8 @@ export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar,
 
   return (
     <>
-      <PainelFormulario
+      <JanelaFormulario
+        colunas={2}
         aberto={aberto}
         aoFechar={aoFechar}
         titulo={pessoa ? 'Editar pessoa' : 'Nova pessoa'}
@@ -240,7 +241,7 @@ export function FormularioPessoa({ aberto, aoFechar, pessoa, dados, aoCadastrar,
             render={({ field }) => <Pilulas rotulo="Situação" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_SITUACAO)} />}
           />
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

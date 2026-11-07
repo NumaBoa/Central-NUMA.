@@ -10,7 +10,7 @@ import { Pilulas } from '@/componentes/campos/pilulas';
 import { aviso } from '@/componentes/padroes/aviso';
 import { EtiquetaContexto } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { ErroDeRegra, mensagemDoErro } from '@/dados/erros';
 import type { Marca } from '@/dados/tipos/marca';
@@ -66,7 +66,7 @@ export function FormularioMarca({ aberto, aoFechar, marca, aoCriar }: { aberto: 
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={marca ? 'Editar marca' : 'Nova marca'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={marca ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={marca ? 'Editar marca' : 'Nova marca'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={marca ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         {institucional && <Faixa>Esta é a marca institucional: fica sempre ativa e não é provisória.</Faixa>}
         <Campo id="marca-nome" rotulo="Nome" obrigatorio erro={errors.nome?.message}>
@@ -105,6 +105,6 @@ export function FormularioMarca({ aberto, aoFechar, marca, aoCriar }: { aberto: 
           />
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }

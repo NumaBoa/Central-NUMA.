@@ -908,7 +908,7 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
   // Fechar com o cursor num campo (Esc, voltar do navegador) salva o que foi escrito: o painel ainda está na tela enquanto sai.
   useEffect(() => {
     const ativo = document.activeElement;
-    if (!id && ativo instanceof HTMLElement && ativo.closest('.painel-lateral')) ativo.blur();
+    if (!id && ativo instanceof HTMLElement && ativo.closest('.janela')) ativo.blur();
   }, [id]);
 
   /** Os campos salvam sozinhos; o comentário só existe depois de enviado, e por isso pergunta antes (P3). */
@@ -921,7 +921,7 @@ export function PainelAtividade({ id, dados, acoes, aoFechar, aoAbrir }: PainelA
   return (
     <>
     <Dialog open={Boolean(id)} onOpenChange={(aberto) => !aberto && pedirFechar()}>
-      <DialogContent variante="painel" semFechar data-largura="detalhe" aria-describedby={undefined}>
+      <DialogContent variante="janela" semFechar data-largura="larga" aria-describedby={undefined}>
         {consulta.estado === 'carregando' && (
           <div className="p-6">
             <DialogTitle className="sr-only">Carregando a atividade</DialogTitle>

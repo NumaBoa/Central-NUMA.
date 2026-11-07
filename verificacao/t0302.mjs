@@ -15,8 +15,8 @@ const pronta = () => c.ate(`document.querySelector('main article')`);
 const irMeuDia = async () => { await ir(MEU_DIA); await pronta(); };
 const cartao = (titulo) => `[...document.querySelectorAll('main article')].find(a=>a.querySelector('h3')?.textContent===${js(titulo)})`;
 const atividadePor = async (titulo) => (await tabela('atividade')).find((x) => x.titulo === titulo);
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
-const painelTemErro = (parte) => c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes(${js(parte)})`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
+const painelTemErro = (parte) => c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes(${js(parte)})`);
 const abrirAdicionar = async (tipo) => {
   await c.clicar('texto=Adicionar');
   await c.ate(`document.querySelector('.menu-suspenso, .dialogo')`);
@@ -26,10 +26,10 @@ const abrirAdicionar = async (tipo) => {
   await c.espera(450);
 };
 const maisOpcoes = async () => {
-  if (await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Mais opções').getAttribute('aria-expanded')==='false'`)) await clicarBotaoPainel('Mais opções');
+  if (await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Mais opções').getAttribute('aria-expanded')==='false'`)) await clicarBotaoPainel('Mais opções');
   await c.ate(`Boolean(document.getElementById('atividade-area'))`);
 };
-const clicarBotaoPainel = (rotulo) => c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
+const clicarBotaoPainel = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
 const abrirPainelDe = async (titulo) => {
   await c.avaliar(`(${cartao(titulo)}).querySelector('h3 button').click()`);
   await painelAberto();
@@ -37,7 +37,7 @@ const abrirPainelDe = async (titulo) => {
   await c.espera(450);
 };
 const fecharPainelLateral = async () => { await c.tecla('Escape'); await painelFechado(); };
-const noPainel = () => texto('.painel-lateral');
+const noPainel = () => texto('.janela');
 const preencherArea = (id, novo) => c.avaliar(`(()=>{const e=document.getElementById(${js(id)});e.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${js(novo)});e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
 const sairDoCampo = (id) => c.avaliar(`document.getElementById(${js(id)}).blur()`);
 const restaurarExemplos = async () => {
@@ -82,14 +82,14 @@ await passo('adicionar: como abre', async () => {
   await preencher('atividade-titulo', '');
   await c.espera(60);
   await c.tecla('Escape');
-  await c.ate(`!document.querySelector('.painel-lateral') || document.querySelector('.dialogo')`);
+  await c.ate(`!document.querySelector('.janela') || document.querySelector('.dialogo')`);
   if (await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) { await c.espera(350); await clicarNoDialogo('Descartar alterações'); await dialogoFechado(); }
   await painelFechado();
   // busca: N digitado na busca não abre
   await c.avaliar(`document.querySelector('main input[type=search]').focus()`);
   await c.tecla('n');
   await c.espera(200);
-  ok('N digitado em um campo não abre o painel', !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral'))`)));
+  ok('N digitado em um campo não abre o painel', !(await c.avaliar(`Boolean(document.querySelector('.janela'))`)));
   await c.avaliar(`(()=>{const e=document.querySelector('main input[type=search]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'');e.dispatchEvent(new Event('input',{bubbles:true}));e.blur()})()`);
   // + Novo, de outra tela
   await ir('/configuracoes');
@@ -111,12 +111,12 @@ await passo('adicionar: como abre', async () => {
 await passo('adicionar: padrões e tipos', async () => {
   await irMeuDia();
   await abrirAdicionar('Tarefa');
-  ok('título do painel', (await texto('.painel-lateral h2')).includes('Adicionar'));
+  ok('título do painel', (await texto('.janela h2')).includes('Adicionar'));
   ok('responsável: a pessoa conectada (RN-03.02)', await pilulaMarcada('Responsável', 'Kimberly Grebe'));
   ok('sem prazo por padrão', await pilulaMarcada('Prazo', 'Sem prazo'));
-  ok('as pessoas internas em pílulas', await c.avaliar(`['Kimberly Grebe','Camila Lima','Bruna Alves'].every(t=>[...document.querySelectorAll('.painel-lateral fieldset label')].some(l=>l.textContent===t))`));
+  ok('as pessoas internas em pílulas', await c.avaliar(`['Kimberly Grebe','Camila Lima','Bruna Alves'].every(t=>[...document.querySelectorAll('.janela fieldset label')].some(l=>l.textContent===t))`));
   ok('os produtos em pílulas, sem nenhum marcado', await c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith('Contexto'));return f.querySelectorAll('input').length===5&&![...f.querySelectorAll('input')].some(i=>i.checked)})()`));
-  ok('explica que sem produto é da Numa', (await texto('.painel-lateral')).includes('Sem produto marcado, é da Numa.'));
+  ok('explica que sem produto é da Numa', (await texto('.janela')).includes('Sem produto marcado, é da Numa.'));
   ok('o resto fica em "Mais opções"', !(await c.avaliar(`Boolean(document.getElementById('atividade-area'))`)));
   await c.foto('b-tarefa');
   await marcarPilula('Tipo', 'Lembrete');
@@ -126,13 +126,13 @@ await passo('adicionar: padrões e tipos', async () => {
   await marcarPilula('Tipo', 'Demanda');
   await c.ate(`Boolean(document.getElementById('atividade-solicitante'))`);
   ok('demanda pede solicitante, com a pessoa atual sugerida', (await valor('atividade-solicitante')) === ID_KIMBERLY);
-  ok('e o resultado esperado', (await texto('.painel-lateral')).includes('Resultado esperado'));
+  ok('e o resultado esperado', (await texto('.janela')).includes('Resultado esperado'));
   await c.foto('b-demanda');
   await marcarPilula('Tipo', 'Tarefa');
   await c.espera(60);
   await maisOpcoes();
   await c.foto('b-mais-opcoes', { inteira: true });
-  ok('"Mais opções" mostra o resto', await c.avaliar(`['Descrição','Área','Participantes','Prioridade','Início','Checklist','Vínculo','Arquivo'].every(t=>document.querySelector('.painel-lateral').textContent.includes(t))`));
+  ok('"Mais opções" mostra o resto', await c.avaliar(`['Descrição','Área','Participantes','Prioridade','Início','Checklist','Vínculo','Arquivo'].every(t=>document.querySelector('.janela').textContent.includes(t))`));
   ok('participantes sem a responsável', await c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith('Participantes'));return ![...f.querySelectorAll('label')].some(l=>l.textContent==='Kimberly Grebe')&&[...f.querySelectorAll('label')].some(l=>l.textContent==='Rafael Souza')})()`));
   // área sugere responsável
   const tecnologia = await c.avaliar(`[...document.querySelectorAll('#atividade-area option')].find(o=>o.textContent==='Tecnologia').value`);
@@ -142,7 +142,7 @@ await passo('adicionar: padrões e tipos', async () => {
   const comercial = await c.avaliar(`[...document.querySelectorAll('#atividade-area option')].find(o=>o.textContent==='Comercial').value`);
   await escolher('atividade-area', comercial);
   await c.espera(80);
-  ok('área compartilhada exige escolha', (await texto('.painel-lateral')).includes('Esta área é compartilhada: escolha a responsável.') && !(await pilulaMarcada('Responsável', 'Camila Lima')));
+  ok('área compartilhada exige escolha', (await texto('.janela')).includes('Esta área é compartilhada: escolha a responsável.') && !(await pilulaMarcada('Responsável', 'Camila Lima')));
   await c.foto('b-compartilhada');
   await salvarPainel();
   await painelTemErro('Escolha a responsável.');
@@ -175,7 +175,7 @@ await passo('adicionar: validação', async () => {
   await painelTemErro('Informe o título.');
   ok('título obrigatório', true);
   await preencher('atividade-titulo', 'x'.repeat(135));
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('135 de 140 caracteres')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('135 de 140 caracteres')`);
   ok('o contador aparece perto do limite', true);
   await preencher('atividade-titulo', 'x'.repeat(141));
   await salvarPainel();
@@ -192,7 +192,7 @@ await passo('adicionar: validação', async () => {
   await abrirAdicionar('Tarefa');
   await c.clicar('texto=Demanda');
   await c.espera(150);
-  ok('sair do título em branco para escolher o tipo não acusa erro', !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral [role=alert]'))`)) && (await pilulaMarcada('Tipo', 'Demanda')));
+  ok('sair do título em branco para escolher o tipo não acusa erro', !(await c.avaliar(`Boolean(document.querySelector('.janela [role=alert]'))`)) && (await pilulaMarcada('Tipo', 'Demanda')));
   await c.clicar('texto=Tarefa');
   await preencher('atividade-titulo', 'Com erro escondido');
   await maisOpcoes();
@@ -206,7 +206,7 @@ await passo('adicionar: validação', async () => {
   await c.espera(120);
   ok('com o erro ali, não recolhe', await c.avaliar(`Boolean(document.getElementById('atividade-arquivo'))`));
   await preencher('atividade-arquivo', '');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   await clicarBotaoPainel('Mais opções');
   await c.ate(`!document.getElementById('atividade-area')`);
   ok('sem o erro, recolhe', true);
@@ -226,7 +226,7 @@ await passo('adicionar: validação', async () => {
   await c.ate(`Boolean(document.getElementById('atividade-aviso-hora'))`);
   ok('o aviso pela metade também abre "Mais opções"', (await erroDe('atividade-aviso-hora')) === 'Informe o dia e a hora do aviso.');
   await preencher('atividade-aviso-dia', '');
-  await c.ate(`!document.querySelector('.painel-lateral [role=alert]')`);
+  await c.ate(`!document.querySelector('.janela [role=alert]')`);
   await marcarPilula('Prazo', 'Escolher');
   await c.ate(`Boolean(document.getElementById('atividade-prazo'))`);
   await preencher('atividade-prazo', `${ID_ANO + 1}-01-10`);
@@ -235,7 +235,7 @@ await passo('adicionar: validação', async () => {
   await painelTemErro('O início precisa ser antes do prazo.');
   ok('início depois do prazo', true);
   await preencher('atividade-inicio', '');
-  await preencherArea(await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].find(l=>l.textContent==='Descrição').htmlFor`), 'senha: abc123');
+  await preencherArea(await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent==='Descrição').htmlFor`), 'senha: abc123');
   await salvarPainel();
   await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Salvar mesmo assim?')`);
   ok('texto que parece segredo pede confirmação (RT-14)', (await texto('.dialogo')).includes('senha ou um token'));
@@ -288,13 +288,13 @@ await passo('adicionar: salvar', async () => {
   await marcarPilula('Contexto', 'Zupi');
   await marcarPilula('Responsável', 'Bruna Alves');
   await maisOpcoes();
-  await preencherArea(await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].find(l=>l.textContent==='Descrição').htmlFor`), 'Texto que deve sumir');
+  await preencherArea(await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent==='Descrição').htmlFor`), 'Texto que deve sumir');
   await clicarBotaoPainel('Salvar e adicionar outro');
   await esperarAviso('Demanda criada.');
   await c.ate(`document.getElementById('atividade-titulo').value===''`);
   await c.espera(120);
   ok('mantém tipo, contexto e responsável (CA-03.07)', (await pilulaMarcada('Tipo', 'Demanda')) && (await pilulaMarcada('Contexto', 'Zupi')) && (await pilulaMarcada('Responsável', 'Bruna Alves')));
-  ok('limpa título e descrição', (await valor('atividade-titulo')) === '' && !(await texto('.painel-lateral')).includes('Texto que deve sumir'));
+  ok('limpa título e descrição', (await valor('atividade-titulo')) === '' && !(await texto('.janela')).includes('Texto que deve sumir'));
   ok('o foco volta para o título', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo');
   ok('a primeira foi salva', Boolean(await atividadePor('Primeira demanda')));
   await preencher('atividade-titulo', 'Segunda demanda');
@@ -385,15 +385,15 @@ await passo('painel: abrir e fechar', async () => {
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
   ok('o endereço leva à atividade', (await c.avaliar(`location.search`)).startsWith('?atividade='));
-  ok('tem 560px', await c.avaliar(`Math.round(document.querySelector('.painel-lateral').getBoundingClientRect().width)===560`));
+  ok('tem 560px', await c.avaliar(`Math.round(document.querySelector('.janela').getBoundingClientRect().width)===560`));
   ok('mantém o Meu dia atrás', await c.avaliar(`Boolean(document.querySelector('section[data-coluna]'))`));
   const p = await noPainel();
   ok('tipo e código', p.includes('Tarefa') && /ATV-\d{4}-0010/.test(p));
   ok('cabeçalho: título, situação, prioridade, responsável', (await valor('painel-titulo')) === t && (await valor('painel-situacao')) === 'a_fazer' && (await valor('painel-prioridade')) === 'alta' && (await valor('painel-responsavel')) === ID_KIMBERLY);
   ok('as seções', ['Detalhes', 'Checklist (2 de 4)', 'Vínculos', 'Arquivos', 'Comentários (2)', 'Histórico'].every((s) => p.includes(s)), p.slice(0, 300));
-  ok('o título da aba e o título para leitor de tela', await c.avaliar(`document.querySelector('.painel-lateral h2')?.textContent===${js(t)}`));
+  ok('o título da aba e o título para leitor de tela', await c.avaliar(`document.querySelector('.janela h2')?.textContent===${js(t)}`));
   await c.foto('e-painel');
-  const rolarAte = (rotulo) => c.avaliar(`[...document.querySelectorAll('.painel-lateral h3')].find(x=>x.textContent.startsWith(${js(rotulo)})).scrollIntoView({block:'center'})`);
+  const rolarAte = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith(${js(rotulo)})).scrollIntoView({block:'center'})`);
   await rolarAte('Checklist');
   await c.espera(120);
   await c.foto('e-painel-checklist');
@@ -430,7 +430,7 @@ await passo('painel: abrir e fechar', async () => {
   // endereço que não existe
   await ir(`${MEU_DIA}?atividade=nao-existe`);
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Esta atividade não existe mais')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Esta atividade não existe mais')`);
   ok('atividade que não existe mais: explica', true);
   await c.foto('e-nao-existe');
   await c.espera(400);
@@ -461,7 +461,7 @@ await passo('painel: editar', async () => {
   await c.ate(`(${cartao(t)}).textContent.includes('10/03')`);
   ok('mudar o prazo atualiza o cartão sem recarregar (CA-03.05)', (await atividadePor(t)).prazo === novoPrazo);
   ok('e os contadores', await c.avaliar(`[...document.querySelectorAll('[aria-label="Resumo do dia"] button')].find(b=>b.textContent.startsWith('Para hoje')).textContent==='Para hoje3'`));
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Prazo: de')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Prazo: de')`);
   ok('e grava o histórico com a data anterior', (await noPainel()).includes(`para 10/03/${ID_ANO + 1}`));
   ok('passar para depois conta como adiamento (RN-03.08)', (await atividadePor(t)).adiamentos === 1);
   // título
@@ -492,22 +492,22 @@ await passo('painel: editar', async () => {
   await preencher('aguardando-texto', 'Equipe da loja');
   await clicarNoDialogo('Mover para Aguardando');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('De Equipe da loja')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('De Equipe da loja')`);
   ok('a seção Aguardando aparece', true);
   await preencher('painel-acompanhamento', `${ID_ANO + 1}-03-01`);
   await sairDoCampo('painel-acompanhamento');
   await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('acompanhar em 01/03')`);
   ok('dá para mudar o acompanhamento', true);
   await escolher('painel-situacao', 'a_fazer');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('De Equipe da loja')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('De Equipe da loja')`);
   // descrição, área, início, aviso
   await preencherArea('painel-descricao', 'Uma descrição nova');
   await sairDoCampo('painel-descricao');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Descrição')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Descrição')`);
   await c.ate(`true`);
   await c.espera(100);
   ok('descrição', (await atividadePor('Título novo da nota')).descricao === 'Uma descrição nova');
-  ok('o histórico não mostra o texto da descrição', !(await c.avaliar(`[...document.querySelectorAll('.painel-lateral section:last-child li')].some(l=>l.textContent.includes('Uma descrição nova'))`)));
+  ok('o histórico não mostra o texto da descrição', !(await c.avaliar(`[...document.querySelectorAll('.janela section:last-child li')].some(l=>l.textContent.includes('Uma descrição nova'))`)));
   const area = await c.avaliar(`[...document.querySelectorAll('#painel-area option')].find(o=>o.textContent==='Comercial').value`);
   await escolher('painel-area', area);
   await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Comercial')`);
@@ -526,19 +526,19 @@ await passo('painel: editar', async () => {
   ok('prazo antes do início não salva', (await atividadePor('Título novo da nota')).prazo === novoPrazo);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-09`);
   await sairDoCampo('painel-aviso-dia');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Informe o dia e a hora do aviso.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Informe o dia e a hora do aviso.')`);
   ok('aviso pela metade avisa e não salva', (await atividadePor('Título novo da nota')).aviso_em === null);
   await preencher('painel-aviso-hora', '08:00');
   await sairDoCampo('painel-aviso-hora');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('Informe o dia e a hora do aviso.')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('Informe o dia e a hora do aviso.')`);
   ok('aviso', (await atividadePor('Título novo da nota')).aviso_em === `${ID_ANO + 1}-03-09T11:00:00.000Z`);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-20`);
   await sairDoCampo('painel-aviso-dia');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('O aviso precisa ser antes do prazo.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('O aviso precisa ser antes do prazo.')`);
   ok('aviso depois do prazo não salva', (await atividadePor('Título novo da nota')).aviso_em === `${ID_ANO + 1}-03-09T11:00:00.000Z`);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-09`);
   await sairDoCampo('painel-aviso-dia');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('O aviso precisa ser antes do prazo.')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('O aviso precisa ser antes do prazo.')`);
   // contexto e participantes
   await marcarPilula('Contexto', 'Zupi');
   await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Zupi')`);
@@ -549,7 +549,7 @@ await passo('painel: editar', async () => {
   await marcarPilula('Participantes', 'Bruna Alves');
   await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('+Bruna')`);
   ok('participante', true);
-  ok('o histórico diz por extenso', await c.ate(`document.querySelector('.painel-lateral').textContent.includes('colocou Bruna Alves como participante')`).then(() => true));
+  ok('o histórico diz por extenso', await c.ate(`document.querySelector('.janela').textContent.includes('colocou Bruna Alves como participante')`).then(() => true));
   await c.foto('f-editado');
   await c.avaliar(`document.getElementById('painel-titulo').focus()`);
   await preencher('painel-titulo', 'Salvo ao fechar');
@@ -568,35 +568,35 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
   await c.avaliar(`document.getElementById('painel-novo-item').scrollIntoView({block:'center'})`);
   await c.espera(100);
   const rolagemAntes = await rolagem();
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Checklist (3 de 4)')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (3 de 4)')`);
   ok('marcar um item', (await c.avaliar(`(${cartao(t)}).textContent.includes('3/4')`)));
   ok('o painel não volta para o começo ao salvar', (await rolagem()) === rolagemAntes && rolagemAntes > 0, `${rolagemAntes} e ${await rolagem()}`);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Checklist (2 de 4)')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (2 de 4)')`);
   ok('desmarcar', true);
   await preencher('painel-novo-item', 'Novo item da lista');
   await c.tecla('Enter');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Checklist (2 de 5)')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (2 de 5)')`);
   ok('Enter acrescenta o item e limpa o campo', (await valor('painel-novo-item')) === '');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Adicionar'&&b.closest('section')?.textContent.includes('Checklist')).click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Escreva o item.')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Adicionar'&&b.closest('section')?.textContent.includes('Checklist')).click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Escreva o item.')`);
   ok('item vazio não entra', true);
   await c.clicar('[aria-label="Tirar Novo item da lista"]');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Checklist (2 de 4)')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (2 de 4)')`);
   ok('tirar um item', true);
   await escolher(await c.avaliar(`document.querySelector('[aria-label="Responsável por Fechar o preço com a Camila"]').id||(()=>{const s=document.querySelector('[aria-label="Responsável por Fechar o preço com a Camila"]');s.id='item-resp';return 'item-resp'})()`), ID_CAMILA);
   await c.espera(100);
   ok('responsável do item', (await tabela('checklist_item')).find((x) => x.texto === 'Fechar o preço com a Camila').responsavel_id === ID_CAMILA);
   // vínculos
   await escolher('painel-vinculo', `contraparte:${ID_SOUZA}`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Contraparte: Souza Contabilidade')`);
-  ok('vincular', await c.avaliar(`Boolean(document.querySelector('.painel-lateral a[href="/configuracoes/cadastros/contrapartes/${ID_SOUZA}"]'))`));
+  await c.ate(`document.querySelector('.janela').textContent.includes('Contraparte: Souza Contabilidade')`);
+  ok('vincular', await c.avaliar(`Boolean(document.querySelector('.janela a[href="/configuracoes/cadastros/contrapartes/${ID_SOUZA}"]'))`));
   await escolher('painel-vinculo', `contraparte:${ID_SOUZA}`);
   await c.ate(`document.getElementById('painel-vinculo-erro')?.textContent==='Este vínculo já existe.'`);
   ok('não repete', true);
   await c.clicar('[aria-label="Tirar o vínculo com Souza Contabilidade"]');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('Contraparte: Souza Contabilidade')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('Contraparte: Souza Contabilidade')`);
   ok('tirar o vínculo', true);
   // arquivos
   ok('o link de exemplo aparece', (await noPainel()).includes('Planilha de preços (exemplo)'));
@@ -606,11 +606,11 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
   ok('link só do Drive', true);
   await preencher('painel-arquivo', LINK);
   await c.tecla('Enter');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Arquivo do Drive')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Arquivo do Drive')`);
   ok('acrescentar um link', (await valor('painel-arquivo')) === '');
-  ok('o link abre em outra aba', await c.avaliar(`document.querySelector('.painel-lateral a[href="${LINK}"]').target==='_blank'`));
+  ok('o link abre em outra aba', await c.avaliar(`document.querySelector('.janela a[href="${LINK}"]').target==='_blank'`));
   await c.clicar('[aria-label="Tirar Arquivo do Drive"]');
-  await c.ate(`!document.querySelector('.painel-lateral a[href="${LINK}"]')`);
+  await c.ate(`!document.querySelector('.janela a[href="${LINK}"]')`);
   ok('tirar o link', true);
   await fecharPainelLateral();
 });
@@ -620,36 +620,36 @@ await passo('painel: comentários', async () => {
   await abrirPainelDe(t);
   const p = await noPainel();
   ok('os comentários, com autor', p.includes('Separei os preços dos concorrentes') && p.includes('Camila Lima'));
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Comentar').click()`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
   await c.ate(`document.getElementById('painel-comentario-erro')?.textContent==='Escreva o comentário.'`);
   ok('comentário vazio não entra', true);
   await c.clicar('[aria-label="Mencionar Camila Lima"]');
   await c.ate(`document.getElementById('painel-comentario').value==='@Camila '`);
   ok('o botão de mencionar escreve @pessoa', true);
   await preencherArea('painel-comentario', '@Camila, confere a planilha?');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Comentar').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Comentários (3)')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Comentários (3)')`);
   const novo = (await tabela('comentario')).find((x) => x.texto.startsWith('@Camila, confere'));
   ok('grava a menção (RN-03.22)', novo.mencoes.includes(ID_CAMILA) && novo.autor_id === ID_KIMBERLY);
   ok('o cartão conta', await c.avaliar(`(${cartao(t)}).textContent.includes('3')`));
   await preencherArea('painel-comentario', 'senha: abc123');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Comentar').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Isto parece uma senha')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Isto parece uma senha')`);
   ok('comentário que parece segredo avisa (RT-14)', (await tabela('comentario')).filter((x) => x.texto === 'senha: abc123').length === 0);
   await preencherArea('painel-comentario', '');
   // editar e remover: só os próprios
-  const botoes = await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].filter(b=>b.textContent.trim()==='Editar').length`);
+  const botoes = await c.avaliar(`[...document.querySelectorAll('.janela button')].filter(b=>b.textContent.trim()==='Editar').length`);
   ok('só o próprio comentário, recém-escrito, tem Editar', botoes === 1, botoes);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral li')].find(l=>l.textContent.includes('@Camila, confere')).querySelector('button').click()`);
-  await c.ate(`document.querySelector('.painel-lateral textarea[aria-label="Editar comentário"]')`);
-  await c.avaliar(`(()=>{const e=document.querySelector('.painel-lateral textarea[aria-label="Editar comentário"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Comentário editado');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Salvar').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Comentário editado')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela li')].find(l=>l.textContent.includes('@Camila, confere')).querySelector('button').click()`);
+  await c.ate(`document.querySelector('.janela textarea[aria-label="Editar comentário"]')`);
+  await c.avaliar(`(()=>{const e=document.querySelector('.janela textarea[aria-label="Editar comentário"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Comentário editado');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Salvar').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Comentário editado')`);
   ok('editar marca como editado', (await noPainel()).includes('· editado'));
-  await c.avaliar(`[...[...document.querySelectorAll('.painel-lateral li')].find(l=>l.textContent.includes('Comentário editado')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Remover').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Comentários (2)')`);
+  await c.avaliar(`[...[...document.querySelectorAll('.janela li')].find(l=>l.textContent.includes('Comentário editado')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Remover').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Comentários (2)')`);
   ok('remover vira "comentário removido"', !(await noPainel()).includes('Comentário editado') && (await noPainel()).includes('Comentário removido'));
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('removeu um comentário')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('removeu um comentário')`);
   ok('e o histórico guarda', (await noPainel()).includes('Kimberly Grebe comentou'));
   // comentário escrito e não enviado
   await preencherArea('painel-comentario', 'Um rascunho');
@@ -658,9 +658,9 @@ await passo('painel: comentários', async () => {
   await c.espera(350);
   await clicarNoDialogo('Continuar escrevendo');
   await dialogoFechado();
-  ok('fechar com um comentário por enviar pergunta antes', (await valor('painel-comentario')) === 'Um rascunho' && (await c.avaliar(`Boolean(document.querySelector('.painel-lateral'))`)));
+  ok('fechar com um comentário por enviar pergunta antes', (await valor('painel-comentario')) === 'Um rascunho' && (await c.avaliar(`Boolean(document.querySelector('.janela'))`)));
   await c.espera(100);
-  await c.clicar('.painel-lateral [aria-label="Fechar"]');
+  await c.clicar('.janela [aria-label="Fechar"]');
   await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar o comentário?')`);
   await c.espera(350);
   await clicarNoDialogo('Descartar comentário');
@@ -674,11 +674,11 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await abrirPainelDe(t);
   await clicarBotaoPainel('Concluir');
   await esperarAviso('Atividade concluída.');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Concluída em')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Concluída em')`);
   ok('concluir pelo painel', (await noPainel()).includes('por Kimberly Grebe'));
   ok('os campos ficam só para leitura', await c.avaliar(`document.getElementById('painel-titulo').disabled&&document.getElementById('painel-prazo').disabled`));
   ok('e não dá para mexer no checklist', !(await c.avaliar(`Boolean(document.getElementById('painel-novo-item'))`)));
-  ok('nem no contexto e nos participantes', await c.avaliar(`[...document.querySelectorAll('.painel-lateral fieldset')].length===2&&[...document.querySelectorAll('.painel-lateral fieldset')].every(f=>f.disabled)`));
+  ok('nem no contexto e nos participantes', await c.avaliar(`[...document.querySelectorAll('.janela fieldset')].length===2&&[...document.querySelectorAll('.janela fieldset')].every(f=>f.disabled)`));
   ok('nem nos vínculos e arquivos', !(await c.avaliar(`Boolean(document.getElementById('painel-vinculo')||document.getElementById('painel-arquivo'))`)));
   ok('mas ainda dá para comentar', await c.avaliar(`!document.getElementById('painel-comentario').disabled`));
   await escolher('painel-situacao', 'a_fazer');
@@ -710,10 +710,10 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await c.avaliar(`(()=>{const e=document.querySelector('.dialogo textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Falta o aval');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
   await clicarNoDialogo('Marcar bloqueada');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Falta o aval')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Falta o aval')`);
   ok('a seção Bloqueio diz desde quando e por quem', (await noPainel()).includes('por Kimberly Grebe'));
   await clicarBotaoPainel('Desbloquear');
-  await c.ate(`!document.querySelector('.painel-lateral').textContent.includes('por Kimberly Grebe')||!document.querySelector('.painel-lateral section')?.textContent.startsWith('Bloqueio')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('por Kimberly Grebe')||!document.querySelector('.janela section')?.textContent.startsWith('Bloqueio')`);
   await c.espera(100);
   ok('desbloquear pelo painel', (await atividadePor(t)).bloqueada === false);
   await menu();
@@ -742,7 +742,7 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await clicarNoDialogo('Cancelar atividade');
   await esperarAviso('Atividade cancelada.');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Cancelada: Era só um teste')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Cancelada: Era só um teste')`);
   ok('cancelar pelo painel: fica só para leitura', await c.avaliar(`document.getElementById('painel-titulo').disabled`));
   await fecharPainelLateral();
 });
@@ -753,7 +753,7 @@ await passo('painel: alerta e lembrete', async () => {
   const p = await noPainel();
   ok('alerta: origem, motivo, data de referência', p.includes('Origem:Backup') && p.includes('Motivo:Backup atrasado') && p.includes('Data de referência:'), p.slice(0, 400));
   ok('diz que concluir não executa a ação (RN-03.12)', p.includes('Concluir aqui não executa a ação de origem.'));
-  ok('com o botão da ação e dispensar', await c.avaliar(`[...document.querySelectorAll('.painel-lateral a')].some(x=>x.textContent==='Exportar dados'&&x.getAttribute('href')==='/configuracoes/dados')&&[...document.querySelectorAll('.painel-lateral button')].some(b=>b.textContent.trim()==='Dispensar alerta')`));
+  ok('com o botão da ação e dispensar', await c.avaliar(`[...document.querySelectorAll('.janela a')].some(x=>x.textContent==='Exportar dados'&&x.getAttribute('href')==='/configuracoes/dados')&&[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Dispensar alerta')`));
   ok('o título e o prazo vêm do sistema', !(await c.avaliar(`Boolean(document.getElementById('painel-titulo')||document.getElementById('painel-prazo'))`)));
   await c.foto('h-alerta');
   await c.clicar('[aria-label="Mais ações da atividade"]');
@@ -768,7 +768,7 @@ await passo('painel: alerta e lembrete', async () => {
   ok('lembrete: mostra o aviso, sem prazo nem checklist', (await valor('painel-aviso-hora')) === '15:00' && !(await c.avaliar(`Boolean(document.getElementById('painel-prazo')||document.getElementById('painel-novo-item'))`)));
   await preencher('painel-aviso-hora', '');
   await sairDoCampo('painel-aviso-hora');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Lembrete exige a data e a hora do aviso.')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Lembrete exige a data e a hora do aviso.')`);
   ok('lembrete não fica sem aviso', Boolean((await atividadePor(l)).aviso_em));
   await fecharPainelLateral();
 });
@@ -843,12 +843,12 @@ await passo('celular', async () => {
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Tarefa').click()`);
   await painelAberto();
   await c.espera(500);
-  const folha = await c.avaliar(`(()=>{const r=document.querySelector('.painel-lateral').getBoundingClientRect();return {topo:Math.round(r.top),base:Math.round(r.bottom),largura:Math.round(r.width)}})()`);
+  const folha = await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return {topo:Math.round(r.top),base:Math.round(r.bottom),largura:Math.round(r.width)}})()`);
   ok('Adicionar é folha inferior (18 §10.6)', folha.base === 800 && folha.top !== 0 && folha.topo > 0 && folha.largura === 360, JSON.stringify(folha));
-  ok('com a alça', await c.avaliar(`getComputedStyle(document.querySelector('.painel-lateral'),'::before').content!=='none'`));
+  ok('com a alça', await c.avaliar(`getComputedStyle(document.querySelector('.janela'),'::before').content!=='none'`));
   ok('foco automático no título', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo');
-  ok('abre sem acusar erro', !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral [role=alert]'))`)));
-  ok('salvar fica à vista', await c.avaliar(`(()=>{const b=document.querySelector('.painel-lateral button[type=submit]').getBoundingClientRect();return b.bottom<=800&&b.top>0})()`));
+  ok('abre sem acusar erro', !(await c.avaliar(`Boolean(document.querySelector('.janela [role=alert]'))`)));
+  ok('salvar fica à vista', await c.avaliar(`(()=>{const b=document.querySelector('.janela button[type=submit]').getBoundingClientRect();return b.bottom<=800&&b.top>0})()`));
   await c.foto('k-folha');
   await preencher('atividade-titulo', 'Criada no celular');
   await salvarPainel();
@@ -858,17 +858,17 @@ await passo('celular', async () => {
   ok('dá para criar no celular (CA-18.11)', true);
   await c.espera(200);
   await abrirPainelDe('Definir o preço da oferta anual');
-  ok('o painel é tela inteira no celular', await c.avaliar(`(()=>{const r=document.querySelector('.painel-lateral').getBoundingClientRect();return r.width===360&&r.height===800})()`));
-  ok('com "Voltar"', await c.avaliar(`Boolean(document.querySelector('.painel-lateral [aria-label="Voltar"]'))`));
+  ok('o painel é tela inteira no celular', await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return r.width===360&&r.height===800})()`));
+  ok('com "Voltar"', await c.avaliar(`Boolean(document.querySelector('.janela [aria-label="Voltar"]'))`));
   await c.foto('k-painel');
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral h3')].find(x=>x.textContent.startsWith('Checklist')).scrollIntoView({block:'center'})`);
+  await c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith('Checklist')).scrollIntoView({block:'center'})`);
   await c.espera(120);
   await c.foto('k-painel-checklist');
-  ok('no celular tudo rola, e só a barra de cima fica', await c.avaliar(`(()=>{const v=document.querySelector('.painel-lateral [aria-label="Voltar"]').getBoundingClientRect();const t=document.getElementById('painel-titulo').getBoundingClientRect();return v.top>=0&&v.bottom<=70&&t.bottom<0})()`));
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral h3')].find(x=>x.textContent.startsWith('Comentários')).scrollIntoView({block:'center'})`);
+  ok('no celular tudo rola, e só a barra de cima fica', await c.avaliar(`(()=>{const v=document.querySelector('.janela [aria-label="Voltar"]').getBoundingClientRect();const t=document.getElementById('painel-titulo').getBoundingClientRect();return v.top>=0&&v.bottom<=70&&t.bottom<0})()`));
+  await c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith('Comentários')).scrollIntoView({block:'center'})`);
   await c.espera(120);
   await c.foto('k-painel-comentarios');
-  await c.clicar('.painel-lateral [aria-label="Voltar"]');
+  await c.clicar('.janela [aria-label="Voltar"]');
   await painelFechado();
   ok('"Voltar" fecha', (await c.avaliar(`location.search`)) === '');
 });
@@ -889,7 +889,7 @@ await passo('teclado', async () => {
   ok('Esc fecha e o foco volta ao título do cartão', await c.avaliar(`document.activeElement.textContent===${js(t)}`), await c.avaliar(`document.activeElement.tagName+':'+document.activeElement.textContent.slice(0,30)`));
   // o menu some ao abrir o formulário: o foco volta para o botão que abriu o menu (RT-19)
   await abrirAdicionar('Tarefa');
-  ok('o título recebe o foco e não acusa erro', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo' && !(await c.avaliar(`Boolean(document.querySelector('.painel-lateral [role=alert]'))`)));
+  ok('o título recebe o foco e não acusa erro', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo' && !(await c.avaliar(`Boolean(document.querySelector('.janela [role=alert]'))`)));
   await c.tecla('Escape');
   await painelFechado();
   await c.espera(120);

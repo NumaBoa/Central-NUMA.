@@ -60,7 +60,7 @@ export function DialogoDeBaixaEmLote({ titulos, contas, aoFechar }: { titulos: r
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar(false)}>
-      <DialogContent semFechar comDescricao>
+      <DialogContent telaCheia semFechar comDescricao>
         <DialogTitle>Registrar baixa em lote</DialogTitle>
         <DialogDescription className="mt-3 leading-[1.6]">
           {titulos.length === 1 ? '1 título' : `${titulos.length} títulos`}, com o saldo inteiro de cada um{impedimento ? '.' : `: ${formatarDinheiro(total, 'BRL')}.`}

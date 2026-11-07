@@ -166,7 +166,7 @@ export function SecaoCambio({ cambios }: { cambios: readonly CambioReferencia[] 
       />
 
       <Dialog open={adicionando} onOpenChange={setAdicionando}>
-        <DialogContent comDescricao>
+        <DialogContent telaCheia comDescricao>
           <DialogTitle className="pr-12">Câmbio de referência</DialogTitle>
           <DialogDescription className="mt-3">Uma cotação de referência para estimar custos em outras moedas.</DialogDescription>
           <form noValidate onSubmit={aoEnviar} className="mt-5">

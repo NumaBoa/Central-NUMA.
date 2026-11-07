@@ -440,8 +440,11 @@
     }
   }
 
-  /* Painel lateral: tela inteira no celular; entra pela direita a partir do tablet */
-  .painel-lateral {
+  /*
+   * Janela (decisão de Kimberly em 06/11/2026, em todo o sistema): formulários e detalhes abrem no centro,
+   * com o essencial sem rolagem; no celular, tela inteira. Só o corpo rola: cabeçalho e ações ficam à vista.
+   */
+  .janela {
     position: fixed;
     z-index: 101;
     inset: 0;
@@ -451,56 +454,80 @@
     color: var(--ink);
     padding-top: var(--area-segura-topo);
   }
-  .painel-lateral:focus {
+  .janela:focus {
     outline: none;
   }
-  .painel-lateral[data-state='open'] {
+  .janela[data-state='open'] {
     animation: numa-painel-entra var(--t-slow) var(--ease);
   }
-  .painel-lateral[data-state='closed'] {
+  .janela[data-state='closed'] {
     animation: numa-painel-sai var(--t-mid) var(--ease);
   }
-  /* Formulário rápido: folha inferior no celular (18 §10.6) */
-  @media (max-width: 767.98px) {
-    .painel-lateral[data-folha] {
-      inset: auto 0 0;
-      max-height: 90dvh;
-      border-radius: var(--r-xl) var(--r-xl) 0 0;
-      box-shadow: var(--sh-2);
-    }
-    .painel-lateral[data-folha]::before {
-      content: '';
-      display: block;
-      flex-shrink: 0;
-      width: 36px;
-      height: 4px;
-      border-radius: var(--r-pill);
-      background: var(--oat);
-      margin: 10px auto 0;
-    }
-    .painel-lateral[data-folha][data-state='open'] {
-      animation: numa-folha-sobe var(--t-slow) var(--ease);
-    }
-    .painel-lateral[data-folha][data-state='closed'] {
-      animation: numa-folha-desce var(--t-mid) var(--ease);
-    }
-  }
   @media (min-width: 768px) {
-    .painel-lateral {
-      inset: 0 0 0 auto;
-      width: 420px;
-      max-width: 100vw;
-      border-left: 1px solid var(--line);
-      border-radius: var(--r-xl) 0 0 var(--r-xl);
+    .janela {
+      inset: 50% auto auto 50%;
+      translate: -50% -50%;
+      width: min(560px, calc(100vw - 32px));
+      max-height: min(88dvh, 860px);
+      padding-top: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
       box-shadow: var(--sh-2);
     }
-    .painel-lateral[data-largura='detalhe'] {
-      width: 560px;
+    .janela[data-largura='larga'] {
+      width: min(860px, calc(100vw - 32px));
+    }
+    .janela[data-state='open'] {
+      animation: numa-dialogo-entra var(--t-slow) var(--ease);
+    }
+    .janela[data-state='closed'] {
+      animation: numa-some var(--t-mid) var(--ease);
+    }
+    /* Formulário longo: duas colunas, para o essencial caber sem rolar. O campo não se parte entre elas. */
+    .janela-colunas > div.grid {
+      display: block !important; /* passa por cima do utilitário `grid` do formulário */
+      columns: 2;
+      column-gap: 28px;
+    }
+    .janela-colunas > div.grid > * {
+      break-inside: avoid;
+      margin-bottom: 18px;
+    }
+    .janela-colunas > div.grid > p {
+      break-before: avoid;
     }
   }
-  @media (min-width: 1024px) {
-    .painel-lateral {
-      width: 480px;
+
+  /* Diálogo que é formulário: centralizado no computador e tela inteira no celular, com as ações embaixo. */
+  @media (max-width: 767.98px) {
+    .dialogo[data-tela-cheia] {
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
+      padding-top: calc(20px + var(--area-segura-topo));
+      padding-bottom: 0;
+    }
+    .dialogo[data-tela-cheia]::before {
+      display: none;
+    }
+    .dialogo[data-tela-cheia] > form {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+    }
+    .dialogo[data-tela-cheia] .acoes-dialogo {
+      margin-top: auto;
+      padding-bottom: calc(12px + var(--area-segura-baixo));
+    }
+    .dialogo[data-tela-cheia][data-state='open'] {
+      animation: numa-painel-entra var(--t-slow) var(--ease);
+    }
+    .dialogo[data-tela-cheia][data-state='closed'] {
+      animation: numa-painel-sai var(--t-mid) var(--ease);
     }
   }
 

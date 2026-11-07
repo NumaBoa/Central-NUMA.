@@ -15,7 +15,7 @@ import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
@@ -180,7 +180,8 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresI
 
   return (
     <>
-      <PainelFormulario
+      <JanelaFormulario
+        colunas={2}
         aberto={aberto}
         aoFechar={aoFechar}
         titulo="Nova despesa"
@@ -423,7 +424,7 @@ export function FormularioDeDespesa({ aberto, aoFechar, dados, aoCriar, valoresI
             {(controle) => <Textarea {...controle} {...register('observacao')} />}
           </Campo>
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={avisos !== null}
         aoFechar={() => {

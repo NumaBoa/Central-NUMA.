@@ -15,7 +15,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaColorida } from '@/componentes/padroes/etiquetas';
 import { BarraFiltros } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { mensagemDoErro } from '@/dados/erros';
@@ -81,7 +81,7 @@ function FormularioDaEtiqueta({ aberto, aoFechar, etiqueta }: { aberto: boolean;
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={etiqueta ? 'Editar etiqueta' : 'Nova etiqueta'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={etiqueta ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={etiqueta ? 'Editar etiqueta' : 'Nova etiqueta'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={etiqueta ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         <Campo id="etiqueta-nome" rotulo="Nome" obrigatorio erro={errors.nome?.message}>
           {(controle) => <Input autoComplete="off" {...controle} {...register('nome')} />}
@@ -121,7 +121,7 @@ function FormularioDaEtiqueta({ aberto, aoFechar, etiqueta }: { aberto: boolean;
           </div>
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

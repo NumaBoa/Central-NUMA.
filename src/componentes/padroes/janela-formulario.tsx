@@ -4,6 +4,7 @@ import { useState, type FormEvent, type ReactNode, type Ref } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/componentes/ui/button';
 import { BotaoFechar, Dialog, DialogContent, DialogDescription, DialogTitle } from '@/componentes/ui/dialog';
+import { cn } from '@/lib/utils';
 import { Confirmacao } from './confirmacao';
 
 export type ErroDeCampo = { campoId: string; mensagem: string };
@@ -31,7 +32,7 @@ export function ResumoErros({ erros, ref }: { erros: readonly ErroDeCampo[]; ref
   );
 }
 
-type PainelFormularioProps = {
+type JanelaFormularioProps = {
   aberto: boolean;
   aoFechar: () => void;
   titulo: string;
@@ -45,13 +46,21 @@ type PainelFormularioProps = {
   rotuloSalvarEOutro?: string;
   salvando?: boolean;
   erros?: readonly ErroDeCampo[];
-  /** Formulário rápido (18 §10.6): no celular, folha inferior em vez de tela inteira. */
-  folhaNoCelular?: boolean;
+  /** Formulário longo: janela larga, em duas colunas no computador, para o essencial caber sem rolar. */
+  colunas?: 1 | 2;
+  /** Janela larga, com o layout das colunas por conta de quem usa. */
+  larga?: boolean;
+  /** Título no tamanho de página (T03.03). */
+  tituloGrande?: boolean;
+  /** Ícone do botão de salvar. */
+  iconeSalvar?: ReactNode;
+  /** Só para ler: sem salvar, e "Cancelar" vira "Fechar". */
+  soLeitura?: boolean;
   children: ReactNode;
 };
 
-/** Formulário em painel lateral (P3 e 18 §9.9): 480/420px; no celular, tela inteira com ações fixas. */
-export function PainelFormulario({
+/** Formulário em janela central (decisão de Kimberly em 06/11/2026); no celular, tela inteira com ações fixas. */
+export function JanelaFormulario({
   aberto,
   aoFechar,
   titulo,
@@ -63,9 +72,13 @@ export function PainelFormulario({
   rotuloSalvarEOutro = 'Salvar e adicionar outro',
   salvando = false,
   erros = [],
-  folhaNoCelular = false,
+  colunas = 1,
+  larga = false,
+  tituloGrande = false,
+  iconeSalvar,
+  soLeitura = false,
   children,
-}: PainelFormularioProps) {
+}: JanelaFormularioProps) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
 
   function pedirFechar() {
@@ -77,10 +90,10 @@ export function PainelFormulario({
     <>
       <Dialog open={aberto} onOpenChange={(proximo) => !proximo && pedirFechar()}>
         <DialogContent
-          variante="painel"
+          variante="janela"
           semFechar
           comDescricao={Boolean(descricao)}
-          data-folha={folhaNoCelular ? '' : undefined}
+          data-largura={larga || colunas === 2 ? 'larga' : undefined}
           onOpenAutoFocus={(evento) => {
             evento.preventDefault();
             (evento.currentTarget as HTMLElement).querySelector<HTMLElement>('input:not([type="radio"]), textarea, select')?.focus();
@@ -92,27 +105,31 @@ export function PainelFormulario({
                 <ArrowLeft aria-hidden />
               </Button>
               <div className="min-w-0 flex-1 self-center">
-                <DialogTitle>{titulo}</DialogTitle>
-                {descricao && <DialogDescription className="mt-1 text-[13px]">{descricao}</DialogDescription>}
+                <DialogTitle className={tituloGrande ? 'md:text-[30px] md:leading-9 md:tracking-[-.03em]' : undefined}>{titulo}</DialogTitle>
+                {descricao && <DialogDescription className={tituloGrande ? 'mt-1 text-sm' : 'mt-1 text-[13px]'}>{descricao}</DialogDescription>}
               </div>
               <BotaoFechar className="hidden md:inline-grid" onClick={pedirFechar} />
             </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
+            <div className={cn('min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-7', colunas === 2 && 'janela-colunas')}>
               <ResumoErros erros={erros} />
               {children}
             </div>
-            <footer className="flex flex-wrap justify-end gap-2 border-t border-line px-4 pt-3 pb-[calc(12px+var(--area-segura-baixo))] md:px-6 md:py-4 max-md:[&>*]:flex-1">
-              <Button variante="secundario" onClick={pedirFechar}>
-                Cancelar
+            <footer className="flex flex-wrap justify-end gap-2 border-t border-line px-4 pt-3 pb-[calc(12px+var(--area-segura-baixo))] md:px-7 md:py-4 max-md:[&>*]:flex-1">
+              {/* Com três botões, "Cancelar" fica à parte; no celular, o "Voltar" do topo faz o mesmo e sobra lugar para os outros. */}
+              <Button variante={aoSalvarEOutro ? 'terciario' : 'secundario'} className={aoSalvarEOutro ? 'mr-auto max-md:hidden' : undefined} onClick={pedirFechar}>
+                {soLeitura ? 'Fechar' : 'Cancelar'}
               </Button>
-              {aoSalvarEOutro && (
+              {aoSalvarEOutro && !soLeitura && (
                 <Button variante="secundario" disabled={salvando} onClick={aoSalvarEOutro}>
                   {rotuloSalvarEOutro}
                 </Button>
               )}
-              <Button type="submit" carregando={salvando}>
-                {rotuloSalvar}
-              </Button>
+              {!soLeitura && (
+                <Button type="submit" carregando={salvando}>
+                  {iconeSalvar}
+                  {rotuloSalvar}
+                </Button>
+              )}
             </footer>
           </form>
         </DialogContent>

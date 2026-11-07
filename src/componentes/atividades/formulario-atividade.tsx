@@ -13,7 +13,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
@@ -194,7 +194,7 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo="Adicionar" folhaNoCelular alterado={isDirty} aoEnviar={enviar(false)} rotuloSalvar="Salvar" aoSalvarEOutro={() => void enviar(true)()} rotuloSalvarEOutro="Salvar e adicionar outro" salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo="Adicionar" alterado={isDirty} aoEnviar={enviar(false)} rotuloSalvar="Salvar" aoSalvarEOutro={() => void enviar(true)()} rotuloSalvarEOutro="Salvar e adicionar outro" salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Controller
             control={control}
@@ -429,7 +429,7 @@ export function FormularioAtividade({ aberto, aoFechar, tipoInicial, pessoaId, c
           )}
           {consulta.estado === 'erro' && <Faixa tipo="erro">Não deu para ler as pessoas e os produtos. Importe um backup ou restaure os exemplos em Configurações › Dados.</Faixa>}
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

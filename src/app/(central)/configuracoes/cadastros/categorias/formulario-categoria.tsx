@@ -9,7 +9,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { mensagemDoErro } from '@/dados/erros';
 import type { CategoriaFinanceira } from '@/dados/tipos/financeiro';
@@ -95,7 +95,7 @@ export function FormularioCategoria({ aberto, aoFechar, categoria, grupoInicial,
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={titulo} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={categoria ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={titulo} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={categoria ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Campo id="categoria-nome" rotulo="Nome" obrigatorio erro={errors.nome?.message}>
             {(controle) => <Input autoComplete="off" {...controle} {...register('nome')} />}
@@ -174,7 +174,7 @@ export function FormularioCategoria({ aberto, aoFechar, categoria, grupoInicial,
           />
           {situacao === 'inativa' && <Faixa tipo="atencao">{filhas.length ? 'As categorias deste grupo também deixam de ser oferecidas em novos registros.' : 'Deixa de ser oferecida em novos registros, mas continua nos antigos.'}</Faixa>}
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

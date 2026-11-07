@@ -15,7 +15,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { BarraFiltros } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Previa } from '@/componentes/padroes/previa';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -94,7 +94,7 @@ function FormularioDoFeriado({ aberto, aoFechar, feriado, dados, aoSalvar }: { a
   });
 
   return (
-    <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={feriado ? 'Editar feriado' : 'Novo feriado'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={feriado ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario aberto={aberto} aoFechar={aoFechar} titulo={feriado ? 'Editar feriado' : 'Novo feriado'} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={feriado ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
       <div className="grid grid-cols-1 gap-[18px]">
         <Campo id="feriado-data" rotulo="Data" obrigatorio erro={errors.data?.message}>
           {(controle) => <EntradaData {...controle} {...register('data')} />}
@@ -155,7 +155,7 @@ function FormularioDoFeriado({ aberto, aoFechar, feriado, dados, aoSalvar }: { a
           />
         )}
       </div>
-    </PainelFormulario>
+    </JanelaFormulario>
   );
 }
 

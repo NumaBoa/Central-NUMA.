@@ -16,13 +16,13 @@ const { c, ok, passo, ir, texto, valor, preencher, escolher, opcoes, esperarAvis
 const js = (v) => JSON.stringify(v);
 const pronta = () => c.ate(`document.querySelector('main table tbody tr, main ul[aria-label] li, main section, main .marca-agua, main h2')`);
 const irPara = async (caminho) => { await ir(caminho); await pronta(); };
-const salvarPainel = () => c.avaliar(`document.querySelector('.painel-lateral button[type=submit]').click()`);
+const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
 const abrirPainel = async (rotulo) => { await c.clicar(`texto=${rotulo}`); await painelAberto(); await c.espera(450); };
-const painelTemErro = (parte) => c.ate(`document.querySelector('.painel-lateral [role=alert]')?.textContent.includes(${js(parte)})`);
+const painelTemErro = (parte) => c.ate(`document.querySelector('.janela [role=alert]')?.textContent.includes(${js(parte)})`);
 const salvarESaber = async (avisoEsperado) => { await salvarPainel(); await esperarAviso(avisoEsperado); await painelFechado(); };
 const descartar = async () => {
   await c.tecla('Escape');
-  await c.ate(`!document.querySelector('.painel-lateral') || document.querySelector('.dialogo')`);
+  await c.ate(`!document.querySelector('.janela') || document.querySelector('.dialogo')`);
   if (await c.avaliar(`Boolean(document.querySelector('.dialogo'))`)) { await c.espera(350); await clicarNoDialogo('Descartar alterações'); await dialogoFechado(); }
   await painelFechado();
 };
@@ -129,7 +129,7 @@ await passo('categorias: cadastrar', async () => {
   await c.foto('c-formulario');
   await salvarPainel();
   await painelTemErro('Informe o nome.');
-  ok('nome obrigatório, com resumo', (await texto('.painel-lateral [role=alert]')).includes('Escolha a natureza do custo.'));
+  ok('nome obrigatório, com resumo', (await texto('.janela [role=alert]')).includes('Escolha a natureza do custo.'));
   await preencher('categoria-nome', 'eventos');
   await escolher('categoria-natureza', 'direto');
   await salvarPainel();
@@ -157,7 +157,7 @@ await passo('categorias: cadastrar', async () => {
 
   // grupo novo
   await abrirPainel('Nova categoria');
-  ok('sem grupo, explica que vira grupo', (await texto('.painel-lateral')).includes('Sem grupo, esta linha vira um novo grupo.'));
+  ok('sem grupo, explica que vira grupo', (await texto('.janela')).includes('Sem grupo, esta linha vira um novo grupo.'));
   await preencher('categoria-nome', 'Marketing');
   await salvarPainel();
   await c.ate(`document.getElementById('categoria-nome-erro')?.textContent.includes('Já existe')`);
@@ -175,10 +175,10 @@ await passo('categorias: editar e 2 níveis', async () => {
   await clicarRotulo('Editar Marketing');
   await painelAberto();
   await c.espera(450);
-  const p = await texto('.painel-lateral');
+  const p = await texto('.janela');
   ok('grupo: título e aviso dos 2 níveis, sem seletor de grupo', p.includes('Editar grupo') && p.includes('com 5 categorias') && p.includes('A árvore só tem 2 níveis') && !(await c.avaliar(`Boolean(document.getElementById('categoria-grupo'))`)), p.slice(0, 200));
   await marcarPilula('Situação', 'Inativa');
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('também deixam de ser oferecidas')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('também deixam de ser oferecidas')`);
   ok('inativar o grupo avisa sobre as categorias', true);
   await c.foto('d-grupo');
   await salvarESaber('Categoria atualizada.');
@@ -202,7 +202,7 @@ await passo('categorias: editar e 2 níveis', async () => {
   await clicarRotulo('Editar Passagens');
   await painelAberto();
   await c.espera(450);
-  ok('título de edição', (await texto('.painel-lateral h2')).includes('Editar categoria'));
+  ok('título de edição', (await texto('.janela h2')).includes('Editar categoria'));
   ok('o grupo atual fora das opções de si mesma', !(await opcoes('categoria-grupo')).includes('Passagens'));
   const idReceitas = await c.avaliar(`[...document.querySelectorAll('#categoria-grupo option')].find(o=>o.textContent==='Receitas').value`);
   await escolher('categoria-grupo', idReceitas);
@@ -285,7 +285,7 @@ await passo('contas: lista', async () => {
 
 await passo('contas: formulário', async () => {
   await abrirPainel('Nova conta');
-  ok('título', (await texto('.painel-lateral h2')).includes('Nova conta'));
+  ok('título', (await texto('.janela h2')).includes('Nova conta'));
   ok('conta bancária e moeda padrão', (await valor('conta-tipo')) === 'banco' && (await valor('conta-moeda')) === 'BRL');
   ok('os tipos da especificação', (await opcoes('conta-tipo')).join('|') === 'Conta bancária|Cartão de crédito|Carteira digital|Conta pessoal de sócia|Caixa', (await opcoes('conta-tipo')).join('|'));
   ok('sem situação ao criar', !(await existeGrupo('Situação')));
@@ -293,7 +293,7 @@ await passo('contas: formulário', async () => {
   await c.foto('g-formulario');
   await salvarPainel();
   await painelTemErro('Informe o nome.');
-  const r = await texto('.painel-lateral [role=alert]');
+  const r = await texto('.janela [role=alert]');
   ok('obrigatórios, todos no resumo', r.includes('Escolha o titular.') && r.includes('Informe o saldo inicial.') && r.includes('Informe a data do saldo.'), r);
   await c.foto('g-erros');
   const titulares = await opcoes('conta-titular');
@@ -327,12 +327,12 @@ await passo('contas: formulário', async () => {
   await c.espera(100);
   ok('conta pessoal limpa a entidade escolhida', (await valor('conta-titular')) === '');
   ok('conta pessoal só oferece sócias', (await opcoes('conta-titular')).join('|') === 'Escolha a sócia|Kimberly Grebe|Camila Lima', (await opcoes('conta-titular')).join('|'));
-  ok('o rótulo vira Sócia, e explica o aporte ou reembolso', await c.avaliar(`[...document.querySelectorAll('.painel-lateral label')].some(l=>l.textContent.startsWith('Sócia'))&&document.querySelector('.painel-lateral').textContent.includes('aporte ou reembolso')`));
+  ok('o rótulo vira Sócia, e explica o aporte ou reembolso', await c.avaliar(`[...document.querySelectorAll('.janela label')].some(l=>l.textContent.startsWith('Sócia'))&&document.querySelector('.janela').textContent.includes('aporte ou reembolso')`));
   ok('conta pessoal não tem saldo', !(await c.avaliar(`Boolean(document.getElementById('conta-saldo'))`)));
   await c.foto('g-pessoal');
   await escolher('conta-tipo', 'cartao');
   await c.espera(100);
-  ok('cartão explica que não tem saldo', !(await c.avaliar(`Boolean(document.getElementById('conta-saldo'))`)) && (await texto('.painel-lateral')).includes('não têm saldo controlado'));
+  ok('cartão explica que não tem saldo', !(await c.avaliar(`Boolean(document.getElementById('conta-saldo'))`)) && (await texto('.janela')).includes('não têm saldo controlado'));
   await escolher('conta-tipo', 'banco');
   await c.espera(100);
 
@@ -369,7 +369,7 @@ await passo('contas: editar e encerrar', async () => {
   ok('situação ao editar', await pilulaMarcada('Situação', 'Ativa'));
   await marcarPilula('Situação', 'Encerrada');
   await c.ate(`Boolean(document.getElementById('conta-motivo'))`);
-  ok('encerrar com saldo pede motivo', (await texto('.painel-lateral')).includes('A conta ainda tem saldo.'));
+  ok('encerrar com saldo pede motivo', (await texto('.janela')).includes('A conta ainda tem saldo.'));
   await c.foto('g-encerrar');
   await salvarPainel();
   await c.ate(`document.getElementById('conta-motivo-erro')?.textContent.includes('Informe o motivo')`);
@@ -434,7 +434,7 @@ await passo('contas: titular fora da lista e vínculos', async () => {
   await clicarRotulo('Editar Cartão pessoal — Camila');
   await painelAberto();
   await c.espera(450);
-  ok('o formulário pede outro, sem trocar sozinho', (await texto('.painel-lateral')).includes('O titular desta conta não está mais na lista.') && (await valor('conta-titular')) === '');
+  ok('o formulário pede outro, sem trocar sozinho', (await texto('.janela')).includes('O titular desta conta não está mais na lista.') && (await valor('conta-titular')) === '');
   await salvarPainel();
   await painelTemErro('Escolha a sócia.');
   ok('não salva sem titular', true);
@@ -542,7 +542,7 @@ await passo('calendário: formulário', async () => {
   await c.foto('i-formulario');
   await salvarPainel();
   await painelTemErro('Informe a data.');
-  ok('data e nome obrigatórios', (await texto('.painel-lateral [role=alert]')).includes('Informe o nome.'));
+  ok('data e nome obrigatórios', (await texto('.janela [role=alert]')).includes('Informe o nome.'));
   ok('nacional não pede local', !(await c.avaliar(`Boolean(document.getElementById('feriado-uf'))`)));
   await marcarPilula('Abrangência', 'Estadual');
   await c.ate(`Boolean(document.getElementById('feriado-uf'))`);
@@ -609,7 +609,7 @@ await passo('etiquetas: cadastrar', async () => {
   await preencher('etiqueta-cor', '#3478B8');
   await marcarPilula('Onde pode ser usada', 'Só alguns');
   await c.ate(`[...document.querySelectorAll('fieldset legend')].some(l=>l.textContent.startsWith('Módulos'))`);
-  ok('os módulos da fase ativa', await c.avaliar(`['Atividades','Ferramentas e ativos','Financeiro','Contrapartes'].every(t=>[...document.querySelectorAll('.painel-lateral fieldset label')].some(l=>l.textContent===t))`));
+  ok('os módulos da fase ativa', await c.avaliar(`['Atividades','Ferramentas e ativos','Financeiro','Contrapartes'].every(t=>[...document.querySelectorAll('.janela fieldset label')].some(l=>l.textContent===t))`));
   await salvarPainel();
   await painelTemErro('Escolha pelo menos um módulo.');
   ok('só alguns pede pelo menos um', (await texto('#etiqueta-modulos')).includes('Escolha pelo menos um módulo.'));

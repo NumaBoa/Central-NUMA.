@@ -10,7 +10,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { Faixa } from '@/componentes/padroes/faixa';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
@@ -122,7 +122,7 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
 
   return (
     <>
-      <PainelFormulario aberto={aberto} aoFechar={aoFechar} titulo={produto ? 'Editar produto' : 'Novo produto'} descricao="O cadastro básico. A ficha completa chega com a fase 0b." alterado={isDirty} aoEnviar={enviar} rotuloSalvar={produto ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
+      <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={produto ? 'Editar produto' : 'Novo produto'} descricao="O cadastro básico. A ficha completa chega com a fase 0b." alterado={isDirty} aoEnviar={enviar} rotuloSalvar={produto ? 'Salvar alterações' : 'Salvar'} salvando={isSubmitting} erros={erros}>
         <div className="grid grid-cols-1 gap-[18px]">
           <Controller
             control={control}
@@ -250,7 +250,7 @@ export function FormularioProduto({ aberto, aoFechar, produto, marcaId, marcas, 
             </Campo>
           )}
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
       <Confirmacao
         aberto={aConfirmar !== null}
         aoFechar={() => setAConfirmar(null)}

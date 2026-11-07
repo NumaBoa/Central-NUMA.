@@ -16,7 +16,7 @@ import { Faixa } from '@/componentes/padroes/faixa';
 import { Ficha } from '@/componentes/padroes/ficha';
 import { BarraFiltros } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { PainelFormulario, type ErroDeCampo } from '@/componentes/padroes/painel-formulario';
+import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Pessoa } from '@/componentes/padroes/pessoa';
 import { Secao } from '@/componentes/padroes/secao';
 import { Button } from '@/componentes/ui/button';
@@ -288,7 +288,7 @@ function DemoFormulario() {
         <Plus aria-hidden />
         Nova tarefa
       </Button>
-      <PainelFormulario
+      <JanelaFormulario
         aberto={aberto}
         aoFechar={fechar}
         titulo="Nova tarefa"
@@ -348,7 +348,7 @@ function DemoFormulario() {
           </Campo>
           <Campo rotulo="Descrição">{(controle) => <Textarea {...controle} {...register('descricao')} />}</Campo>
         </div>
-      </PainelFormulario>
+      </JanelaFormulario>
     </>
   );
 }

@@ -58,7 +58,7 @@ export function DialogoDeConferencia({ conta, dados, aoFechar }: { conta: ContaF
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent semFechar comDescricao>
+      <DialogContent telaCheia semFechar comDescricao>
         <form onSubmit={(evento) => void enviar(evento)} noValidate>
           <DialogTitle>Conferir saldo</DialogTitle>
           <DialogDescription className="mt-3 leading-[1.6]">{conta.nome}. Informe o saldo real do banco numa data, e veja a diferença para o sistema.</DialogDescription>

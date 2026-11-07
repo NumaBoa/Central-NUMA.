@@ -39,7 +39,7 @@ export async function iniciar({ nome, porta, rotinas = false }) {
     } catch (e) {
       resultados.push(`ERRO  ${rotulo}: ${e.message}`);
       try {
-        const d = await c.avaliar(`JSON.stringify({caminho:location.pathname+location.search,avisos:[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent),dialogo:document.querySelector('.dialogo,.painel-lateral')?.textContent.slice(0,200)??null,abertura:Boolean(document.querySelector('.abertura'))})`);
+        const d = await c.avaliar(`JSON.stringify({caminho:location.pathname+location.search,avisos:[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent),dialogo:document.querySelector('.dialogo,.janela')?.textContent.slice(0,200)??null,abertura:Boolean(document.querySelector('.abertura'))})`);
         console.log('    estado:', d);
         await c.foto(`erro-${rotulo.replaceAll(/[^a-z0-9]+/gi, '-')}`);
       } catch {}
@@ -65,18 +65,18 @@ export async function iniciar({ nome, porta, rotinas = false }) {
     opcoes: (id) => c.avaliar(`[...document.getElementById(${js(id)}).options].map(o=>o.textContent)`),
     erroDe: (id) => c.avaliar(`document.getElementById(${js(id + '-erro')})?.textContent ?? ''`),
     /** O id do campo pelo rótulo, dentro de um painel ou diálogo: os ids gerados não são fixos. */
-    idPorRotulo: (rotulo) => c.avaliar(`[...document.querySelectorAll('.dialogo label,.painel-lateral label')].find(l=>l.textContent.startsWith(${js(rotulo)}))?.htmlFor`),
+    idPorRotulo: (rotulo) => c.avaliar(`[...document.querySelectorAll('.dialogo label,.janela label')].find(l=>l.textContent.startsWith(${js(rotulo)}))?.htmlFor`),
     /** Pílula de escolha pelo texto, dentro de um grupo com aquele título. */
     marcarPilula: (grupo, opcao) =>
       c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith(${js(grupo)}));[...f.querySelectorAll('label')].find(l=>l.textContent===${js(opcao)}).querySelector('input').click()})()`),
     pilulaMarcada: (grupo, opcao) =>
       c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith(${js(grupo)}));return [...f.querySelectorAll('label')].find(l=>l.textContent===${js(opcao)})?.querySelector('input').checked})()`),
     existeGrupo: (grupo) => c.avaliar(`[...document.querySelectorAll('fieldset')].some(x=>x.querySelector('legend')?.textContent.startsWith(${js(grupo)}))`),
-    clicarNoDialogo: (rotulo) => c.avaliar(`[...document.querySelectorAll('.dialogo button,.painel-lateral button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`),
+    clicarNoDialogo: (rotulo) => c.avaliar(`[...document.querySelectorAll('.dialogo button,.janela button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`),
     dialogoAberto: () => c.ate(`document.querySelector('.dialogo')`),
     dialogoFechado: () => c.ate(`!document.querySelector('.dialogo')`),
-    painelAberto: () => c.ate(`document.querySelector('.painel-lateral')`),
-    painelFechado: () => c.ate(`!document.querySelector('.painel-lateral')`),
+    painelAberto: () => c.ate(`document.querySelector('.janela')`),
+    painelFechado: () => c.ate(`!document.querySelector('.janela')`),
     /** Pula a abertura do dia: a tecla só funciona depois que ela está na tela. */
     pularAbertura: async () => {
       await c.ate(`document.querySelector('.abertura')`);

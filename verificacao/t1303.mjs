@@ -207,8 +207,8 @@ await passo('sino: abrir, marcar e menção', async () => {
   await c.espera(400);
   // uma menção de verdade, com a pessoa conectada como autora
   await c.avaliar(`(()=>{const e=document.getElementById('painel-comentario');e.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'@Camila, viu isso?');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Comentar').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('@Camila, viu isso?')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('@Camila, viu isso?')`);
   const paraCamila = await notificacoes(ID_CAMILA);
   ok('mencionar notifica a pessoa (RN-03.22)', paraCamila.filter((n) => n.tipo === 'mencao').length === 2 && paraCamila.some((n) => n.titulo === 'Kimberly mencionou você em Definir o preço da oferta anual' && n.exemplo === false), JSON.stringify(paraCamila.map((n) => n.titulo)));
   ok('e não notifica quem escreveu', (await notificacoes(ID_KIMBERLY)).length === 1);
@@ -302,12 +302,12 @@ await passo('comentários: 15 minutos e "comentário removido" (02 §6)', async 
   await painelAberto();
   await c.ate(`document.getElementById('painel-comentario')`);
   await c.espera(450);
-  const escritos = () => c.avaliar(`[...document.querySelectorAll('.painel-lateral li')].filter(l=>l.querySelector('p')&&/Kimberly Grebe|Camila Lima/.test(l.querySelector('p').textContent)&&l.textContent.includes(' às ')).map(l=>l.textContent)`);
+  const escritos = () => c.avaliar(`[...document.querySelectorAll('.janela li')].filter(l=>l.querySelector('p')&&/Kimberly Grebe|Camila Lima/.test(l.querySelector('p').textContent)&&l.textContent.includes(' às ')).map(l=>l.textContent)`);
   const antigo = (await escritos()).find((x) => x.includes('vamos fechar'));
   ok('comentário antigo: só remover', antigo.includes('Remover') && !antigo.includes('Editar'), antigo);
   await c.avaliar(`(()=>{const e=document.getElementById('painel-comentario');e.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Acabei de escrever');e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
-  await c.avaliar(`[...document.querySelectorAll('.painel-lateral button')].find(b=>b.textContent.trim()==='Comentar').click()`);
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Acabei de escrever')`);
+  await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Acabei de escrever')`);
   const novo = (await escritos()).find((x) => x.includes('Acabei de escrever'));
   ok('recém-escrito: editar e remover', novo.includes('Editar') && novo.includes('Remover'), novo);
   // Passados 16 minutos, o botão some ao abrir de novo, e a regra barra.
@@ -315,14 +315,14 @@ await passo('comentários: 15 minutos e "comentário removido" (02 §6)', async 
   await c.avaliar(`(()=>{const k='numa-central:v1:comentario';const v=new Date(Date.now()-16*6e4).toISOString();localStorage.setItem(k,JSON.stringify(JSON.parse(localStorage.getItem(k)).map(a=>a.id===${js(id)}?{...a,criado_em:v}:a)))})()`);
   await c.recarregar();
   await painelAberto();
-  await c.ate(`document.querySelector('.painel-lateral').textContent.includes('Acabei de escrever')`);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Acabei de escrever')`);
   await c.espera(400);
   const depois = (await escritos()).find((x) => x.includes('Acabei de escrever'));
   ok('depois de 15 minutos, não edita mais', !depois.includes('Editar'), depois);
-  await c.avaliar(`[...[...document.querySelectorAll('.painel-lateral li')].find(l=>l.textContent.includes('Acabei de escrever')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Remover').click()`);
-  await c.ate(`[...document.querySelectorAll('.painel-lateral li')].some(l=>l.textContent.includes('Comentário removido'))`);
-  ok('remover vira "comentário removido"', !(await texto('.painel-lateral')).includes('Acabei de escrever'));
-  ok('sem ações, e fora do contador', (await texto('.painel-lateral')).includes('Comentários (2)') && !(await c.avaliar(`[...document.querySelectorAll('.painel-lateral li')].find(l=>l.textContent.includes('Comentário removido')).querySelector('button')!==null`)));
+  await c.avaliar(`[...[...document.querySelectorAll('.janela li')].find(l=>l.textContent.includes('Acabei de escrever')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Remover').click()`);
+  await c.ate(`[...document.querySelectorAll('.janela li')].some(l=>l.textContent.includes('Comentário removido'))`);
+  ok('remover vira "comentário removido"', !(await texto('.janela')).includes('Acabei de escrever'));
+  ok('sem ações, e fora do contador', (await texto('.janela')).includes('Comentários (2)') && !(await c.avaliar(`[...document.querySelectorAll('.janela li')].find(l=>l.textContent.includes('Comentário removido')).querySelector('button')!==null`)));
   await c.foto('f-removido');
   await c.tecla('Escape');
   await painelFechado();
@@ -366,7 +366,7 @@ await passo('celular', async () => {
   await painelAberto();
   ok('tocar no resultado abre', true);
   await c.espera(450);
-  await c.clicar('.painel-lateral [aria-label="Voltar"]');
+  await c.clicar('.janela [aria-label="Voltar"]');
   await painelFechado();
   await abrirSino();
   ok('o sino abre em folha', await c.avaliar(`document.querySelector('.dialogo')?.textContent.includes('Notificações')`));

@@ -51,7 +51,7 @@ export function DialogoDeAporte({ socias, contas, aoFechar }: { socias: readonly
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent semFechar comDescricao>
+      <DialogContent telaCheia semFechar comDescricao>
         <form onSubmit={(evento) => void enviar(evento)} noValidate>
           <DialogTitle>Novo aporte em dinheiro</DialogTitle>
           <DialogDescription className="mt-3 leading-[1.6]">Dinheiro de uma sócia que entrou numa conta da Numa. Não conta como receita.</DialogDescription>
