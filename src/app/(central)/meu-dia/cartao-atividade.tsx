@@ -208,7 +208,7 @@ export function CaixaDeConcluir({ atividade, acoes }: { atividade: AtividadeDoDi
 }
 
 /** O prazo com o ícone certo: atraso sempre com texto, ícone e cor (CA-18.07). */
-export function PrazoDaAtividade({ atividade, hoje }: { atividade: AtividadeDoDia; hoje: string }) {
+export function PrazoDaAtividade({ atividade, hoje }: { atividade: Atividade; hoje: string }) {
   if (atividade.situacao === 'concluida' && atividade.concluida_em) {
     return (
       <span className="inline-flex items-center gap-1.5 font-semibold text-ok [&_svg]:size-[15px] [&_svg]:shrink-0">

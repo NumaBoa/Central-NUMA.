@@ -8,7 +8,7 @@ import type { Atividade } from '@/dados/tipos/atividade';
 import { REGISTROS_INICIAIS, ROTINAS_INICIAIS } from './apoio-testes';
 import { cancelarAtividade, concluirAtividade, adiarAtividade, trocarResponsavel, carregarMeuDia } from './atividades';
 import { criarAtividade, formularioAtividadeVazio } from './atividades-formulario';
-import { alterarPrazo, duplicarAtividade } from './atividades-painel';
+import { alterarDatas, duplicarAtividade } from './atividades-painel';
 import { salvarFormularioGeral, formularioDosValores, lerConfiguracoes } from './configuracoes';
 import { ID_CONSOLIDADA } from './contextos';
 import { limparExemplos, resumoDosDados } from './dados';
@@ -354,7 +354,7 @@ describe('T03.05 e as rotinas do dia', () => {
     });
 
     it('mudar a data de uma é sempre só dela', async () => {
-      await alterarPrazo(ocorrencias[0]!.id, '2026-11-10', '');
+      await alterarDatas(ocorrencias[0]!.id, { inicio: '', prazo: '2026-11-10', prazo_hora: '', aviso_dia: '', aviso_hora: '' });
       expect((await obter(ocorrencias[0]!.id)).editada_individualmente).toBe(true);
       await adiarAtividade(ocorrencias[1]!.id, '2026-11-17', HOJE);
       expect((await obter(ocorrencias[1]!.id)).editada_individualmente).toBe(true);

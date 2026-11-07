@@ -236,4 +236,195 @@ await passo('T03.01: celular, busca e Filtros, com o resto na folha', async () =
   await c.espera(300);
 });
 
+// ---------- T03.02: a janela da atividade ----------
+
+const corpoDaJanela = `document.querySelector('.janela [role=tabpanel]:not([hidden])').parentElement`;
+const abaDaJanela = (rotulo) => `[...document.querySelectorAll('.janela [role=tab]')].find(a=>a.textContent.startsWith(${js(rotulo)}))`;
+const irParaAba = async (rotulo) => {
+  await c.avaliar(`(()=>{const a=${abaDaJanela(rotulo)};a.focus();a.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))})()`);
+  await c.ate(`${abaDaJanela(rotulo)}.getAttribute('data-state')==='active'`);
+};
+const abrirAtividade = async (titulo) => {
+  const alvo = (await tabela('atividade')).find((a) => a.titulo === titulo);
+  await ir(`/meu-dia?atividade=${alvo.id}`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [role=tab]')`);
+  await c.espera(450);
+  return alvo;
+};
+const botaoDaJanela = (rotulo) => `[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()===${js(rotulo)})`;
+const preencherCampo = (id, valor) => h.preencher(id, valor);
+
+await passo('T03.02: janela central, com o essencial sem rolar', async () => {
+  await abrirAtividade('Definir o preço da oferta anual');
+  const m = await c.avaliar(`(()=>{const b=document.querySelector('.janela').getBoundingClientRect();return {x:Math.round(b.left),d:Math.round(innerWidth-b.right),t:Math.round(b.top),u:Math.round(innerHeight-b.bottom),l:Math.round(b.width)}})()`);
+  ok('no centro', Math.abs(m.x - m.d) <= 1 && Math.abs(m.t - m.u) <= 1, js(m));
+  const abas = await c.avaliar(`[...document.querySelectorAll('.janela [role=tab]')].map(a=>a.textContent.replace(/\\d+/g,'').trim())`);
+  ok('as seis abas do protótipo', js(abas) === js(['Geral', 'Checklist', 'Agendamento', 'Vínculos e arquivos', 'Comentários', 'Histórico']), js(abas));
+  const rola = await c.avaliar(`(()=>{const e=${corpoDaJanela};return e.scrollHeight-e.clientHeight})()`);
+  ok('Geral sem rolar', rola <= 0, rola);
+  await c.foto('janela-geral-1440');
+  ok('sem mudar nada, salvar fica desligado', await c.avaliar(`${botaoDaJanela('Salvar alterações')}.disabled`));
+  ok('o título tem o lápis', await c.avaliar(`Boolean(document.querySelector('.janela button[aria-label="Editar o título"]'))`));
+  for (const aba of ['Checklist', 'Agendamento', 'Vínculos e arquivos', 'Comentários', 'Histórico']) {
+    await irParaAba(aba);
+    await c.espera(150);
+    await c.foto(`janela-${aba.split(' ')[0].toLowerCase()}-1440`);
+    await conferirTela(`Janela, ${aba}`, 1440);
+  }
+  await conferirTela('Janela', 1440);
+});
+
+await passo('T03.02: salvar alterações, com o prazo anterior no histórico (CA-03.05)', async () => {
+  const alvo = await abrirAtividade('Definir o preço da oferta anual');
+  await preencherCampo('painel-prazo', '2026-12-20');
+  await c.ate(`document.querySelector('.janela [role=status]').textContent==='Alterações não salvas'`);
+  ok('avisa e liga o botão', !(await c.avaliar(`${botaoDaJanela('Salvar alterações')}.disabled`)));
+  ok('ainda não gravou', (await tabela('atividade')).find((a) => a.id === alvo.id).prazo === alvo.prazo);
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Editar o título"]').click()`);
+  await c.ate(`document.getElementById('painel-titulo')`);
+  await preencherCampo('painel-titulo', 'Definir o preço anual');
+  await c.avaliar(`document.getElementById('painel-titulo').blur()`);
+  await c.espera(100);
+  await c.avaliar(`${botaoDaJanela('Salvar alterações')}.click()`);
+  await esperarAviso('Alterações salvas.');
+  await painelFechado();
+  const depois = (await tabela('atividade')).find((a) => a.id === alvo.id);
+  ok('gravou tudo de uma vez', depois.prazo === '2026-12-20' && depois.titulo === 'Definir o preço anual', `${depois.prazo} ${depois.titulo}`);
+  ok('passar para depois conta como adiamento', depois.adiamentos === alvo.adiamentos + 1);
+  await c.ate(cartao('Definir o preço anual'));
+  ok('o cartão muda sem recarregar', /20\/12/.test(await c.avaliar(`${cartao('Definir o preço anual')}.textContent`)));
+  await c.avaliar(`[...document.querySelectorAll('main article h3 button')].find(b=>b.textContent==='Definir o preço anual').click()`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [role=tab]')`);
+  await irParaAba('Histórico');
+  await c.ate(`/Prazo: de /.test(document.querySelector('.janela').textContent)`);
+  ok('o histórico guarda a data anterior', /para 20\/12\/2026/.test(await texto('.janela')));
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+});
+
+await passo('T03.02: fechar com alteração pendente pergunta; desfazer a edição não', async () => {
+  const alvo = await abrirAtividade('Definir o preço anual');
+  await preencherCampo('painel-descricao', 'Um texto novo');
+  await c.ate(`document.querySelector('.janela [role=status]').textContent==='Alterações não salvas'`);
+  await c.avaliar(`${botaoDaJanela('Cancelar')}.click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar as alterações?')`);
+  ok('pergunta antes de descartar', true);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+  ok('não gravou', (await tabela('atividade')).find((a) => a.id === alvo.id).descricao !== 'Um texto novo');
+  await abrirAtividade('Definir o preço anual');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+  ok('sem alteração, fecha direto', true);
+});
+
+await passo('T03.02: erro leva até o campo e à aba dele', async () => {
+  const alvo = await abrirAtividade('Definir o preço anual');
+  await irParaAba('Agendamento');
+  await preencherCampo('painel-inicio', '2027-05-01');
+  await irParaAba('Geral');
+  await c.avaliar(`${botaoDaJanela('Salvar alterações')}.click()`);
+  await c.ate(`${abaDaJanela('Agendamento')}.getAttribute('data-state')==='active'`);
+  ok('o erro aparece no campo', (await h.erroDe('painel-inicio')).includes('O início precisa ser antes do prazo.'));
+  ok('o foco vai para ele', await c.ate(`document.activeElement?.id==='painel-inicio'`).then(() => true));
+  ok('não gravou', (await tabela('atividade')).find((a) => a.id === alvo.id).inicio === alvo.inicio);
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await c.ate(`document.querySelector('.dialogo')`);
+  await c.espera(280);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+});
+
+await passo('T03.02: comentário por enviar sobrevive à troca de aba e pergunta ao fechar', async () => {
+  await abrirAtividade('Definir o preço anual');
+  await irParaAba('Comentários');
+  await preencherCampo('painel-comentario', 'Um comentário por enviar');
+  await irParaAba('Geral');
+  await irParaAba('Comentários');
+  ok('o texto continua lá', (await h.valor('painel-comentario')) === 'Um comentário por enviar');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar o comentário?')`);
+  ok('pergunta antes de perder o comentário', true);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar comentário').click()`);
+  await painelFechado();
+});
+
+await passo('T03.02: rotina pergunta ao salvar, e a data vale só para a ocorrência (RN-03.17)', async () => {
+  await ir('/configuracoes/dados');
+  await c.ate(`[...document.querySelectorAll('main button')].some(b=>b.textContent.trim()==='Rodar rotinas agora')`);
+  await c.espera(800);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Rodar rotinas agora').click()`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:atividade')).some(a=>a.recorrencia_id&&a.situacao==='a_fazer')`);
+  const ocorrencia = (await tabela('atividade')).find((a) => a.recorrencia_id && a.situacao === 'a_fazer');
+  await ir(`/meu-dia?atividade=${ocorrencia.id}`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [role=tab]')`);
+  await c.espera(450);
+  await preencherCampo('painel-prazo', '2027-02-10');
+  await c.ate(`!${botaoDaJanela('Salvar alterações')}.disabled`);
+  await c.avaliar(`${botaoDaJanela('Salvar alterações')}.click()`);
+  await esperarAviso('Alterações salvas.');
+  await painelFechado();
+  const depois = (await tabela('atividade')).find((a) => a.id === ocorrencia.id);
+  ok('a data não pergunta, e fica só nesta', depois.prazo === '2027-02-10' && depois.editada_individualmente === true);
+  await ir(`/meu-dia?atividade=${ocorrencia.id}`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [role=tab]')`);
+  await c.espera(450);
+  await preencherCampo('painel-descricao', 'Só nesta ocorrência');
+  await c.ate(`!${botaoDaJanela('Salvar alterações')}.disabled`);
+  await c.avaliar(`${botaoDaJanela('Salvar alterações')}.click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Esta atividade faz parte de uma rotina')`);
+  await c.foto('janela-escopo-1440');
+  ok('o campo da rotina pergunta', true);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Somente esta').click()`);
+  await esperarAviso('Alterações salvas.');
+  await painelFechado();
+  ok('gravou só nela', (await tabela('atividade')).find((a) => a.id === ocorrencia.id).descricao === 'Só nesta ocorrência');
+});
+
+await passo('T03.02: alerta, com o efeito de cada ação à vista', async () => {
+  const alerta = (await tabela('atividade')).find((a) => a.tipo === 'alerta' && a.situacao === 'a_fazer');
+  await ir(`/meu-dia?atividade=${alerta.id}`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [data-alerta]')`);
+  await c.espera(450);
+  const textoDoAlerta = await texto('.janela [data-alerta]');
+  ok('avisa o que concluir e dispensar não fazem', /Concluir aqui não executa a ação de origem/.test(textoDoAlerta) && /Dispensar pede um motivo/.test(textoDoAlerta), textoDoAlerta);
+  ok('o botão da ação', await c.avaliar(`Boolean([...document.querySelectorAll('.janela [data-alerta] a')].length)`));
+  ok('concluir diz que é o alerta', await c.avaliar(`Boolean(${botaoDaJanela('Concluir alerta')})`));
+  ok('sem Agendamento', !(await c.avaliar(`Boolean(${abaDaJanela('Agendamento')})`)));
+  ok('título sem lápis', !(await c.avaliar(`Boolean(document.querySelector('.janela button[aria-label="Editar o título"]'))`)));
+  await c.foto('janela-alerta-1440');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await painelFechado();
+});
+
+await passo('T03.02: no celular, tela inteira', async () => {
+  await c.tamanho(360, 800);
+  await abrirAtividade('Definir o preço anual');
+  const m = await c.avaliar(`(()=>{const b=document.querySelector('.janela').getBoundingClientRect();return {l:Math.round(b.width),a:Math.round(b.height)}})()`);
+  ok('tela inteira', m.l === 360 && m.a === 800, js(m));
+  ok('Voltar no topo', await c.avaliar(`Boolean(document.querySelector('.janela button[aria-label="Voltar"]'))`));
+  ok('concluir embaixo', await c.avaliar(`Boolean(${botaoDaJanela('Concluir atividade')})`));
+  await conferirTela('Janela', 360);
+  await c.foto('janela-geral-360');
+  await preencherCampo('painel-descricao', 'Teste no celular');
+  await c.ate(`${botaoDaJanela('Salvar alterações')}&&!${botaoDaJanela('Salvar alterações')}.disabled`);
+  ok('com alteração, salvar e cancelar embaixo', await c.avaliar(`Boolean(${botaoDaJanela('Cancelar')})`));
+  await c.foto('janela-editando-360');
+  await irParaAba('Comentários');
+  await c.espera(150);
+  await conferirTela('Janela, comentários', 360);
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Voltar"]').click()`);
+  await c.ate(`document.querySelector('.dialogo')`);
+  await c.espera(280);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+  await c.tamanho(1440, 900);
+  await c.espera(300);
+});
+
 await terminar();

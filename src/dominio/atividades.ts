@@ -374,7 +374,7 @@ export type DadosMeuDia = {
 export type ContextoDaAtividade = { id: string; nome: string; cor: string; tinta: string };
 
 /** As etiquetas do cartão, inclusive de produto que saiu do seletor. Sem produto, é a Numa. */
-export function contextosDaAtividade(atividade: Pick<AtividadeDoDia, 'produtos'>, { produtos, marcas }: Pick<DadosMeuDia, 'produtos' | 'marcas'>): ContextoDaAtividade[] {
+export function contextosDaAtividade(atividade: Pick<AtividadeDoDia, 'produtos'>, { produtos, marcas }: { produtos: readonly Produto[]; marcas: readonly Marca[] }): ContextoDaAtividade[] {
   if (!atividade.produtos.length) {
     const institucional = marcas.find((marca) => marca.institucional);
     return institucional ? [{ id: ID_INSTITUCIONAL, nome: 'Numa', cor: institucional.cor_hex, tinta: tintaDaCor(institucional.cor_hex) }] : [];

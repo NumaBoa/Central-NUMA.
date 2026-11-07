@@ -27,10 +27,8 @@ import {
   adicionarAnexo,
   adicionarItem,
   adicionarVinculo,
-  alterarAviso,
   alterarCampos,
-  alterarInicio,
-  alterarPrazo,
+  alterarDatas,
   alterarTitulo,
   atividadesDaPessoa,
   atividadesDoRegistro,
@@ -238,6 +236,9 @@ describe('T03.02 e T03.03', () => {
       expect((await textos(id))[0]).toContain('Título: de Atividade nova para Outro título');
     });
 
+    const SEM_DATAS = { inicio: '', prazo: '', prazo_hora: '', aviso_dia: '', aviso_hora: '' };
+    const alterarPrazo = (alvo: string, prazo: string, prazo_hora: string) => alterarDatas(alvo, { ...SEM_DATAS, prazo, prazo_hora });
+
     it('mudar o prazo deixa a data anterior no histórico; para depois, conta como adiamento (CA-03.05)', async () => {
       await alterarPrazo(id, '2026-11-20', '');
       expect(await obter(id)).toMatchObject({ prazo: '2026-11-20', adiamentos: 1 });
@@ -250,25 +251,22 @@ describe('T03.02 e T03.03', () => {
     });
 
     it('aviso: lembrete exige; tarefa pode tirar', async () => {
-      await alterarAviso(id, '2026-11-09', '08:00');
+      await alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10', aviso_dia: '2026-11-09', aviso_hora: '08:00' });
       expect((await obter(id)).aviso_em).toBe('2026-11-09T11:00:00.000Z');
-      await alterarAviso(id, '', '');
+      await alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10' });
       expect((await obter(id)).aviso_em).toBeNull();
-      await expect(alterarAviso(id, HOJE, '')).rejects.toThrow('Informe o dia e a hora do aviso.');
+      await expect(alterarDatas(id, { ...SEM_DATAS, aviso_dia: HOJE })).rejects.toThrow('Informe o dia e a hora do aviso.');
       const lembrete = await criarAtividade(novo({ tipo: 'lembrete', aviso_dia: HOJE, aviso_hora: '18:00' }));
-      await expect(alterarAviso(lembrete.id, '', '')).rejects.toThrow('Lembrete exige a data e a hora do aviso.');
+      await expect(alterarDatas(lembrete.id, SEM_DATAS)).rejects.toThrow('Informe a data do aviso.');
     });
 
-    it('datas coerentes também no painel', async () => {
-      await expect(alterarInicio(id, '2026-11-11')).rejects.toThrow('O início precisa ser antes do prazo.');
-      await alterarInicio(id, '2026-11-05');
+    it('datas coerentes também na janela', async () => {
+      await expect(alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10', inicio: '2026-11-11' })).rejects.toThrow('O início precisa ser antes do prazo.');
+      await alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10', inicio: '2026-11-05' });
       expect((await obter(id)).inicio).toBe('2026-11-05');
-      await expect(alterarPrazo(id, '2026-11-04', '')).rejects.toThrow('O prazo precisa ser depois do início.');
-      await alterarInicio(id, '');
+      await alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10' });
       expect((await obter(id)).inicio).toBeNull();
-      await expect(alterarAviso(id, '2026-11-11', '08:00')).rejects.toThrow('O aviso precisa ser antes do prazo.');
-      await alterarAviso(id, '2026-11-09', '08:00');
-      await expect(alterarPrazo(id, '2026-11-08', '')).rejects.toThrow('O aviso está depois deste prazo: mude o aviso antes.');
+      await expect(alterarDatas(id, { ...SEM_DATAS, prazo: '2026-11-10', aviso_dia: '2026-11-11', aviso_hora: '08:00' })).rejects.toThrow('O aviso precisa ser antes do prazo.');
       expect((await obter(id)).prazo).toBe('2026-11-10');
     });
 
@@ -290,9 +288,7 @@ describe('T03.02 e T03.03', () => {
       for (const tentativa of [
         () => alterarTitulo(id, 'Outro'),
         () => alterarCampos(id, { descricao: 'Outra' }),
-        () => alterarInicio(id, '2026-11-01'),
-        () => alterarPrazo(id, '2026-11-20', ''),
-        () => alterarAviso(id, '2026-11-09', '08:00'),
+        () => alterarDatas(id, { inicio: '2026-11-01', prazo: '2026-11-20', prazo_hora: '', aviso_dia: '', aviso_hora: '' }),
         () => definirContextos(id, [ID_PRODUTO_KIPI]),
         () => definirParticipantes(id, [ID_CAMILA]),
         () => adicionarItem(id, 'Outro item'),

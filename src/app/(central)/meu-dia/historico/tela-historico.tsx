@@ -23,7 +23,7 @@ import { useAcoesDaAtividade } from '../acoes-atividade';
 import { MenuDaAtividade, TipoDaAtividade } from '../cartao-atividade';
 import { ativosComuns, CamposAvancados, removerComum } from '../filtros-meu-dia';
 import { SituacaoDaAtividade } from '../lista-atividades';
-import { PainelAtividade } from '../painel-atividade';
+import { JanelaAtividade } from '../janela-atividade';
 
 const CAMINHO = '/meu-dia/historico';
 const NA_ORDEM_DA_CONCLUSAO = (a: AtividadeDoDia, b: AtividadeDoDia) => encerradaEm(a).localeCompare(encerradaEm(b));
@@ -224,7 +224,7 @@ export function TelaHistorico() {
           </span>
         )}
       />
-      <PainelAtividade id={painelId} dados={dados} acoes={acoes} aoFechar={fecharPainel} aoAbrir={abrirPainel} />
+      <JanelaAtividade id={painelId} dados={dados} acoes={acoes} aoFechar={fecharPainel} aoAbrir={abrirPainel} />
       {dialogos}
     </div>
   );

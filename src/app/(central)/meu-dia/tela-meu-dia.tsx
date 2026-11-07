@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import { useAcoesDaAtividade } from './acoes-atividade';
 import { BarraDoMeuDia, ROTULOS_CARTAO } from './filtros-meu-dia';
 import { ListaAtividades } from './lista-atividades';
-import { PainelAtividade } from './painel-atividade';
+import { JanelaAtividade } from './janela-atividade';
 import { QuadroAtividades } from './quadro-atividades';
 
 /** Linhas calmas do cabeçalho do Meu dia, versão estática em SVG (18 §2.2). */
@@ -246,7 +246,7 @@ export function TelaMeuDia() {
       ) : (
         <ListaAtividades linhas={visiveis} dados={dados} hoje={hoje} acoes={acoes} agruparPor={agruparPor} />
       )}
-      <PainelAtividade id={painelId} dados={dados} acoes={acoes} aoFechar={fecharPainel} aoAbrir={abrirPainel} />
+      <JanelaAtividade id={painelId} dados={dados} acoes={acoes} aoFechar={fecharPainel} aoAbrir={abrirPainel} />
       {dialogos}
     </div>
   );

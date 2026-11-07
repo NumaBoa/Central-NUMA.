@@ -52,29 +52,31 @@ export async function alterarCampos(id: string, campos: CamposSimples): Promise<
   await repositorios.atividade.atualizar(id, campos);
 }
 
-export async function alterarInicio(id: string, dia: string): Promise<void> {
-  const atividade = await atividadeAberta(id);
-  if (dia && atividade.prazo && dia > atividade.prazo) throw new ErroDeRegra('O início precisa ser antes do prazo.');
-  await repositorios.atividade.atualizar(id, { inicio: dia || null });
+export type DatasDaAtividade = { inicio: string; prazo: string; prazo_hora: string; aviso_dia: string; aviso_hora: string };
+
+/** O que as datas pedem (RN-03.03). Elas se conferem juntas: mudar o prazo e o aviso de uma vez é permitido. */
+export function errosDasDatas({ inicio, prazo, prazo_hora, aviso_dia, aviso_hora }: DatasDaAtividade, tipo: Atividade['tipo']): Partial<Record<keyof DatasDaAtividade, string>> {
+  const erros: Partial<Record<keyof DatasDaAtividade, string>> = {};
+  if (prazo_hora && !prazo) erros.prazo = 'Informe o dia do prazo.';
+  if (inicio && prazo && inicio > prazo) erros.inicio = 'O início precisa ser antes do prazo.';
+  if (tipo === 'lembrete') {
+    if (!aviso_dia) erros.aviso_dia = 'Informe a data do aviso.';
+    if (!aviso_hora) erros.aviso_hora = 'Informe a hora do aviso.';
+  } else if (Boolean(aviso_dia) !== Boolean(aviso_hora)) {
+    erros[aviso_dia ? 'aviso_hora' : 'aviso_dia'] = 'Informe o dia e a hora do aviso.';
+  }
+  if (aviso_dia && prazo && aviso_dia > prazo) erros.aviso_dia = 'O aviso precisa ser antes do prazo.';
+  return erros;
 }
 
 /** CA-03.05: mudar o prazo grava a data anterior no histórico. Passar para depois conta como adiamento (RN-03.08). */
-export async function alterarPrazo(id: string, prazo: string, hora: string): Promise<void> {
+export async function alterarDatas(id: string, datas: DatasDaAtividade): Promise<void> {
   const atividade = await atividadeAberta(id);
-  if (hora && !prazo) throw new ErroDeRegra('Informe o dia do prazo.');
-  if (prazo && atividade.inicio && atividade.inicio > prazo) throw new ErroDeRegra('O prazo precisa ser depois do início.');
-  if (prazo && atividade.aviso_em && diaEHoraNoFuso(atividade.aviso_em).dia > prazo) throw new ErroDeRegra('O aviso está depois deste prazo: mude o aviso antes.');
+  const [erro] = Object.values(errosDasDatas(datas, atividade.tipo));
+  if (erro) throw new ErroDeRegra(erro);
+  const { inicio, prazo, prazo_hora, aviso_dia, aviso_hora } = datas;
   const adiou = Boolean(atividade.prazo && prazo && prazo > atividade.prazo);
-  await repositorios.atividade.atualizar(id, { prazo: prazo || null, prazo_hora: hora || null, adiamentos: adiou ? atividade.adiamentos + 1 : atividade.adiamentos, editada_individualmente: Boolean(atividade.recorrencia_id) });
-}
-
-/** Lembrete exige data e hora (RN-03.03). Tarefa e demanda podem ficar sem aviso. */
-export async function alterarAviso(id: string, dia: string, hora: string): Promise<void> {
-  const atividade = await atividadeAberta(id);
-  if (atividade.tipo === 'lembrete' && (!dia || !hora)) throw new ErroDeRegra('Lembrete exige a data e a hora do aviso.');
-  if (Boolean(dia) !== Boolean(hora)) throw new ErroDeRegra('Informe o dia e a hora do aviso.');
-  if (dia && atividade.prazo && dia > atividade.prazo) throw new ErroDeRegra('O aviso precisa ser antes do prazo.');
-  await repositorios.atividade.atualizar(id, { aviso_em: dia ? instanteNoFuso(dia, hora) : null, editada_individualmente: Boolean(atividade.recorrencia_id) });
+  await repositorios.atividade.atualizar(id, { inicio: inicio || null, prazo: prazo || null, prazo_hora: prazo_hora || null, aviso_em: aviso_dia ? instanteNoFuso(aviso_dia, aviso_hora) : null, adiamentos: adiou ? atividade.adiamentos + 1 : atividade.adiamentos, editada_individualmente: Boolean(atividade.recorrencia_id) });
 }
 
 /** Tira quem saiu e coloca quem entrou, sem repetir nem mexer em quem ficou. */
