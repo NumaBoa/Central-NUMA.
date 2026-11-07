@@ -16,7 +16,7 @@ import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes
 import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { JanelaFormulario } from '@/componentes/padroes/janela-formulario';
-import { AbasProdutos, AvisoDeFase, textoDoPrecoComPeriodo, ValorOuFalta } from '@/componentes/produtos/aparencia';
+import { AbasProdutos, textoDoPrecoComPeriodo, ValorOuFalta } from '@/componentes/produtos/aparencia';
 import { useAvisoDeCredencial } from '@/componentes/produtos/aviso-credencial-m07';
 import { GraficoLinhas } from '@/componentes/produtos/grafico-linhas';
 import { Button, variantesBotao } from '@/componentes/ui/button';
@@ -783,7 +783,6 @@ export function TelaSimulador() {
         }
       />
       <AbasProdutos ativa="simulador" />
-      <AvisoDeFase />
       <Campo id="sim-produto" rotulo="Produto" obrigatorio className="max-w-sm" ajuda="Cada produto tem as próprias simulações.">
         {(controle) => (
           <Selecao {...controle} value={produtoId} onChange={(evento) => roteador.push(evento.target.value ? `/produtos/simulador?produto=${evento.target.value}` : '/produtos/simulador')}>

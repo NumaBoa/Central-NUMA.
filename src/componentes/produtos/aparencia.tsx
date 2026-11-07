@@ -2,14 +2,11 @@
 
 import type { ReactNode } from 'react';
 import { Layers, Radio, SlidersHorizontal } from 'lucide-react';
-import { useCentral } from '@/componentes/layout/central-provider';
-import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import type { Produto } from '@/dados/tipos/marca';
 import type { Oferta, PrecoVersao } from '@/dados/tipos/precificacao';
-import { faseLiberada } from '@/dominio/navegacao';
 import { faseDaVersao, NAO_DEFINIDO, ROTULOS_PERIODICIDADE_PRECO, ROTULOS_SITUACAO_OFERTA, ROTULOS_SITUACAO_PRECO } from '@/dominio/precificacao';
 import { ROTULOS_ESTAGIO } from '@/dominio/produtos';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
@@ -78,24 +75,6 @@ export function AbasProdutos({ ativa }: { ativa: 'portfolio' | 'simulador' | 'ca
         { rotulo: 'Canais de venda', icone: Radio, href: '/produtos/canais', ativa: ativa === 'canais' },
       ]}
     />
-  );
-}
-
-/** A tela abre por link, mas o menu segue a fase ativa (RT-23): diz isso em vez de parecer um erro. */
-export function AvisoDeFase() {
-  const { faseAtiva } = useCentral();
-  if (faseLiberada('f0b', faseAtiva)) return null;
-  return (
-    <Faixa
-      tipo="info"
-      acao={
-        <LinkCentral href="/configuracoes#fase" className="inline-flex min-h-11 items-center underline md:min-h-0">
-          Ver fase
-        </LinkCentral>
-      }
-    >
-      A Fase 0b ainda não está ativa: no menu, Produtos continua “Em breve”, e esta tela abre só por este endereço.
-    </Faixa>
   );
 }
 

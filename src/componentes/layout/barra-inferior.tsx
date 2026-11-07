@@ -21,12 +21,11 @@ function acharModulo(id: IconeModulo): Modulo {
 }
 
 function ItemBarra({ modulo }: { modulo: Modulo }) {
-  const { faseAtiva } = useCentral();
   const caminho = usePathname();
   const Icone = ICONES_MODULO[modulo.id];
   const nome = modulo.curto ?? modulo.nome;
 
-  if (!modulo.href || !moduloDisponivel(modulo, faseAtiva)) {
+  if (!modulo.href || !moduloDisponivel(modulo)) {
     return (
       <div className={cn(ITEM, 'font-medium text-ink-soft [&>svg]:text-ink-faint')}>
         <Icone aria-hidden />
@@ -45,12 +44,11 @@ function ItemBarra({ modulo }: { modulo: Modulo }) {
 }
 
 function ItemMais({ modulo, aoEscolher }: { modulo: Modulo; aoEscolher: () => void }) {
-  const { faseAtiva } = useCentral();
   const caminho = usePathname();
   const Icone = ICONES_MODULO[modulo.id];
   const caixa = 'flex min-h-[60px] items-center gap-2.5 rounded-md border border-line bg-linen px-3 py-2.5 text-[13px] leading-[1.3] [&>svg]:size-[18px] [&>svg]:shrink-0';
 
-  if (!modulo.href || !moduloDisponivel(modulo, faseAtiva)) {
+  if (!modulo.href || !moduloDisponivel(modulo)) {
     return (
       <div className={cn(caixa, 'text-ink-soft [&>svg]:text-ink-faint')}>
         <Icone aria-hidden />

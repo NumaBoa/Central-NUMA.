@@ -16,7 +16,7 @@ import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { AbasProdutos, AvisoDeFase } from '@/componentes/produtos/aparencia';
+import { AbasProdutos } from '@/componentes/produtos/aparencia';
 import { useAvisoDeCredencial } from '@/componentes/produtos/aviso-credencial-m07';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -212,7 +212,6 @@ export function TelaCanais() {
         }
       />
       <AbasProdutos ativa="canais" />
-      <AvisoDeFase />
       {vencidos > 0 && <Faixa tipo="atencao">{vencidos === 1 ? '1 canal está' : `${vencidos} canais estão`} sem verificação há mais de 12 meses. Confira as taxas antes de simular. O alerta no Meu dia ainda não está ligado.</Faixa>}
 
       <section aria-label="Filtros dos canais" className="flex flex-wrap items-end gap-2.5">

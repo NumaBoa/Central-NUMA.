@@ -320,10 +320,13 @@ describe('T02.01 Configurações gerais', () => {
       expect(await ultimaMudancaDeFase()).toBeNull();
     });
 
-    it('mudar de fase nunca libera tela que não foi construída', async () => {
+    it('o menu não depende da fase: libera o que foi construído e nunca o que não foi (decisão de 07/11/2026)', async () => {
+      const construidos = ['meu-dia', 'produtos', 'comercial', 'contratos', 'financeiro', 'ferramentas', 'legal'];
+      const liberados = () => [...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo)).map((modulo) => modulo.id);
+      expect(liberados()).toEqual(construidos);
       for (let i = 0; i < 4; i++) await avancarFase();
-      const { fase_ativa: fase } = await lerConfiguracoes();
-      expect([...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo, fase)).map((modulo) => modulo.id)).toEqual(['meu-dia', 'produtos', 'financeiro', 'ferramentas']);
+      expect((await lerConfiguracoes()).fase_ativa).toBe('f3');
+      expect(liberados()).toEqual(construidos);
     });
   });
 

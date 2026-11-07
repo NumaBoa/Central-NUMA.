@@ -138,7 +138,7 @@ await passo('menu', async () => {
   await c.ir(BASE + '/configuracoes');
   await c.espera(400);
   const m = await c.avaliar(`(()=>{const links=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));const emBreve=[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')];return {links,emBreve:emBreve.length,textos:emBreve.every(e=>e.textContent.includes('Em breve')),semLink:emBreve.every(e=>!e.closest('a')),ativo:document.querySelector('[data-menu-lateral] a[aria-current=page]')?.textContent}})()`);
-  ok('8 módulos "Em breve", sem link', m.emBreve === 8 && m.textos && m.semLink);
+  ok('4 módulos "Em breve", sem link: só os que não existem (decisão de 07/11/2026)', m.emBreve === 4 && m.textos && m.semLink);
   ok('Configurações marcada como atual', m.ativo === 'Configurações', m.ativo);
   ok('nenhum link vazio', !m.links.some((h) => h === '#' || !h));
   const respostas = await c.avaliar(`Promise.all([...new Set([...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>h.startsWith('/')))].map(h=>fetch(h).then(r=>h+':'+r.status)))`);
@@ -266,7 +266,7 @@ await passo('celular', async () => {
   await c.espera(450);
   await c.foto('c-mais');
   const mais = await c.avaliar(`(()=>{const d=document.querySelector('.dialogo');return {etiqueta:d.textContent.includes('Dados de exemplo'),voceE:Boolean(d.querySelector('#voce-e-celular')),config:Boolean(d.querySelector('a[href="/configuracoes"]')),emBreve:(d.textContent.match(/Em breve/g)||[]).length}})()`);
-  ok('"Mais" traz módulos, "Você é" e a etiqueta', mais.etiqueta && mais.voceE && mais.config && mais.emBreve === 8, JSON.stringify(mais));
+  ok('"Mais" traz módulos, "Você é" e a etiqueta', mais.etiqueta && mais.voceE && mais.config && mais.emBreve === 4, JSON.stringify(mais));
   await c.clicar('.dialogo a[href="/configuracoes"]');
   await c.ate(`!document.querySelector('.dialogo')`);
   await c.clicar('[aria-label^="Contexto"]');

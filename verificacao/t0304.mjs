@@ -705,7 +705,7 @@ await passo('configurações e rotina do backup', async () => {
   const id = await c.avaliar(`[...document.querySelectorAll('main select')].find(s=>[...s.options].some(o=>o.textContent==='Kimberly Grebe')&&s.closest('div').textContent.includes('backup')).id`);
   await escolher(id, ID_KIMBERLY);
   await c.espera(60);
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.includes('Salvar')).click()`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Salvar alterações').click()`);
   await c.ate(`[...document.querySelectorAll('[data-sonner-toast]')].some(t=>t.textContent.includes('salvas'))`);
   ok('T02.01 muda a responsável da rotina do backup', (await tabela('recorrencia')).find((r) => r.id === ID_BACKUP).responsavel_id === ID_KIMBERLY);
   const hojeDia = await hoje();

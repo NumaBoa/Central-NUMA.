@@ -86,7 +86,7 @@ export function SecaoFase({ fase, ultimaMudanca }: { fase: Fase; ultimaMudanca: 
         })}
       </ol>
 
-      <Faixa>Mudar de fase não apaga dados. Telas ainda não construídas continuam com “Em breve”.</Faixa>
+      <Faixa>Mudar de fase não apaga dados nem muda o menu: tudo o que já foi construído fica liberado em qualquer fase. A fase decide quais rotinas do dia rodam.</Faixa>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 max-md:[&>*]:basis-full">
         <Button variante="secundario" disabled={!proxima || ocupado} onClick={() => setConfirmando('avancar')}>
@@ -136,7 +136,7 @@ export function SecaoFase({ fase, ultimaMudanca }: { fase: Fase; ultimaMudanca: 
           titulo={`Voltar para a ${rotuloDaFase(anterior)}?`}
           texto={
             <>
-              <p>Nenhum dado é apagado. As telas abaixo voltam a ficar com “Em breve” até a fase avançar de novo.</p>
+              <p>Nenhum dado é apagado, e as telas continuam no menu. As rotinas desta fase deixam de rodar até a fase avançar de novo.</p>
               <TelasDaFase fase={fase} />
             </>
           }

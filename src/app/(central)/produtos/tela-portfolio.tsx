@@ -16,7 +16,7 @@ import { EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { EtiquetasDosFiltros, type FiltroAtivo } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
 import { MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
-import { AbasProdutos, AvisoDeFase, EtiquetaEstagio } from '@/componentes/produtos/aparencia';
+import { AbasProdutos, EtiquetaEstagio } from '@/componentes/produtos/aparencia';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { ESTAGIOS_DO_PRODUTO } from '@/dados/tipos/precificacao';
@@ -271,7 +271,6 @@ export function TelaPortfolio() {
         }
       />
       <AbasProdutos ativa="portfolio" />
-      <AvisoDeFase />
 
       <section aria-label="Filtros do portfólio" className="space-y-3">
         <div className="flex flex-wrap items-end gap-2.5">
