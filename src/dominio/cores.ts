@@ -32,10 +32,14 @@ function luminancia(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function contrasteComLinho(hex: string): number {
-  const a = luminancia(hex);
-  const b = luminancia(LINHO);
+export function contrasteEntre(primeira: string, segunda: string): number {
+  const a = luminancia(primeira);
+  const b = luminancia(segunda);
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+export function contrasteComLinho(hex: string): number {
+  return contrasteEntre(hex, LINHO);
 }
 
 /** "Validar contraste" (T02.04): a cor precisa aparecer no ponto das etiquetas. */

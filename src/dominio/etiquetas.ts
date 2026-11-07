@@ -8,7 +8,7 @@ import { corVisivel } from './cores';
 import { normalizarTexto } from './duplicidade';
 
 /** Só os módulos da fase ativa (RT-23). Os das outras fases entram junto com as telas deles. */
-export const ROTULOS_MODULO_ETIQUETA = { atividades: 'Atividades', ferramentas: 'Ferramentas e ativos', financeiro: 'Financeiro', contrapartes: 'Contrapartes' } as const;
+export const ROTULOS_MODULO_ETIQUETA = { atividades: 'Atividades', ferramentas: 'Ferramentas e ativos', financeiro: 'Financeiro', contrapartes: 'Contrapartes', biblioteca: 'Biblioteca e marketing' } as const;
 
 export type ModuloEtiqueta = keyof typeof ROTULOS_MODULO_ETIQUETA;
 
@@ -102,7 +102,7 @@ export async function mesclarEtiquetas(origemId: string, destinoId: string): Pro
  * Decisão de Kimberly em 06/11/2026: as etiquetas entram nas atividades e nas ferramentas, como campo e filtro.
  * O tipo do registro e o módulo de onde vêm as etiquetas que ele aceita.
  */
-export const MODULO_DO_REGISTRO = { atividade: 'atividades', ferramenta: 'ferramentas' } as const satisfies Record<string, ModuloEtiqueta>;
+export const MODULO_DO_REGISTRO = { atividade: 'atividades', ferramenta: 'ferramentas', arquivo: 'biblioteca' } as const satisfies Record<string, ModuloEtiqueta>;
 
 export type RegistroComEtiqueta = keyof typeof MODULO_DO_REGISTRO;
 

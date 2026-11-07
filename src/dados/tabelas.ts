@@ -21,6 +21,7 @@ import { esquemaNotificacao } from './tipos/notificacao';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 import { TABELAS_F1 } from './tabelas-f1';
+import { TABELAS_M08 } from './tabelas-m08';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -78,6 +79,7 @@ export const TABELAS = {
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
   auditoria: { rotulo: 'Histórico', esquema: esquemaEventoAuditoria },
   ...TABELAS_F1,
+  ...TABELAS_M08,
 } as const satisfies Record<string, { rotulo: string; esquema: z.ZodType }>;
 
 export type Tabela = keyof typeof TABELAS;
@@ -102,5 +104,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 15: a transferência ganha `transferencia_original_id`, para o estorno.
  * 16: M07 acrescenta `decisao`, `decisao_decisor`, `produto_estagio_historico`, `objetivo`, `oferta`, `oferta_recurso`, `canal_venda`, `simulacao`, `preco_versao`, `concorrente_referencia`, `kpi_definicao` e `kpi_mensal`.
  * 17: M09, M10 e M11 acrescentam as tabelas de `tabelas-f1.ts` e o rascunho de `MOD-SAAS-LIC`.
+ * 18: M08 acrescenta as tabelas de `tabelas-m08.ts` e a identidade da Numa.
  */
-export const VERSAO_DADOS = 17;
+export const VERSAO_DADOS = 18;

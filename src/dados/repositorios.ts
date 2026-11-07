@@ -21,6 +21,7 @@ import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
 import { esquemaDecisao, esquemaDecisaoDecisor, type Decisao, type DecisaoDecisor } from './tipos/decisao';
 import { esquemaCanalVenda, esquemaConcorrente, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao, type CanalVenda, type Concorrente, type EstagioHistorico, type KpiDefinicao, type KpiMensal, type Objetivo, type Oferta, type OfertaRecurso, type PrecoVersao, type Simulacao } from './tipos/precificacao';
 import { repositoriosF1, type RepositoriosF1 } from './repositorios-f1';
+import { repositoriosM08, type RepositoriosM08 } from './repositorios-m08';
 
 /** Ponto de acesso aos dados. Na etapa com servidor, só estas implementações mudam (02 §0.3). */
 export const repositorios: {
@@ -73,7 +74,8 @@ export const repositorios: {
   concorrente_referencia: Repositorio<Concorrente>;
   kpi_definicao: Repositorio<KpiDefinicao>;
   kpi_mensal: Repositorio<KpiMensal>;
-} & RepositoriosF1 = {
+} & RepositoriosF1 &
+  RepositoriosM08 = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
   configuracao: criarRepositorioConfiguracaoLocal(),
@@ -124,4 +126,5 @@ export const repositorios: {
   kpi_definicao: criarRepositorioLocal({ tabela: 'kpi_definicao', esquema: esquemaKpiDefinicao }),
   kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),
   ...repositoriosF1,
+  ...repositoriosM08,
 };
