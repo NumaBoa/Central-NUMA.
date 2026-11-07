@@ -55,13 +55,13 @@ await passo('atividade: o campo no painel', async () => {
   const opcoes = await c.avaliar(`[...[...document.querySelectorAll('.janela fieldset')].find(f=>f.querySelector('legend').textContent.startsWith('Etiquetas')).querySelectorAll('label')].map(l=>l.textContent)`);
   ok('só as do módulo: a do financeiro e a das ferramentas ficam de fora', js(opcoes) === js(['Lançamento']), js(opcoes));
   await marcarPilula('Etiquetas', 'Lançamento');
-  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:etiqueta_vinculo')).some(v=>v.registro_id===${js(atividade.id)}&&!v.arquivado_em)`);
-  ok('marcar salva na hora, como o resto do painel', js(await vinculos('atividade', atividade.id)) === js([ETIQUETAS[0].id]));
   await c.espera(200);
   ok('a pílula fica marcada', await pilulaMarcada('Etiquetas', 'Lançamento'));
   await c.foto('a-painel-etiquetas');
-  await c.tecla('Escape');
-  await c.espera(300);
+  await h.salvarJanela();
+  await h.painelFechado();
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:etiqueta_vinculo')).some(v=>v.registro_id===${js(atividade.id)}&&!v.arquivado_em)`);
+  ok('grava em "Salvar alterações", como o resto da janela', js(await vinculos('atividade', atividade.id)) === js([ETIQUETAS[0].id]));
 });
 
 await passo('atividade: no cartão e no filtro do Meu dia', async () => {
@@ -168,9 +168,9 @@ await passo('atalhos de data: adiar uma atividade', async () => {
   await ir('/meu-dia');
   await c.ate(`document.querySelector('main article')`);
   await c.espera(300);
-  await c.avaliar(`document.querySelector(${js(`[aria-label="Ações de ${titulo}"]`)}).scrollIntoView({block:'center'})`);
+  await c.avaliar(`document.querySelector(${js(`[aria-label="Adiar ${titulo}"]`)}).scrollIntoView({block:'center'})`);
   await c.espera(80);
-  await c.clicar(`[aria-label="Ações de ${titulo}"]`);
+  await c.clicar(`[aria-label="Adiar ${titulo}"]`);
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(150);
   await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.trim()==='Escolher data').click()`);

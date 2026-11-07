@@ -159,6 +159,8 @@ await passo('importar: confirmar', async () => {
   await c.enviarArquivo('main input[type=file]', primeiroBackup);
   await c.ate(`document.querySelector('.dialogo table')`);
   await c.espera(420);
+  // O aviso dura 5 s, e baixar a cópia pode demorar mais que isso com a máquina ocupada.
+  const avisoDaImportacao = c.ate(`[...document.querySelectorAll('[data-sonner-toast]')].some(t=>t.textContent.includes('Dados importados'))`).then(() => ultimoAviso(), () => '');
   await c.clicar('texto=Baixar cópia e substituir');
   const copia = await baixado();
   const conteudoDaCopia = JSON.parse(readFileSync(copia, 'utf8'));
@@ -168,8 +170,9 @@ await passo('importar: confirmar', async () => {
   await c.ate(`document.querySelector('main').textContent.includes('51 de exemplo')`);
   ok('volta o conteúdo do arquivo', (await pagina()).includes('Registros151'), (await pagina()).slice(150, 330));
   ok('a etiqueta volta', await etiqueta());
-  ok('aviso de sucesso', (await ultimoAviso()).includes('Dados importados: 151 registros'), await ultimoAviso());
-  ok('o aviso conta da cópia', (await ultimoAviso()).includes('A cópia do que havia antes foi baixada'), await ultimoAviso());
+  const textoDoAviso = await avisoDaImportacao;
+  ok('aviso de sucesso', textoDoAviso.includes('Dados importados: 151 registros'), textoDoAviso);
+  ok('o aviso conta da cópia', textoDoAviso.includes('A cópia do que havia antes foi baixada'), textoDoAviso);
   ok('o histórico registra', (await historico())[0]?.includes('importou 151 registros de um arquivo, com cópia do que havia antes'), (await historico())[0]);
   await fecharAvisos();
 });

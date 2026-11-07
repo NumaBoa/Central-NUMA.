@@ -83,6 +83,41 @@ export async function iniciar({ nome, porta, rotinas = false }) {
       await c.tecla('a');
       await c.ate(`!document.querySelector('.abertura')`);
     },
+    /** A janela da atividade: as abas do Radix respondem ao `mousedown`. */
+    irParaAba: async (rotulo) => {
+      const aba = `[...document.querySelectorAll('.janela [role=tab]')].find(a=>a.textContent.startsWith(${js(rotulo)}))`;
+      await c.avaliar(`(()=>{const a=${aba};a.focus();a.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))})()`);
+      await c.ate(`${aba}.getAttribute('data-state')==='active'`);
+    },
+    /** "Salvar alterações" da janela da atividade. Se tudo der certo, a janela fecha. */
+    salvarJanela: async () => {
+      const botao = `[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Salvar alterações')`;
+      await c.ate(`${botao}&&!${botao}.disabled`);
+      await c.avaliar(`${botao}.click()`);
+    },
+    /** O seletor de contexto (T03.03): marca ou desmarca um produto, e fecha o menu. */
+    marcarContexto: async (id, rotulo) => {
+      await c.avaliar(`document.getElementById(${js(id)}).click()`);
+      await c.ate(`document.querySelector('.menu-suspenso,.dialogo')`);
+      await c.espera(280);
+      await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label,.dialogo label')].find(l=>l.textContent.includes(${js(rotulo)})).querySelector('input').click()`);
+      await c.espera(80);
+      await c.tecla('Escape');
+      await c.ate(`!document.querySelector('.menu-suspenso,.dialogo')`);
+      await c.espera(220);
+    },
+    /** Abre "Adicionar", em Participantes. Quem chama escolhe a pessoa ou fecha com Esc. */
+    abrirParticipantes: async () => {
+      await c.avaliar(`[...[...document.querySelectorAll('.janela fieldset')].reverse().find(f=>f.querySelector('legend')?.textContent.startsWith('Participantes')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Adicionar').click()`);
+      await c.ate(`document.querySelector('.menu-suspenso,.dialogo')`);
+      await c.espera(220);
+    },
+    adicionarParticipante: async (nome) => {
+      await h.abrirParticipantes();
+      await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button,.dialogo button')].find(b=>b.textContent.includes(${js(nome)})).click()`);
+      await c.ate(`!document.querySelector('.menu-suspenso,.dialogo')`);
+      await c.espera(150);
+    },
     /** Lê uma tabela diretamente, só para conferir o que foi gravado. */
     tabela: (nomeTabela) => c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:${nomeTabela}')||'[]')`),
     medir: () => c.avaliar(MEDIR),

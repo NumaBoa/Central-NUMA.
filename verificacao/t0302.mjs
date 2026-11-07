@@ -1,5 +1,5 @@
 // Verificação de T03.03 (Adicionar) e T03.02 (Painel da atividade) no sistema real.
-import { iniciar, ID_CAMILA, ID_KIMBERLY } from './apoio.mjs';
+import { iniciar, ID_BRUNA, ID_CAMILA, ID_KIMBERLY } from './apoio.mjs';
 
 const MEU_DIA = '/meu-dia';
 const ID_KIPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f03';
@@ -25,10 +25,12 @@ const abrirAdicionar = async (tipo) => {
   await painelAberto();
   await c.espera(450);
 };
+const alternarMaisOpcoes = () => c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.startsWith('Mais opções')).click()`);
 const maisOpcoes = async () => {
-  if (await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Mais opções').getAttribute('aria-expanded')==='false'`)) await clicarBotaoPainel('Mais opções');
+  if (await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.startsWith('Mais opções')).getAttribute('aria-expanded')==='false'`)) await alternarMaisOpcoes();
   await c.ate(`Boolean(document.getElementById('atividade-area'))`);
 };
+const atalhoDePrazo = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela [aria-label="Atalhos de prazo"] button')].find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
 const clicarBotaoPainel = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela button')].reverse().find(b=>b.textContent.trim()===${js(rotulo)}).click()`);
 const abrirPainelDe = async (titulo) => {
   await c.avaliar(`(${cartao(titulo)}).querySelector('h3 button').click()`);
@@ -37,6 +39,23 @@ const abrirPainelDe = async (titulo) => {
   await c.espera(450);
 };
 const fecharPainelLateral = async () => { await c.tecla('Escape'); await painelFechado(); };
+const descartarAlteracoes = async () => {
+  await c.tecla('Escape');
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar as alterações?')`);
+  await c.espera(350);
+  await clicarNoDialogo('Descartar alterações');
+  await dialogoFechado();
+  await painelFechado();
+};
+const salvarEFechar = async () => { await h.salvarJanela(); await painelFechado(); };
+const editarTitulo = async (novo) => {
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Editar o título"]').click()`);
+  await c.ate(`document.getElementById('painel-titulo')`);
+  await preencher('painel-titulo', novo);
+  await sairDoCampo('painel-titulo');
+  await c.espera(60);
+};
+const tituloDaJanelaE = (titulo) => c.ate(`document.querySelector('.janela h2')?.textContent===${js(titulo)}`);
 const noPainel = () => texto('.janela');
 const preencherArea = (id, novo) => c.avaliar(`(()=>{const e=document.getElementById(${js(id)});e.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${js(novo)});e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
 const sairDoCampo = (id) => c.avaliar(`document.getElementById(${js(id)}).blur()`);
@@ -111,17 +130,17 @@ await passo('adicionar: como abre', async () => {
 await passo('adicionar: padrões e tipos', async () => {
   await irMeuDia();
   await abrirAdicionar('Tarefa');
-  ok('título do painel', (await texto('.janela h2')).includes('Adicionar'));
-  ok('responsável: a pessoa conectada (RN-03.02)', await pilulaMarcada('Responsável', 'Kimberly Grebe'));
-  ok('sem prazo por padrão', await pilulaMarcada('Prazo', 'Sem prazo'));
-  ok('as pessoas internas em pílulas', await c.avaliar(`['Kimberly Grebe','Camila Lima','Bruna Alves'].every(t=>[...document.querySelectorAll('.janela fieldset label')].some(l=>l.textContent===t))`));
-  ok('os produtos em pílulas, sem nenhum marcado', await c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith('Contexto'));return f.querySelectorAll('input').length===5&&![...f.querySelectorAll('input')].some(i=>i.checked)})()`));
-  ok('explica que sem produto é da Numa', (await texto('.janela')).includes('Sem produto marcado, é da Numa.'));
+  ok('título da janela', (await texto('.janela h2')).includes('Nova atividade'));
+  ok('responsável: a pessoa conectada (RN-03.02)', (await valor('atividade-responsavel')) === ID_KIMBERLY);
+  ok('sem prazo por padrão', (await valor('atividade-prazo')) === '');
+  const responsaveis = await opcoes('atividade-responsavel');
+  ok('as pessoas internas na lista', ['Kimberly Grebe', 'Camila Lima', 'Bruna Alves'].every((nome) => responsaveis.includes(nome)), responsaveis.join('|'));
+  ok('sem produto marcado, o contexto é a Numa', (await texto('#atividade-contexto')).includes('Numa institucional'));
   ok('o resto fica em "Mais opções"', !(await c.avaliar(`Boolean(document.getElementById('atividade-area'))`)));
   await c.foto('b-tarefa');
   await marcarPilula('Tipo', 'Lembrete');
   await c.ate(`Boolean(document.getElementById('atividade-aviso-dia'))`);
-  ok('lembrete pede data e hora, e não tem prazo', !(await existeGrupo('Prazo')));
+  ok('lembrete pede data e hora, e não tem prazo', !(await c.avaliar(`Boolean(document.getElementById('atividade-prazo'))`)));
   await c.foto('b-lembrete');
   await marcarPilula('Tipo', 'Demanda');
   await c.ate(`Boolean(document.getElementById('atividade-solicitante'))`);
@@ -133,26 +152,26 @@ await passo('adicionar: padrões e tipos', async () => {
   await maisOpcoes();
   await c.foto('b-mais-opcoes', { inteira: true });
   ok('"Mais opções" mostra o resto', await c.avaliar(`['Descrição','Área','Participantes','Prioridade','Início','Checklist','Vínculo','Arquivo'].every(t=>document.querySelector('.janela').textContent.includes(t))`));
-  ok('participantes sem a responsável', await c.avaliar(`(()=>{const f=[...document.querySelectorAll('fieldset')].find(x=>x.querySelector('legend')?.textContent.startsWith('Participantes'));return ![...f.querySelectorAll('label')].some(l=>l.textContent==='Kimberly Grebe')&&[...f.querySelectorAll('label')].some(l=>l.textContent==='Rafael Souza')})()`));
+  await h.abrirParticipantes();
+  const disponiveis = await texto('.menu-suspenso');
+  ok('participantes sem a responsável', !disponiveis.includes('Kimberly Grebe') && disponiveis.includes('Rafael Souza'), disponiveis);
+  await c.tecla('Escape');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(150);
   // área sugere responsável
   const tecnologia = await c.avaliar(`[...document.querySelectorAll('#atividade-area option')].find(o=>o.textContent==='Tecnologia').value`);
   await escolher('atividade-area', tecnologia);
   await c.espera(80);
-  ok('área não compartilhada sugere a responsável padrão (RN-03.02)', await pilulaMarcada('Responsável', 'Camila Lima'));
+  ok('área não compartilhada sugere a responsável padrão (RN-03.02)', (await valor('atividade-responsavel')) === ID_CAMILA);
   const comercial = await c.avaliar(`[...document.querySelectorAll('#atividade-area option')].find(o=>o.textContent==='Comercial').value`);
   await escolher('atividade-area', comercial);
   await c.espera(80);
-  ok('área compartilhada exige escolha', (await texto('.janela')).includes('Esta área é compartilhada: escolha a responsável.') && !(await pilulaMarcada('Responsável', 'Camila Lima')));
+  ok('área compartilhada exige escolha', (await texto('.janela')).includes('Esta área é compartilhada: escolha a responsável.') && (await valor('atividade-responsavel')) === '');
   await c.foto('b-compartilhada');
   await salvarPainel();
   await painelTemErro('Escolha a responsável.');
   ok('sem responsável não salva', true);
-  await c.tecla('Escape');
-  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar as alterações?')`);
-  await c.espera(350);
-  await clicarNoDialogo('Descartar alterações');
-  await dialogoFechado();
-  await painelFechado();
+  await descartarAlteracoes();
 });
 
 await passo('adicionar: validação', async () => {
@@ -175,8 +194,8 @@ await passo('adicionar: validação', async () => {
   await painelTemErro('Informe o título.');
   ok('título obrigatório', true);
   await preencher('atividade-titulo', 'x'.repeat(135));
-  await c.ate(`document.querySelector('.janela').textContent.includes('135 de 140 caracteres')`);
-  ok('o contador aparece perto do limite', true);
+  await c.ate(`document.querySelector('.janela').textContent.includes('135/140')`);
+  ok('o contador acompanha', true);
   await preencher('atividade-titulo', 'x'.repeat(141));
   await salvarPainel();
   await painelTemErro('Use até 140 caracteres.');
@@ -197,17 +216,17 @@ await passo('adicionar: validação', async () => {
   await preencher('atividade-titulo', 'Com erro escondido');
   await maisOpcoes();
   await preencher('atividade-arquivo', 'https://exemplo.com/x');
-  await clicarBotaoPainel('Mais opções');
+  await alternarMaisOpcoes();
   await c.ate(`!document.getElementById('atividade-area')`);
   await salvarPainel();
   await c.ate(`Boolean(document.getElementById('atividade-area'))`);
   ok('erro em campo escondido abre "Mais opções"', (await erroDe('atividade-arquivo')).includes('drive.google.com'));
-  await clicarBotaoPainel('Mais opções');
+  await alternarMaisOpcoes();
   await c.espera(120);
   ok('com o erro ali, não recolhe', await c.avaliar(`Boolean(document.getElementById('atividade-arquivo'))`));
   await preencher('atividade-arquivo', '');
   await c.ate(`!document.querySelector('.janela [role=alert]')`);
-  await clicarBotaoPainel('Mais opções');
+  await alternarMaisOpcoes();
   await c.ate(`!document.getElementById('atividade-area')`);
   ok('sem o erro, recolhe', true);
   await c.tecla('Escape');
@@ -220,15 +239,13 @@ await passo('adicionar: validação', async () => {
   await preencher('atividade-titulo', 'Com erro escondido');
   await maisOpcoes();
   await preencher('atividade-aviso-dia', `${ID_ANO + 1}-01-05`);
-  await clicarBotaoPainel('Mais opções');
+  await alternarMaisOpcoes();
   await c.ate(`!document.getElementById('atividade-area')`);
   await salvarPainel();
   await c.ate(`Boolean(document.getElementById('atividade-aviso-hora'))`);
   ok('o aviso pela metade também abre "Mais opções"', (await erroDe('atividade-aviso-hora')) === 'Informe o dia e a hora do aviso.');
   await preencher('atividade-aviso-dia', '');
   await c.ate(`!document.querySelector('.janela [role=alert]')`);
-  await marcarPilula('Prazo', 'Escolher');
-  await c.ate(`Boolean(document.getElementById('atividade-prazo'))`);
   await preencher('atividade-prazo', `${ID_ANO + 1}-01-10`);
   await preencher('atividade-inicio', `${ID_ANO + 1}-01-20`);
   await salvarPainel();
@@ -253,15 +270,15 @@ await passo('adicionar: validação', async () => {
 await passo('adicionar: salvar', async () => {
   await abrirAdicionar('Tarefa');
   await preencher('atividade-titulo', 'Revisar o contrato de hospedagem');
-  await marcarPilula('Prazo', 'Amanhã');
-  await marcarPilula('Contexto', 'Kipi');
-  await marcarPilula('Responsável', 'Camila Lima');
+  await atalhoDePrazo('Amanhã');
+  await h.marcarContexto('atividade-contexto', 'Kipi');
+  await escolher('atividade-responsavel', ID_CAMILA);
+  await escolher('atividade-prioridade', 'alta');
   await maisOpcoes();
-  await marcarPilula('Prioridade', 'Alta');
   await preencherArea('atividade-checklist', 'Ler as cláusulas\nConferir o valor');
   await escolher('atividade-vinculo', `contraparte:${ID_SOUZA}`);
   await preencher('atividade-arquivo', LINK);
-  await marcarPilula('Participantes', 'Kimberly Grebe');
+  await h.adicionarParticipante('Kimberly Grebe');
   await salvarPainel();
   await esperarAviso('Tarefa criada.');
   await painelFechado();
@@ -285,16 +302,16 @@ await passo('adicionar: salvar', async () => {
   // salvar e adicionar outro (CA-03.07)
   await abrirAdicionar('Demanda');
   await preencher('atividade-titulo', 'Primeira demanda');
-  await marcarPilula('Contexto', 'Zupi');
-  await marcarPilula('Responsável', 'Bruna Alves');
-  await maisOpcoes();
-  await preencherArea(await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent==='Descrição').htmlFor`), 'Texto que deve sumir');
+  await h.marcarContexto('atividade-contexto', 'Zupi');
+  await escolher('atividade-responsavel', ID_BRUNA);
+  const idDaDescricao = await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent==='Descrição').htmlFor`);
+  await preencherArea(idDaDescricao, 'Texto que deve sumir');
   await clicarBotaoPainel('Salvar e adicionar outro');
   await esperarAviso('Demanda criada.');
   await c.ate(`document.getElementById('atividade-titulo').value===''`);
   await c.espera(120);
-  ok('mantém tipo, contexto e responsável (CA-03.07)', (await pilulaMarcada('Tipo', 'Demanda')) && (await pilulaMarcada('Contexto', 'Zupi')) && (await pilulaMarcada('Responsável', 'Bruna Alves')));
-  ok('limpa título e descrição', (await valor('atividade-titulo')) === '' && !(await texto('.janela')).includes('Texto que deve sumir'));
+  ok('mantém tipo, contexto e responsável (CA-03.07)', (await pilulaMarcada('Tipo', 'Demanda')) && (await texto('#atividade-contexto')).includes('Zupi') && (await valor('atividade-responsavel')) === ID_BRUNA);
+  ok('limpa título e descrição', (await valor('atividade-titulo')) === '' && (await valor(idDaDescricao)) === '');
   ok('o foco volta para o título', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo');
   ok('a primeira foi salva', Boolean(await atividadePor('Primeira demanda')));
   await preencher('atividade-titulo', 'Segunda demanda');
@@ -327,7 +344,7 @@ await passo('adicionar: salvar', async () => {
   await c.avaliar(`[...document.querySelectorAll('.menu-suspenso ul button')].find(b=>b.textContent.trim()==='Kipi').click()`);
   await c.espera(150);
   await abrirAdicionar('Tarefa');
-  ok('o contexto global vira o padrão', await pilulaMarcada('Contexto', 'Kipi'));
+  ok('o contexto global vira o padrão', (await texto('#atividade-contexto')).includes('Kipi'));
   await c.tecla('Escape');
   await painelFechado();
   await c.clicar('[aria-label^="Contexto"]');
@@ -352,15 +369,21 @@ await passo('adicionar: salvar', async () => {
   await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast] button')].find(b=>b.textContent==='Abrir').click()`);
   await c.ate(`location.pathname==='${MEU_DIA}'&&location.search.startsWith('?atividade=')`);
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')?.value==='Criada em Configurações'`);
+  await tituloDaJanelaE('Criada em Configurações');
   ok('o aviso abre a atividade no Meu dia', true);
   await fecharPainelLateral();
 });
 
 await passo('adicionar: mantém os filtros e a rolagem', async () => {
   await irMeuDia();
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Minhas').click()`);
+  await c.avaliar(`document.querySelector('main button[aria-label^="Pessoa:"]').click()`);
+  await c.ate(`document.querySelector('.menu-suspenso')`);
+  await c.espera(220);
+  await marcarPilula('Pessoa', 'Minhas');
   await c.espera(120);
+  await c.tecla('Escape');
+  await c.ate(`!document.querySelector('.menu-suspenso')`);
+  await c.espera(220);
   await c.avaliar(`window.scrollTo(0,300)`);
   await c.espera(100);
   const antes = await c.avaliar(`scrollY`);
@@ -374,7 +397,7 @@ await passo('adicionar: mantém os filtros e a rolagem', async () => {
   await painelFechado();
   await c.ate(`${cartao('Sem perder o lugar')}`);
   ok('a rolagem fica onde estava', antes > 0 && (await c.avaliar(`scrollY`)) === antes, `${antes} e ${await c.avaliar(`scrollY`)}`);
-  ok('o filtro continua', await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Minhas').getAttribute('aria-pressed')==='true'`));
+  ok('o filtro continua', await c.avaliar(`document.querySelector('main button[aria-label^="Pessoa:"]').textContent.trim()==='Minhas'`));
   await c.avaliar(`window.scrollTo(0,0)`);
 });
 
@@ -385,25 +408,25 @@ await passo('painel: abrir e fechar', async () => {
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
   ok('o endereço leva à atividade', (await c.avaliar(`location.search`)).startsWith('?atividade='));
-  ok('tem 560px', await c.avaliar(`Math.round(document.querySelector('.janela').getBoundingClientRect().width)===560`));
+  ok('janela central de 860px', await c.avaliar(`Math.round(document.querySelector('.janela').getBoundingClientRect().width)===860`));
   ok('mantém o Meu dia atrás', await c.avaliar(`Boolean(document.querySelector('section[data-coluna]'))`));
   const p = await noPainel();
   ok('tipo e código', p.includes('Tarefa') && /ATV-\d{4}-0010/.test(p));
-  ok('cabeçalho: título, situação, prioridade, responsável', (await valor('painel-titulo')) === t && (await valor('painel-situacao')) === 'a_fazer' && (await valor('painel-prioridade')) === 'alta' && (await valor('painel-responsavel')) === ID_KIMBERLY);
-  ok('as seções', ['Detalhes', 'Checklist (2 de 4)', 'Vínculos', 'Arquivos', 'Comentários (2)', 'Histórico'].every((s) => p.includes(s)), p.slice(0, 300));
-  ok('o título da aba e o título para leitor de tela', await c.avaliar(`document.querySelector('.janela h2')?.textContent===${js(t)}`));
+  ok('cabeçalho: título, situação, prioridade, responsável', (await texto('.janela h2')) === t && (await valor('painel-situacao')) === 'a_fazer' && (await valor('painel-prioridade')) === 'alta' && (await valor('painel-responsavel')) === ID_KIMBERLY);
+  const abas = await c.avaliar(`[...document.querySelectorAll('.janela [role=tab]')].map(a=>a.textContent).join('|')`);
+  ok('as abas, com os contadores', abas === 'Geral|Checklist4|Agendamento|Vínculos e arquivos|Comentários2|Histórico', abas);
+  ok('um título só, para o leitor de tela', await c.avaliar(`document.querySelectorAll('.janela h2').length===1`));
   await c.foto('e-painel');
-  const rolarAte = (rotulo) => c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith(${js(rotulo)})).scrollIntoView({block:'center'})`);
-  await rolarAte('Checklist');
+  await h.irParaAba('Checklist');
   await c.espera(120);
   await c.foto('e-painel-checklist');
-  ok('no computador, o cabeçalho fica à vista', await c.avaliar(`document.getElementById('painel-titulo').getBoundingClientRect().top>0`));
-  await rolarAte('Comentários');
+  ok('no computador, o cabeçalho fica à vista', await c.avaliar(`document.querySelector('.janela h2').getBoundingClientRect().top>0`));
+  await h.irParaAba('Comentários');
   await c.espera(120);
   await c.foto('e-painel-comentarios');
   await c.recarregar();
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')?.value===${js(t)}`);
+  await tituloDaJanelaE(t);
   ok('recarregar mantém o painel aberto: dá para copiar o link', true);
   await fecharPainelLateral();
   ok('fechar tira do endereço', (await c.avaliar(`location.search`)) === '');
@@ -423,7 +446,7 @@ await passo('painel: abrir e fechar', async () => {
   await c.espera(120);
   await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.trim()==='Abrir').click()`);
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')`);
+  await tituloDaJanelaE(t);
   ok('o menu do cartão abre o painel', true);
   await c.espera(400);
   await fecharPainelLateral();
@@ -441,7 +464,7 @@ await passo('painel: abrir e fechar', async () => {
   await c.ate(`document.querySelector('main table tbody tr')`);
   await c.avaliar(`[...document.querySelectorAll('main table tbody tr')].find(t=>t.textContent.includes(${js(t)})).click()`);
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')?.value===${js(t)}`);
+  await tituloDaJanelaE(t);
   ok('a linha da lista abre o painel', true);
   await c.espera(400);
   await fecharPainelLateral();
@@ -451,119 +474,134 @@ await passo('painel: abrir e fechar', async () => {
 
 await passo('painel: editar', async () => {
   const t = 'Publicar a nota de versão do Kipi';
+  const novo = 'Título novo da nota';
   await abrirPainelDe(t);
   // prazo (CA-03.05)
   const novoPrazo = `${ID_ANO + 1}-03-10`;
   await preencher('painel-prazo', novoPrazo);
   await c.espera(100);
-  ok('enquanto digita, não salva: o ano passa por datas que ninguém escolheu', (await atividadePor(t)).prazo !== novoPrazo);
-  await sairDoCampo('painel-prazo');
+  ok('enquanto não salvar, nada muda', (await atividadePor(t)).prazo !== novoPrazo);
+  await salvarEFechar();
   await c.ate(`(${cartao(t)}).textContent.includes('10/03')`);
   ok('mudar o prazo atualiza o cartão sem recarregar (CA-03.05)', (await atividadePor(t)).prazo === novoPrazo);
   ok('e os contadores', await c.avaliar(`[...document.querySelectorAll('[aria-label="Resumo do dia"] button')].find(b=>b.textContent.startsWith('Para hoje')).textContent==='Para hoje3'`));
+  await abrirPainelDe(t);
+  await h.irParaAba('Histórico');
   await c.ate(`document.querySelector('.janela').textContent.includes('Prazo: de')`);
   ok('e grava o histórico com a data anterior', (await noPainel()).includes(`para 10/03/${ID_ANO + 1}`));
   ok('passar para depois conta como adiamento (RN-03.08)', (await atividadePor(t)).adiamentos === 1);
+  await h.irParaAba('Geral');
   // título
-  await preencher('painel-titulo', 'Título novo da nota');
-  await sairDoCampo('painel-titulo');
-  await c.ate(`${cartao('Título novo da nota')}`);
-  ok('mudar o título salva ao sair do campo', true);
-  await preencher('painel-titulo', ' ');
-  await sairDoCampo('painel-titulo');
+  await editarTitulo(novo);
+  ok('o título novo aparece na janela, e só grava ao salvar', (await texto('.janela h2')) === novo && !(await atividadePor(novo)));
+  await editarTitulo(' ');
+  ok('em branco, o campo continua aberto', await c.avaliar(`Boolean(document.getElementById('painel-titulo'))`));
+  await h.salvarJanela();
   await c.ate(`document.getElementById('painel-titulo-erro')?.textContent==='Informe o título.'`);
-  ok('título vazio não salva, e volta o que estava', (await valor('painel-titulo')) === 'Título novo da nota');
+  ok('título vazio não salva', Boolean(await atividadePor(t)));
+  await preencher('painel-titulo', novo);
+  await sairDoCampo('painel-titulo');
+  await c.ate(`!document.getElementById('painel-titulo-erro')`);
   // prioridade e responsável
   await escolher('painel-prioridade', 'urgente');
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Urgente')`);
-  ok('prioridade', (await atividadePor('Título novo da nota')).prioridade === 'urgente');
   await escolher('painel-responsavel', ID_KIMBERLY);
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Kimberly Grebe')`);
-  ok('responsável', (await atividadePor('Título novo da nota')).responsavel_id === ID_KIMBERLY);
-  ok('quem vira responsável deixa de ser participante', !(await c.avaliar(`(${cartao('Título novo da nota')}).textContent.includes('+Kimberly')`)));
-  // situação
+  await salvarEFechar();
+  await c.ate(`(${cartao(novo)})?.textContent.includes('Urgente')`);
+  ok('título e prioridade', (await atividadePor(novo)).prioridade === 'urgente');
+  ok('responsável', (await atividadePor(novo)).responsavel_id === ID_KIMBERLY && (await c.avaliar(`(${cartao(novo)}).textContent.includes('Kimberly Grebe')`)));
+  ok('quem vira responsável deixa de ser participante', !(await c.avaliar(`(${cartao(novo)}).textContent.includes('+Kimberly')`)));
+  // situação: vale na hora, sem salvar
+  await abrirPainelDe(novo);
   await escolher('painel-situacao', 'em_andamento');
-  await c.ate(`(${cartao('Título novo da nota')}).closest('section').dataset.coluna==='em_andamento'`);
-  ok('situação move no quadro', true);
+  await c.ate(`(${cartao(novo)}).closest('section').dataset.coluna==='em_andamento'`);
+  ok('situação move no quadro, sem precisar salvar', true);
   await escolher('painel-situacao', 'aguardando');
   await dialogoAberto();
   await c.espera(380);
-  ok('aguardando pede de quem, também pelo painel', (await texto('.dialogo')).includes('Aguardando de quem'));
+  ok('aguardando pede de quem, também na janela', (await texto('.dialogo')).includes('Aguardando de quem'));
   await preencher('aguardando-texto', 'Equipe da loja');
   await clicarNoDialogo('Mover para Aguardando');
   await dialogoFechado();
-  await c.ate(`document.querySelector('.janela').textContent.includes('De Equipe da loja')`);
-  ok('a seção Aguardando aparece', true);
+  await c.ate(`document.querySelector('.janela').textContent.includes('Aguardando de Equipe da loja')`);
+  ok('a janela diz de quem está aguardando', true);
   await preencher('painel-acompanhamento', `${ID_ANO + 1}-03-01`);
-  await sairDoCampo('painel-acompanhamento');
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('acompanhar em 01/03')`);
+  await salvarEFechar();
+  await c.ate(`(${cartao(novo)}).textContent.includes('acompanhar em 01/03')`);
   ok('dá para mudar o acompanhamento', true);
+  await abrirPainelDe(novo);
   await escolher('painel-situacao', 'a_fazer');
-  await c.ate(`!document.querySelector('.janela').textContent.includes('De Equipe da loja')`);
-  // descrição, área, início, aviso
+  await c.ate(`!document.querySelector('.janela').textContent.includes('Aguardando de Equipe da loja')`);
+  // descrição e área
   await preencherArea('painel-descricao', 'Uma descrição nova');
-  await sairDoCampo('painel-descricao');
-  await c.ate(`document.querySelector('.janela').textContent.includes('Descrição')`);
-  await c.ate(`true`);
-  await c.espera(100);
-  ok('descrição', (await atividadePor('Título novo da nota')).descricao === 'Uma descrição nova');
-  ok('o histórico não mostra o texto da descrição', !(await c.avaliar(`[...document.querySelectorAll('.janela section:last-child li')].some(l=>l.textContent.includes('Uma descrição nova'))`)));
   const area = await c.avaliar(`[...document.querySelectorAll('#painel-area option')].find(o=>o.textContent==='Comercial').value`);
   await escolher('painel-area', area);
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Comercial')`);
-  ok('área', true);
+  await salvarEFechar();
+  ok('descrição', (await atividadePor(novo)).descricao === 'Uma descrição nova');
+  ok('área', (await atividadePor(novo)).area_id === area);
+  await abrirPainelDe(novo);
+  await h.irParaAba('Histórico');
+  await c.ate(`document.querySelector('.janela').textContent.includes('Prazo: de')`);
+  ok('o histórico não mostra o texto da descrição', !(await noPainel()).includes('Uma descrição nova'));
+  // início e aviso, em Agendamento
+  await h.irParaAba('Agendamento');
   await preencher('painel-inicio', `${ID_ANO + 1}-05-05`);
-  await sairDoCampo('painel-inicio');
+  await h.salvarJanela();
   await c.ate(`document.getElementById('painel-inicio-erro')?.textContent==='O início precisa ser antes do prazo.'`);
-  ok('início depois do prazo não salva, e volta o que estava', (await valor('painel-inicio')) === '' && (await atividadePor('Título novo da nota')).inicio === null);
+  ok('início depois do prazo não salva', (await atividadePor(novo)).inicio === null);
   await preencher('painel-inicio', `${ID_ANO + 1}-01-05`);
-  await sairDoCampo('painel-inicio');
   await c.ate(`!document.getElementById('painel-inicio-erro')`);
-  ok('início', (await atividadePor('Título novo da nota')).inicio === `${ID_ANO + 1}-01-05`);
-  await preencher('painel-prazo', `${ID_ANO + 1}-01-01`);
-  await sairDoCampo('painel-prazo');
-  await c.ate(`document.getElementById('painel-prazo-erro')?.textContent==='O prazo precisa ser depois do início.'`);
-  ok('prazo antes do início não salva', (await atividadePor('Título novo da nota')).prazo === novoPrazo);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-09`);
-  await sairDoCampo('painel-aviso-dia');
   await c.ate(`document.querySelector('.janela').textContent.includes('Informe o dia e a hora do aviso.')`);
-  ok('aviso pela metade avisa e não salva', (await atividadePor('Título novo da nota')).aviso_em === null);
+  ok('aviso pela metade avisa', (await atividadePor(novo)).aviso_em === null);
   await preencher('painel-aviso-hora', '08:00');
-  await sairDoCampo('painel-aviso-hora');
   await c.ate(`!document.querySelector('.janela').textContent.includes('Informe o dia e a hora do aviso.')`);
-  ok('aviso', (await atividadePor('Título novo da nota')).aviso_em === `${ID_ANO + 1}-03-09T11:00:00.000Z`);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-20`);
-  await sairDoCampo('painel-aviso-dia');
   await c.ate(`document.querySelector('.janela').textContent.includes('O aviso precisa ser antes do prazo.')`);
-  ok('aviso depois do prazo não salva', (await atividadePor('Título novo da nota')).aviso_em === `${ID_ANO + 1}-03-09T11:00:00.000Z`);
+  ok('aviso depois do prazo é barrado', true);
   await preencher('painel-aviso-dia', `${ID_ANO + 1}-03-09`);
-  await sairDoCampo('painel-aviso-dia');
   await c.ate(`!document.querySelector('.janela').textContent.includes('O aviso precisa ser antes do prazo.')`);
+  await salvarEFechar();
+  ok('início', (await atividadePor(novo)).inicio === `${ID_ANO + 1}-01-05`);
+  ok('aviso', (await atividadePor(novo)).aviso_em === `${ID_ANO + 1}-03-09T11:00:00.000Z`);
+  // prazo antes do início
+  await abrirPainelDe(novo);
+  await preencher('painel-prazo', `${ID_ANO + 1}-01-01`);
+  await h.salvarJanela();
+  await c.ate(`document.getElementById('painel-inicio-erro')?.textContent==='O início precisa ser antes do prazo.'`);
+  ok('prazo antes do início não salva, e leva até o campo', (await atividadePor(novo)).prazo === novoPrazo);
+  await descartarAlteracoes();
   // contexto e participantes
-  await marcarPilula('Contexto', 'Zupi');
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('Zupi')`);
+  await abrirPainelDe(novo);
+  await h.marcarContexto('painel-contexto', 'Zupi');
+  await h.adicionarParticipante('Bruna Alves');
+  await salvarEFechar();
+  await c.ate(`(${cartao(novo)}).textContent.includes('Zupi')`);
   ok('contexto', true);
-  await marcarPilula('Contexto', 'Kipi');
-  await c.ate(`!(${cartao('Título novo da nota')}).textContent.includes('Kipi')`);
+  ok('participante', await c.avaliar(`(${cartao(novo)}).textContent.includes('+Bruna')`));
+  await abrirPainelDe(novo);
+  await h.marcarContexto('painel-contexto', 'Kipi');
+  await salvarEFechar();
+  await c.ate(`!(${cartao(novo)}).textContent.includes('Kipi')`);
   ok('tirar um contexto', true);
-  await marcarPilula('Participantes', 'Bruna Alves');
-  await c.ate(`(${cartao('Título novo da nota')}).textContent.includes('+Bruna')`);
-  ok('participante', true);
+  await abrirPainelDe(novo);
+  await h.irParaAba('Histórico');
   ok('o histórico diz por extenso', await c.ate(`document.querySelector('.janela').textContent.includes('colocou Bruna Alves como participante')`).then(() => true));
   await c.foto('f-editado');
-  await c.avaliar(`document.getElementById('painel-titulo').focus()`);
-  await preencher('painel-titulo', 'Salvo ao fechar');
-  await c.tecla('Escape');
-  await painelFechado();
-  await c.ate(`${cartao('Salvo ao fechar')}`);
-  ok('fechar com o cursor no campo salva o que foi escrito', true);
+  await h.irParaAba('Geral');
+  await preencherArea('painel-descricao', 'Não vale');
+  await descartarAlteracoes();
+  ok('fechar com alteração pendente pergunta, e descartar não grava', (await atividadePor(novo)).descricao === 'Uma descrição nova');
 });
 
 await passo('painel: checklist, vínculos e arquivos', async () => {
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
+  await h.irParaAba('Checklist');
   const p = await noPainel();
   ok('os itens, com quem fez', p.includes('Levantar o que os concorrentes cobram') && p.includes('Feito por Kimberly Grebe'), p.slice(0, 200));
+  // Numa tela baixa, a lista rola: marcar um item não pode voltar para o começo.
+  await c.tamanho(1440, 420);
+  await c.espera(200);
   const rolagem = () => c.avaliar(`(()=>{let e=document.getElementById('painel-novo-item');while(e&&e.scrollTop===0)e=e.parentElement;return e?e.scrollTop:0})()`);
   await c.avaliar(`document.getElementById('painel-novo-item').scrollIntoView({block:'center'})`);
   await c.espera(100);
@@ -571,7 +609,9 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
   await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
   await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (3 de 4)')`);
   ok('marcar um item', (await c.avaliar(`(${cartao(t)}).textContent.includes('3/4')`)));
-  ok('o painel não volta para o começo ao salvar', (await rolagem()) === rolagemAntes && rolagemAntes > 0, `${rolagemAntes} e ${await rolagem()}`);
+  ok('a janela não volta para o começo ao salvar', (await rolagem()) === rolagemAntes && rolagemAntes > 0, `${rolagemAntes} e ${await rolagem()}`);
+  await c.tamanho(1440, 900);
+  await c.espera(200);
   await c.avaliar(`[...document.querySelectorAll('.janela label')].find(l=>l.textContent.includes('Fechar o preço com a Camila')).querySelector('input').click()`);
   await c.ate(`document.querySelector('.janela').textContent.includes('Checklist (2 de 4)')`);
   ok('desmarcar', true);
@@ -589,6 +629,7 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
   await c.espera(100);
   ok('responsável do item', (await tabela('checklist_item')).find((x) => x.texto === 'Fechar o preço com a Camila').responsavel_id === ID_CAMILA);
   // vínculos
+  await h.irParaAba('Vínculos e arquivos');
   await escolher('painel-vinculo', `contraparte:${ID_SOUZA}`);
   await c.ate(`document.querySelector('.janela').textContent.includes('Contraparte: Souza Contabilidade')`);
   ok('vincular', await c.avaliar(`Boolean(document.querySelector('.janela a[href="/configuracoes/cadastros/contrapartes/${ID_SOUZA}"]'))`));
@@ -618,6 +659,7 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
 await passo('painel: comentários', async () => {
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
+  await h.irParaAba('Comentários');
   const p = await noPainel();
   ok('os comentários, com autor', p.includes('Separei os preços dos concorrentes') && p.includes('Camila Lima'));
   await c.avaliar(`[...document.querySelectorAll('.janela button')].find(b=>b.textContent.trim()==='Comentar').click()`);
@@ -649,8 +691,10 @@ await passo('painel: comentários', async () => {
   await c.avaliar(`[...[...document.querySelectorAll('.janela li')].find(l=>l.textContent.includes('Comentário editado')).querySelectorAll('button')].find(b=>b.textContent.trim()==='Remover').click()`);
   await c.ate(`document.querySelector('.janela').textContent.includes('Comentários (2)')`);
   ok('remover vira "comentário removido"', !(await noPainel()).includes('Comentário editado') && (await noPainel()).includes('Comentário removido'));
+  await h.irParaAba('Histórico');
   await c.ate(`document.querySelector('.janela').textContent.includes('removeu um comentário')`);
   ok('e o histórico guarda', (await noPainel()).includes('Kimberly Grebe comentou'));
+  await h.irParaAba('Comentários');
   // comentário escrito e não enviado
   await preencherArea('painel-comentario', 'Um rascunho');
   await c.tecla('Escape');
@@ -672,15 +716,20 @@ await passo('painel: comentários', async () => {
 await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async () => {
   const t = 'Definir o preço da oferta anual';
   await abrirPainelDe(t);
-  await clicarBotaoPainel('Concluir');
+  await clicarBotaoPainel('Concluir atividade');
   await esperarAviso('Atividade concluída.');
   await c.ate(`document.querySelector('.janela').textContent.includes('Concluída em')`);
-  ok('concluir pelo painel', (await noPainel()).includes('por Kimberly Grebe'));
-  ok('os campos ficam só para leitura', await c.avaliar(`document.getElementById('painel-titulo').disabled&&document.getElementById('painel-prazo').disabled`));
+  ok('concluir pela janela', (await noPainel()).includes('por Kimberly Grebe'));
+  ok('os campos ficam só para leitura', await c.avaliar(`document.getElementById('painel-descricao').disabled&&document.getElementById('painel-prazo').disabled&&!document.querySelector('.janela button[aria-label="Editar o título"]')`));
+  ok('nem no contexto e nos participantes', await c.avaliar(`document.getElementById('painel-contexto').disabled&&[...document.querySelectorAll('.janela fieldset')].find(f=>f.querySelector('legend')?.textContent.startsWith('Participantes')).disabled`));
+  ok('sem "Salvar alterações"', !(await c.avaliar(`[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Salvar alterações')`)));
+  await h.irParaAba('Checklist');
   ok('e não dá para mexer no checklist', !(await c.avaliar(`Boolean(document.getElementById('painel-novo-item'))`)));
-  ok('nem no contexto e nos participantes', await c.avaliar(`[...document.querySelectorAll('.janela fieldset')].length===2&&[...document.querySelectorAll('.janela fieldset')].every(f=>f.disabled)`));
+  await h.irParaAba('Vínculos e arquivos');
   ok('nem nos vínculos e arquivos', !(await c.avaliar(`Boolean(document.getElementById('painel-vinculo')||document.getElementById('painel-arquivo'))`)));
+  await h.irParaAba('Comentários');
   ok('mas ainda dá para comentar', await c.avaliar(`!document.getElementById('painel-comentario').disabled`));
+  await h.irParaAba('Geral');
   await escolher('painel-situacao', 'a_fazer');
   await dialogoAberto();
   ok('mudar a situação de uma concluída pede o motivo de reabrir', (await texto('.dialogo')).includes('Reabrir'));
@@ -696,8 +745,11 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await clicarNoDialogo('Reabrir atividade');
   await esperarAviso('Atividade reaberta.');
   await dialogoFechado();
-  await c.ate(`!document.getElementById('painel-titulo').disabled`);
-  ok('reabrir pede motivo e libera', (await noPainel()).includes('Motivo: Faltou um ajuste'));
+  await c.ate(`!document.getElementById('painel-descricao').disabled`);
+  await h.irParaAba('Histórico');
+  await c.ate(`document.querySelector('.janela').textContent.includes('Motivo: Faltou um ajuste')`);
+  ok('reabrir pede motivo e libera', true);
+  await h.irParaAba('Geral');
   // menu
   const menu = async () => { await c.clicar('[aria-label="Mais ações da atividade"]'); await c.ate(`document.querySelector('.menu-suspenso')`); await c.espera(150); };
   await menu();
@@ -711,9 +763,9 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await clicarNoDialogo('Marcar bloqueada');
   await dialogoFechado();
   await c.ate(`document.querySelector('.janela').textContent.includes('Falta o aval')`);
-  ok('a seção Bloqueio diz desde quando e por quem', (await noPainel()).includes('por Kimberly Grebe'));
+  ok('o bloqueio diz desde quando e por quem', (await noPainel()).includes('por Kimberly Grebe'));
   await clicarBotaoPainel('Desbloquear');
-  await c.ate(`!document.querySelector('.janela').textContent.includes('por Kimberly Grebe')||!document.querySelector('.janela section')?.textContent.startsWith('Bloqueio')`);
+  await c.ate(`!document.querySelector('.janela').textContent.includes('Falta o aval')`);
   await c.espera(100);
   ok('desbloquear pelo painel', (await atividadePor(t)).bloqueada === false);
   await menu();
@@ -722,14 +774,14 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await c.ate(`Boolean(document.getElementById('painel-solicitante'))`);
   ok('converter em demanda mostra os campos dela', (await valor('painel-solicitante')) === ID_KIMBERLY);
   await preencherArea('painel-resultado', 'Preço definido');
-  await sairDoCampo('painel-resultado');
-  await c.espera(120);
+  await salvarEFechar();
   ok('resultado esperado', (await atividadePor(t)).resultado_esperado === 'Preço definido');
+  await abrirPainelDe(t);
   await menu();
   ok('e agora oferece voltar a tarefa', (await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].some(b=>b.textContent.trim()==='Converter em tarefa')`)));
   await c.avaliar(`[...document.querySelectorAll('.menu-suspenso button')].find(b=>b.textContent.trim()==='Duplicar').click()`);
   await esperarAviso('Atividade duplicada.');
-  await c.ate(`document.getElementById('painel-titulo')?.value===${js(`${t} (cópia)`)}`);
+  await tituloDaJanelaE(`${t} (cópia)`);
   ok('duplicar abre a cópia', true);
   await c.espera(200);
   const copia = await atividadePor(`${t} (cópia)`);
@@ -743,7 +795,7 @@ await passo('painel: concluir, reabrir, bloquear, duplicar, converter', async ()
   await esperarAviso('Atividade cancelada.');
   await dialogoFechado();
   await c.ate(`document.querySelector('.janela').textContent.includes('Cancelada: Era só um teste')`);
-  ok('cancelar pelo painel: fica só para leitura', await c.avaliar(`document.getElementById('painel-titulo').disabled`));
+  ok('cancelar pela janela: fica só para leitura', await c.avaliar(`document.getElementById('painel-descricao').disabled`));
   await fecharPainelLateral();
 });
 
@@ -751,7 +803,7 @@ await passo('painel: alerta e lembrete', async () => {
   const a = 'Exportar os dados da Central';
   await abrirPainelDe(a);
   const p = await noPainel();
-  ok('alerta: origem, motivo, data de referência', p.includes('Origem:Backup') && p.includes('Motivo:Backup atrasado') && p.includes('Data de referência:'), p.slice(0, 400));
+  ok('alerta: origem, motivo, data de referência', p.includes('Origem: Backup') && p.includes('Backup atrasado') && p.includes('Data de referência:'), p.slice(0, 400));
   ok('diz que concluir não executa a ação (RN-03.12)', p.includes('Concluir aqui não executa a ação de origem.'));
   ok('com o botão da ação e dispensar', await c.avaliar(`[...document.querySelectorAll('.janela a')].some(x=>x.textContent==='Exportar dados'&&x.getAttribute('href')==='/configuracoes/dados')&&[...document.querySelectorAll('.janela button')].some(b=>b.textContent.trim()==='Dispensar alerta')`));
   ok('o título e o prazo vêm do sistema', !(await c.avaliar(`Boolean(document.getElementById('painel-titulo')||document.getElementById('painel-prazo'))`)));
@@ -765,12 +817,12 @@ await passo('painel: alerta e lembrete', async () => {
   await fecharPainelLateral();
   const l = 'Ligar para o banco sobre a conta da empresa';
   await abrirPainelDe(l);
-  ok('lembrete: mostra o aviso, sem prazo nem checklist', (await valor('painel-aviso-hora')) === '15:00' && !(await c.avaliar(`Boolean(document.getElementById('painel-prazo')||document.getElementById('painel-novo-item'))`)));
+  ok('lembrete: mostra o aviso, sem prazo nem checklist', (await valor('painel-aviso-hora')) === '15:00' && !(await c.avaliar(`Boolean(document.getElementById('painel-prazo'))||[...document.querySelectorAll('.janela [role=tab]')].some(a=>a.textContent.startsWith('Checklist'))`)));
   await preencher('painel-aviso-hora', '');
-  await sairDoCampo('painel-aviso-hora');
-  await c.ate(`document.querySelector('.janela').textContent.includes('Lembrete exige a data e a hora do aviso.')`);
+  await h.salvarJanela();
+  await c.ate(`document.querySelector('.janela').textContent.includes('Informe a hora do aviso.')`);
   ok('lembrete não fica sem aviso', Boolean((await atividadePor(l)).aviso_em));
-  await fecharPainelLateral();
+  await descartarAlteracoes();
 });
 
 await passo('fichas: aba Atividades (RN-03.20)', async () => {
@@ -844,8 +896,8 @@ await passo('celular', async () => {
   await painelAberto();
   await c.espera(500);
   const folha = await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return {topo:Math.round(r.top),base:Math.round(r.bottom),largura:Math.round(r.width)}})()`);
-  ok('Adicionar é folha inferior (18 §10.6)', folha.base === 800 && folha.top !== 0 && folha.topo > 0 && folha.largura === 360, JSON.stringify(folha));
-  ok('com a alça', await c.avaliar(`getComputedStyle(document.querySelector('.janela'),'::before').content!=='none'`));
+  ok('Adicionar é tela inteira no celular (18 §9.9)', folha.topo === 0 && folha.base === 800 && folha.largura === 360, JSON.stringify(folha));
+  ok('com "Voltar"', await c.avaliar(`Boolean(document.querySelector('.janela [aria-label="Voltar"]'))`));
   ok('foco automático no título', (await c.avaliar(`document.activeElement.id`)) === 'atividade-titulo');
   ok('abre sem acusar erro', !(await c.avaliar(`Boolean(document.querySelector('.janela [role=alert]'))`)));
   ok('salvar fica à vista', await c.avaliar(`(()=>{const b=document.querySelector('.janela button[type=submit]').getBoundingClientRect();return b.bottom<=800&&b.top>0})()`));
@@ -858,16 +910,16 @@ await passo('celular', async () => {
   ok('dá para criar no celular (CA-18.11)', true);
   await c.espera(200);
   await abrirPainelDe('Definir o preço da oferta anual');
-  ok('o painel é tela inteira no celular', await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return r.width===360&&r.height===800})()`));
+  ok('a janela é tela inteira no celular', await c.avaliar(`(()=>{const r=document.querySelector('.janela').getBoundingClientRect();return r.width===360&&r.height===800})()`));
   ok('com "Voltar"', await c.avaliar(`Boolean(document.querySelector('.janela [aria-label="Voltar"]'))`));
   await c.foto('k-painel');
-  await c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith('Checklist')).scrollIntoView({block:'center'})`);
+  await h.irParaAba('Checklist');
   await c.espera(120);
   await c.foto('k-painel-checklist');
-  ok('no celular tudo rola, e só a barra de cima fica', await c.avaliar(`(()=>{const v=document.querySelector('.janela [aria-label="Voltar"]').getBoundingClientRect();const t=document.getElementById('painel-titulo').getBoundingClientRect();return v.top>=0&&v.bottom<=70&&t.bottom<0})()`));
-  await c.avaliar(`[...document.querySelectorAll('.janela h3')].find(x=>x.textContent.startsWith('Comentários')).scrollIntoView({block:'center'})`);
+  await h.irParaAba('Comentários');
   await c.espera(120);
   await c.foto('k-painel-comentarios');
+  ok('no celular, o corpo rola, e a barra de cima e as abas ficam', await c.avaliar(`(()=>{const corpo=document.querySelector('.janela [role=tabpanel][data-state=active]').parentElement;corpo.scrollTop=9999;const v=document.querySelector('.janela [aria-label="Voltar"]').getBoundingClientRect();const a=document.querySelector('.janela [role=tablist]').getBoundingClientRect();return getComputedStyle(corpo).overflowY==='auto'&&v.top>=0&&a.top>0})()`));
   await c.clicar('.janela [aria-label="Voltar"]');
   await painelFechado();
   ok('"Voltar" fecha', (await c.avaliar(`location.search`)) === '');
@@ -880,9 +932,9 @@ await passo('teclado', async () => {
   await c.avaliar(`(${cartao(t)}).querySelector('h3 button').focus()`);
   await c.tecla('Enter');
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')`);
+  await tituloDaJanelaE(t);
   await c.espera(450);
-  ok('Enter no título do cartão abre o painel', true);
+  ok('Enter no título do cartão abre a janela', true);
   await c.tecla('Escape');
   await painelFechado();
   await c.espera(120);

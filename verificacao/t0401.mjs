@@ -907,6 +907,8 @@ await passo('vínculo com atividade', async () => {
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
   await c.espera(420);
+  await h.irParaAba('Vínculos e arquivos');
+  await c.ate(`document.getElementById('painel-vinculo')`);
   const seletor = await c.avaliar(`[...document.querySelectorAll('.janela select')].find(s=>[...s.options].some(o=>o.value.startsWith('ferramenta:')))?.id`);
   ok('o painel da atividade oferece as ferramentas', Boolean(seletor), seletor);
   await c.avaliar(`(()=>{const s=document.getElementById(${js(seletor)});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${js('ferramenta:' + f.id)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);

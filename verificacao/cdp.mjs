@@ -6,7 +6,9 @@ import path from 'node:path';
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function abrirChrome({ scratch, porta = 9333, pastaFotos }) {
+export async function abrirChrome({ scratch, porta: portaDaSuite = 9333, pastaFotos }) {
+  // Frentes em paralelo não disputam o mesmo Chrome: VERIFICACAO_PORTAS desloca a porta de todas as suítes.
+  const porta = portaDaSuite + Number(process.env.VERIFICACAO_PORTAS ?? 0);
   const dialogosNativos = [];
   const perfil = path.join(scratch, `perfil-cdp-${porta}`);
   rmSync(perfil, { recursive: true, force: true });

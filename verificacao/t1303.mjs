@@ -107,7 +107,7 @@ await passo('busca: teclado e destino', async () => {
   await c.ate(`!document.querySelector('.busca-global')`);
   await c.ate(`location.search==='?atividade=${a.id}'`);
   await painelAberto();
-  await c.ate(`document.getElementById('painel-titulo')?.value===${js(a.titulo)}`);
+  await c.ate(`document.querySelector('.janela h2')?.textContent===${js(a.titulo)}`);
   ok('Enter vai direto ao registro', true);
   await c.espera(400);
   await c.tecla('Escape');

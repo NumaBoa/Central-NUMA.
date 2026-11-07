@@ -267,6 +267,8 @@ await passo('vínculo com atividade e busca', async () => {
   await ir(`/meu-dia?atividade=${atividade.id}`);
   await painelAberto();
   await c.espera(420);
+  await h.irParaAba('Vínculos e arquivos');
+  await c.ate(`document.getElementById('painel-vinculo')`);
   const seletor = await c.avaliar(`[...document.querySelectorAll('.janela select')].find(s=>[...s.options].some(o=>o.value.startsWith('ativo_digital:')))?.id`);
   ok('o painel da atividade oferece os ativos', Boolean(seletor), seletor);
   await c.avaliar(`(()=>{const s=document.getElementById(${js(seletor)});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${js('ativo_digital:' + a.id)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);

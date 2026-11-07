@@ -320,6 +320,34 @@ await passo('T03.02: fechar com alteração pendente pergunta; desfazer a ediç�
   ok('sem alteração, fecha direto', true);
 });
 
+await passo('T03.02: concluir não perde o que foi escrito', async () => {
+  const alvo = await abrirAtividade('Definir o preço anual');
+  await preencherCampo('painel-descricao', 'Escrito antes de concluir');
+  await c.ate(`document.querySelector('.janela [role=status]').textContent==='Alterações não salvas'`);
+  await c.avaliar(`${botaoDaJanela('Concluir atividade')}.click()`);
+  await esperarAviso('Atividade concluída.');
+  const depois = (await tabela('atividade')).find((a) => a.id === alvo.id);
+  ok('salva e conclui', depois.situacao === 'concluida' && depois.descricao === 'Escrito antes de concluir', `${depois.situacao} ${depois.descricao}`);
+  await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast]')].find(t=>t.textContent.includes('Atividade concluída')).querySelector('button').click()`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:atividade')).find(a=>a.id===${js(alvo.id)}).situacao!=='concluida'`);
+  await c.espera(150);
+  await preencherCampo('painel-descricao', '');
+  await h.salvarJanela();
+  await painelFechado();
+  // Com um erro, não salva nem conclui.
+  await abrirAtividade('Definir o preço anual');
+  await h.irParaAba('Agendamento');
+  await preencherCampo('painel-inicio', '2027-05-01');
+  await c.avaliar(`${botaoDaJanela('Concluir atividade')}.click()`);
+  await c.ate(`document.getElementById('painel-inicio-erro')`);
+  ok('com um erro, não conclui, e mostra o que falta', (await tabela('atividade')).find((a) => a.id === alvo.id).situacao !== 'concluida');
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await c.ate(`document.querySelector('.dialogo')`);
+  await c.espera(280);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+});
+
 await passo('T03.02: erro leva até o campo e à aba dele', async () => {
   const alvo = await abrirAtividade('Definir o preço anual');
   await irParaAba('Agendamento');
@@ -398,6 +426,24 @@ await passo('T03.02: alerta, com o efeito de cada ação à vista', async () => 
   ok('sem Agendamento', !(await c.avaliar(`Boolean(${abaDaJanela('Agendamento')})`)));
   ok('título sem lápis', !(await c.avaliar(`Boolean(document.querySelector('.janela button[aria-label="Editar o título"]'))`)));
   await c.foto('janela-alerta-1440');
+  await preencherCampo('painel-descricao', 'Anotação do alerta');
+  await c.ate(`document.querySelector('.janela [role=status]').textContent==='Alterações não salvas'`);
+  await c.avaliar(`document.querySelector('.janela [data-alerta] a').click()`);
+  await c.ate(`document.querySelector('.dialogo')?.textContent.includes('Descartar as alterações?')`);
+  ok('um link para fora pergunta antes de perder o que foi escrito', (await c.avaliar(`location.pathname`)) === '/meu-dia');
+  await c.espera(300);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Continuar editando').click()`);
+  await c.ate(`!document.querySelector('.dialogo')`);
+  await c.espera(150);
+  await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
+  await c.ate(`document.querySelector('.dialogo')`);
+  await c.espera(300);
+  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent.trim()==='Descartar alterações').click()`);
+  await painelFechado();
+  await ir(`/meu-dia?atividade=${alerta.id}`);
+  await painelAberto();
+  await c.ate(`document.querySelector('.janela [data-alerta]')`);
+  await c.espera(300);
   await c.avaliar(`document.querySelector('.janela button[aria-label="Fechar"]').click()`);
   await painelFechado();
 });
@@ -497,13 +543,13 @@ await passo('T03.03: "Mais opções", o prazo e a sugestão pela área', async (
   await c.foto('adicionar-mais-opcoes-1440');
   const area = (await tabela('area')).find((item) => !item.compartilhada && item.responsavel_padrao_id && item.responsavel_padrao_id !== (0, 0));
   const compartilhada = (await tabela('area')).find((item) => item.compartilhada);
-  h.escolher('atividade-area', area.id);
+  await h.escolher('atividade-area', area.id);
   await c.espera(150);
   ok('a área sugere a responsável (RN-03.02)', (await h.valor('atividade-responsavel')) === area.responsavel_padrao_id, area.nome);
-  h.escolher('atividade-responsavel', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
+  await h.escolher('atividade-responsavel', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
   await c.espera(150);
   ok('e a sugestão é editável', (await h.valor('atividade-responsavel')) === (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
-  h.escolher('atividade-area', compartilhada.id);
+  await h.escolher('atividade-area', compartilhada.id);
   await c.espera(150);
   ok('área compartilhada pede a escolha', (await h.valor('atividade-responsavel')) === '' && /Esta área é compartilhada/.test(await texto('.janela')));
   await fechaSemSalvar();
@@ -513,7 +559,7 @@ await passo('T03.03: "Salvar e adicionar outro" mantém tipo, contexto e respons
   await abrirAdicionar('Demanda');
   const camila = (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id;
   await h.preencher('atividade-titulo', 'Primeira demanda da revisão');
-  h.escolher('atividade-responsavel', camila);
+  await h.escolher('atividade-responsavel', camila);
   await c.avaliar(`document.getElementById('atividade-contexto').click()`);
   await c.ate(`[...document.querySelectorAll('.menu-suspenso label')].some(l=>l.textContent.includes('Kipi'))`);
   await c.espera(250);
@@ -598,7 +644,7 @@ await passo('T03.04: filtros avançados, com "Concluída por"', async () => {
   await abrirFiltros();
   const campos = await c.avaliar(`[...document.querySelectorAll('.menu-suspenso label[for], .menu-suspenso legend')].map(l=>l.textContent.trim())`);
   ok('área, tipo, prioridade, origem, etiqueta e quem concluiu', js(campos) === js(['Área', 'Tipo', 'Prioridade', 'Origem do alerta', 'Etiqueta', 'Concluída por']), js(campos));
-  h.escolher('filtro-concluida-por', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
+  await h.escolher('filtro-concluida-por', (await tabela('pessoa')).find((pessoa) => pessoa.nome_completo === 'Camila Lima').id);
   await c.espera(150);
   await fecharMenu();
   ok('o botão conta', (await botaoFiltros()) === 'Filtros (1)', await botaoFiltros());

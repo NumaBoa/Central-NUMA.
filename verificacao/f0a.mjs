@@ -90,7 +90,7 @@ await passo('FL-01: o vencimento da assinatura, pago com o cartão pessoal', asy
   await c.ate(`document.querySelector('.janela')?.textContent.includes('Concluir aqui não executa a ação de origem.')`);
   await c.espera(200);
   const painel = espacos(await texto('.janela'));
-  ok('o painel mostra a origem, o motivo e a data, e avisa que concluir não paga', painel.includes('Origem:Financeiro') && painel.includes('Motivo:Vencimento próximo') && painel.includes('Data de referência:'), painel.slice(0, 400));
+  ok('o painel mostra a origem, o motivo e a data, e avisa que concluir não paga', painel.includes('Origem: Financeiro') && painel.includes('Vencimento próximo') && painel.includes('Data de referência:'), painel.slice(0, 400));
   await c.foto('b-painel-alerta');
   await c.avaliar(`[...document.querySelectorAll('.janela a')].find(a=>a.textContent.trim()==='Registrar pagamento').click()`);
   await c.ate(`location.pathname==='/financeiro/${nuvem.id}'&&document.querySelector('.dialogo')?.textContent.includes('Registrar baixa')`);

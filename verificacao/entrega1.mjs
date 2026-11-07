@@ -370,7 +370,7 @@ await passo('formulário', async () => {
   await c.clicar('texto=Nova tarefa');
   await c.ate(`document.querySelector('.janela')`);
   await c.espera(450);
-  ok('painel de 480px', (await c.avaliar(`document.querySelector('.janela').getBoundingClientRect().width`)) === 480);
+  ok('janela central de 560px', (await c.avaliar(`document.querySelector('.janela').getBoundingClientRect().width`)) === 560);
   await c.clicar('.janela button[type=submit]');
   await c.espera(150);
   ok('erro junto ao campo e no resumo', await c.avaliar(`(()=>{const p=document.querySelector('.janela');return p.querySelector('[role=alert]')?.textContent.includes('Informe o título')&&document.getElementById('exemplo-titulo').getAttribute('aria-invalid')==='true'&&document.activeElement.id==='exemplo-titulo'})()`));

@@ -13,7 +13,7 @@ import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
-import { LinkCentral } from '@/componentes/layout/protecao-saida';
+import { LinkCentral, useAlteracoesPendentes } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { EstadoCarregando, EstadoErro } from '@/componentes/padroes/estados';
@@ -156,7 +156,7 @@ function MenuDaJanela({ atividade, doDia, acoes, aoAbrir }: { atividade: Ativida
 function TituloDaJanela({ atividade, valor, erro, aoMudar }: { atividade: Atividade; valor: string; erro?: string; aoMudar: (titulo: string) => void }) {
   const [editando, setEditando] = useState(false);
   const editavel = estaAberta(atividade) && atividade.tipo !== 'alerta';
-  const mostrarCampo = editavel && (editando || Boolean(erro));
+  const mostrarCampo = editavel && (editando || Boolean(erro) || !valor.trim());
   const classe = 'font-display text-[22px] leading-7 font-semibold tracking-[-.02em] break-words md:text-[26px] md:leading-8 md:tracking-[-.025em]';
   if (!mostrarCampo) {
     return (
@@ -181,6 +181,7 @@ function TituloDaJanela({ atividade, valor, erro, aoMudar }: { atividade: Ativid
             {...controle}
             value={valor}
             onChange={(evento) => aoMudar(evento.target.value)}
+            onFocus={() => setEditando(true)}
             onBlur={() => setEditando(false)}
             onKeyDown={(evento) => {
               if (evento.key === 'Enter') {
@@ -274,10 +275,11 @@ type AbaGeralProps = {
   rascunho: RascunhoDaAtividade;
   erros: ErrosDoRascunho;
   mudar: Mudar;
+  aoMudarSituacao: (situacao: 'a_fazer' | 'em_andamento' | 'aguardando' | 'concluida') => void;
 };
 
 /** Geral (protótipo aprovado): o essencial em duas colunas, sem rolar. */
-function AbaGeral({ atividade, painel, dados, acoes, doDia, rascunho, erros, mudar }: AbaGeralProps) {
+function AbaGeral({ atividade, painel, dados, acoes, doDia, rascunho, erros, mudar, aoMudarSituacao }: AbaGeralProps) {
   const aberta = estaAberta(atividade);
   const alerta = atividade.tipo === 'alerta';
   const lembrete = atividade.tipo === 'lembrete';
@@ -329,7 +331,7 @@ function AbaGeral({ atividade, painel, dados, acoes, doDia, rascunho, erros, mud
               atividade.situacao === 'cancelada' ? (
                 <EtiquetaSituacao tipo="neutro">{ROTULOS_SITUACAO_ATIVIDADE.cancelada}</EtiquetaSituacao>
               ) : (
-                <Selecao {...controle} value={atividade.situacao} onChange={(evento) => acoes.mover(doDia, evento.target.value as 'a_fazer')}>
+                <Selecao {...controle} value={atividade.situacao} onChange={(evento) => aoMudarSituacao(evento.target.value as 'a_fazer')}>
                   {(['a_fazer', 'em_andamento', 'aguardando', 'concluida'] as const).map((situacao) => (
                     <option key={situacao} value={situacao}>
                       {ROTULOS_SITUACAO_ATIVIDADE[situacao]}
@@ -916,6 +918,14 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
   const credencial = useAvisoDeCredencial(rascunho ? [rascunho.titulo, rascunho.descricao, rascunho.resultado_esperado, rascunho.solicitante_texto] : []);
   const mudar = useCallback<Mudar>((parcial) => setEdicoes((atuais) => ({ ...atuais, ...parcial })), []);
 
+  // Link para fora e fechar a aba também perguntam, enquanto houver algo sem salvar (P3).
+  useAlteracoesPendentes(Boolean(id) && (alterado || temComentario));
+
+  // Encerrada fica só para leitura: o que ainda não tinha sido salvo não continua na tela como se valesse.
+  useEffect(() => {
+    if (!aberta) setEdicoes({});
+  }, [aberta]);
+
   /** O comentário só existe depois de enviado, e as alterações depois de salvas: as duas perguntam antes (P3). */
   function pedirFechar() {
     if (alterado || temComentario) setConfirmandoSaida(true);
@@ -927,8 +937,9 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
     setPergunta(null);
   }
 
-  async function salvarAlteracoes() {
-    if (!painel || !rascunho || !atividade || !mudancas) return;
+  /** Falso: faltou corrigir algo, a pessoa desistiu ou não deu para gravar. A janela continua, mostrando o motivo. */
+  async function gravarRascunho(): Promise<boolean> {
+    if (!painel || !rascunho || !atividade || !mudancas) return false;
     const encontrados = errosDoRascunho(rascunho, atividade.tipo);
     setTentou(true);
     setFalha(null);
@@ -936,27 +947,40 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
     if (primeiro) {
       setAba(abaDoCampo(primeiro, atividade.tipo));
       window.setTimeout(() => document.getElementById(ID_DO_CAMPO[primeiro] ?? '')?.focus(), 60);
-      return;
+      return false;
     }
-    if (!credencial.podeGravar()) return;
+    if (!credencial.podeGravar()) return false;
     // RN-03.17: só o que a rotina guarda pergunta. As datas de uma ocorrência valem só para ela.
     let escopo: EscopoDaEdicao = 'esta';
     if (atividade.recorrencia_id && Object.keys(mudancas.campos).length) {
       const resposta = await new Promise<EscopoDaEdicao | null>((responder) => setPergunta({ responder }));
-      if (!resposta) return;
+      if (!resposta) return false;
       escopo = resposta;
     }
     setSalvando(true);
     try {
       await salvarRascunho(atividade.id, painel, rascunho, escopo);
-      aviso('Alterações salvas.');
       setEdicoes({});
-      aoFechar();
+      setTentou(false);
+      return true;
     } catch (erro) {
       setFalha(mensagemDoErro(erro));
+      return false;
     } finally {
       setSalvando(false);
     }
+  }
+
+  async function salvarAlteracoes() {
+    if (!(await gravarRascunho())) return;
+    aviso('Alterações salvas.');
+    aoFechar();
+  }
+
+  /** Concluir não joga fora o que foi escrito: salva antes. Se não der para salvar, continua aberta. */
+  async function concluirNaJanela(atividadeDoDia: AtividadeDoDia) {
+    if (alterado && !(await gravarRascunho())) return;
+    acoes.concluir(atividadeDoDia);
   }
 
   const doDia: AtividadeDoDia | null = atividade && painel ? { ...atividade, produtos: painel.produtos, participantes: painel.participantes, itensFeitos: 0, itensTotal: 0, comentarios: 0, etiquetas: painel.etiquetas } : null;
@@ -965,7 +989,7 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
   const rotuloConcluir = alerta ? 'Concluir alerta' : 'Concluir atividade';
   const botaoConcluir = doDia && (
     aberta ? (
-      <Button variante="secundario" onClick={() => acoes.concluir(doDia)}>
+      <Button variante="secundario" disabled={salvando} onClick={() => void concluirNaJanela(doDia)}>
         <Check aria-hidden />
         {rotuloConcluir}
       </Button>
@@ -982,6 +1006,12 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
     </Button>
   );
   const naEdicao = aba === 'geral' || aba === 'agendamento';
+  const mudarSituacao: AbaGeralProps['aoMudarSituacao'] = (situacao) => {
+    if (!doDia) return;
+    if (situacao === 'concluida' && aberta) void concluirNaJanela(doDia);
+    else acoes.mover(doDia, situacao);
+  };
+  const titulo = atividade && rascunho && <TituloDaJanela atividade={atividade} valor={rascunho.titulo} erro={erros.titulo} aoMudar={(novo) => mudar({ titulo: novo })} />;
 
   return (
     <>
@@ -1021,9 +1051,7 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
                       <span className="tabular-nums">· {atividade.codigo}</span>
                       {atividade.adiamentos >= 2 && <span>· Adiada {atividade.adiamentos} vezes</span>}
                     </p>
-                    <div className="mt-1 hidden md:block">
-                      <TituloDaJanela atividade={atividade} valor={rascunho.titulo} erro={erros.titulo} aoMudar={(titulo) => mudar({ titulo })} />
-                    </div>
+                    {!celular && <div className="mt-1">{titulo}</div>}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     {!celular && botaoConcluir}
@@ -1031,9 +1059,7 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
                     <BotaoFechar className="hidden md:inline-grid" onClick={pedirFechar} />
                   </div>
                 </div>
-                <div className="mt-1 md:hidden">
-                  <TituloDaJanela atividade={atividade} valor={rascunho.titulo} erro={erros.titulo} aoMudar={(titulo) => mudar({ titulo })} />
-                </div>
+                {celular && <div className="mt-1">{titulo}</div>}
                 <p className="mt-1 text-[13px] leading-[18px]">
                   <PrazoDaAtividade atividade={doDia} hoje={hojeISO()} />
                 </p>
@@ -1068,7 +1094,7 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
                 {credencial.aviso && <div className="mb-3">{credencial.aviso}</div>}
                 {falha && <MensagemErro className="mb-3">{falha}</MensagemErro>}
                 <TabsContent value="geral" tabIndex={-1}>
-                  <AbaGeral atividade={atividade} painel={painel} dados={dados} acoes={acoes} doDia={doDia} rascunho={rascunho} erros={erros} mudar={mudar} />
+                  <AbaGeral atividade={atividade} painel={painel} dados={dados} acoes={acoes} doDia={doDia} rascunho={rascunho} erros={erros} mudar={mudar} aoMudarSituacao={mudarSituacao} />
                 </TabsContent>
                 {atividade.tipo !== 'lembrete' && (
                   <TabsContent value="checklist" tabIndex={-1}>
@@ -1146,7 +1172,7 @@ export function JanelaAtividade({ id, dados, acoes, aoFechar, aoAbrir }: JanelaA
         titulo={alterado ? 'Descartar as alterações?' : 'Descartar o comentário?'}
         texto={alterado ? 'O que você mudou nesta atividade ainda não foi salvo.' : 'O comentário que você escreveu ainda não foi enviado.'}
         rotuloConfirmar={alterado ? 'Descartar alterações' : 'Descartar comentário'}
-        rotuloCancelar="Continuar editando"
+        rotuloCancelar={alterado ? 'Continuar editando' : 'Continuar escrevendo'}
         perigo
         aoConfirmar={() => {
           setConfirmandoSaida(false);

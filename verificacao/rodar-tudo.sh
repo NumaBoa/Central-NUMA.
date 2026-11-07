@@ -4,12 +4,13 @@
 # Sem nomes de suíte, roda só regras, tipos e build. Precisa do `npm run dev` na porta 3000.
 # Cada suíte usa o próprio Chrome e a própria porta, então podem rodar juntas. VERIFICACAO_PARALELO muda quantas.
 # Fotos, perfil do Chrome e registros ficam na pasta de trabalho (VERIFICACAO_PASTA).
+# Com outra frente verificando ao mesmo tempo: VERIFICACAO_PORTA (o servidor), VERIFICACAO_PORTAS (soma nas portas do Chrome) e VERIFICACAO_PASTA.
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 R="$(cd "$AQUI/.." && pwd)"
 SP="${VERIFICACAO_PASTA:-$(cygpath -u "$TEMP")/central-numa-verificacao}"
 mkdir -p "$SP"
 SPW="$(cygpath -m "$SP")"
-PORTA=3101
+PORTA="${VERIFICACAO_PORTA:-3101}"
 PARALELO="${VERIFICACAO_PARALELO:-4}"
 NOVA="$1"
 [ $# -gt 0 ] && shift

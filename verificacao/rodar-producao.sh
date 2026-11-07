@@ -5,7 +5,7 @@ R="$(cd "$AQUI/.." && pwd)"
 SP="${VERIFICACAO_PASTA:-$(cygpath -u "$TEMP")/central-numa-verificacao}"
 mkdir -p "$SP"
 SPW="$(cygpath -m "$SP")"
-PORTA=3101
+PORTA="${VERIFICACAO_PORTA:-3101}"
 PARALELO="${VERIFICACAO_PARALELO:-4}"
 resumo() { grep -E '^(FALHA|ERRO|===|    estado)|^(EXCEÇÃO|ERROR|WARNING|LOG)' | cut -c1-520; }
 cd "$R" || exit 1
