@@ -18,6 +18,7 @@ import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaNotificacao } from './tipos/notificacao';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
+import { TABELAS_F1 } from './tabelas-f1';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -62,6 +63,7 @@ export const TABELAS = {
   cambio_referencia: { rotulo: 'Câmbio de referência', esquema: esquemaCambioReferencia },
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
   auditoria: { rotulo: 'Histórico', esquema: esquemaEventoAuditoria },
+  ...TABELAS_F1,
 } as const satisfies Record<string, { rotulo: string; esquema: z.ZodType }>;
 
 export type Tabela = keyof typeof TABELAS;
@@ -84,5 +86,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 13: T05.01 e T05.02 acrescentam `titulo`, `titulo_rateio`, `baixa` e `movimento_societario`.
  * 14: T05.06 e T05.07 acrescentam `transferencia` e `conferencia_saldo`.
  * 15: a transferência ganha `transferencia_original_id`, para o estorno.
+ * 16: M09, M10 e M11 acrescentam as tabelas de `tabelas-f1.ts` e o rascunho de `MOD-SAAS-LIC`.
  */
-export const VERSAO_DADOS = 15;
+export const VERSAO_DADOS = 16;

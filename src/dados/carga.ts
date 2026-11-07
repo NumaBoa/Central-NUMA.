@@ -1,4 +1,5 @@
 import { chaveDaTabela, driver, gravarTabelas, lerTabela } from './armazenamento';
+import { acrescentarTabelasF1, modeloSaasInicial, VALORES_INICIAIS_F1, versaoSaasInicial } from './carga-f1';
 import { novoEvento } from './evento';
 import { controle, gerarExemplos } from './exemplos';
 import { gerarUuid } from '@/lib/ids';
@@ -110,6 +111,7 @@ const VALORES_INICIAIS = {
   feriado: feriadosIniciais,
   recorrencia: rotinasIniciais,
   categoria_ferramenta: categoriasDeFerramentaIniciais,
+  ...VALORES_INICIAIS_F1,
 } as const;
 
 export const TABELAS_COM_VALORES_INICIAIS = Object.keys(VALORES_INICIAIS) as (keyof typeof VALORES_INICIAIS)[];
@@ -120,7 +122,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora) };
+  return { ...gerarExemplos(agora), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora), modelo_documento: modeloSaasInicial(agora), modelo_versao: versaoSaasInicial(agora) };
 }
 
 /**
@@ -206,6 +208,7 @@ function migrar(versao: number) {
       // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
     }
   }
+  acrescentarTabelasF1(alteracoes, agora);
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

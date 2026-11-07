@@ -18,6 +18,7 @@ import { esquemaEtiqueta, esquemaEtiquetaVinculo, type Etiqueta, type EtiquetaVi
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira, type CategoriaFinanceira, type ContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto, type Marca, type Produto } from './tipos/marca';
 import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
+import { repositoriosF1, type RepositoriosF1 } from './repositorios-f1';
 
 /** Ponto de acesso aos dados. Na etapa com servidor, só estas implementações mudam (02 §0.3). */
 export const repositorios: {
@@ -58,7 +59,7 @@ export const repositorios: {
   movimento_societario: Repositorio<MovimentoSocietario>;
   transferencia: Repositorio<Transferencia>;
   conferencia_saldo: Repositorio<ConferenciaSaldo>;
-} = {
+} & RepositoriosF1 = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
   configuracao: criarRepositorioConfiguracaoLocal(),
@@ -96,4 +97,5 @@ export const repositorios: {
   movimento_societario: criarRepositorioLocal({ tabela: 'movimento_societario', esquema: esquemaMovimentoSocietario, prefixoCodigo: 'MOV' }),
   transferencia: criarRepositorioLocal({ tabela: 'transferencia', esquema: esquemaTransferencia }),
   conferencia_saldo: criarRepositorioLocal({ tabela: 'conferencia_saldo', esquema: esquemaConferenciaSaldo }),
+  ...repositoriosF1,
 };

@@ -16,6 +16,7 @@ import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { NestaPagina, type ItemNestaPagina } from '@/componentes/padroes/nesta-pagina';
 import { ResumoErros, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
+import { SecaoLegalDaConfiguracao } from '@/componentes/f1/secao-legal-configuracao';
 import { Secao } from '@/componentes/padroes/secao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -303,6 +304,8 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
             <RegrasFinanceiras />
             <SecaoCambio cambios={cambios} />
           </Secao>
+
+          <SecaoLegalDaConfiguracao />
 
           <Secao id="backup" icone={DatabaseBackup} titulo="Backup" descricao="Uma cópia guardada. Uma preocupação a menos.">
             {responsavelForaDaLista && !responsavelEscolhido && (

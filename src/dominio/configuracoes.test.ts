@@ -69,6 +69,10 @@ describe('T02.01 Configurações gerais', () => {
         alerta_dominio_dias: 45,
         comprovante_obrigatorio: true,
         responsavel_backup_id: ID_CAMILA,
+        encarregado_pessoa_id: null,
+        canal_titular_email: null,
+        prazo_resposta_titular_dias: null,
+        validade_proposta_dias: 15,
       });
     });
 
