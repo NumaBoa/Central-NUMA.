@@ -39,7 +39,7 @@ export type Contraparte = z.infer<typeof esquemaContraparte>;
 /** `entidade` (16 §4.2): quem assina pela Numa. Ativa exige documento, endereço e data de abertura. */
 export const esquemaEntidade = esquemaControle
   .extend({
-    tipo_pessoa: z.enum(['pf', 'pj']),
+    tipo_pessoa: z.enum(['pf', 'pj', 'socias_pf']),
     nome: z.string().trim().min(1),
     nome_fantasia: z.string().nullable(),
     documento: z.string().nullable(),
@@ -54,7 +54,8 @@ export const esquemaEntidade = esquemaControle
     contador_id: z.uuid().nullable(),
   })
   .superRefine((entidade, contexto) => {
-    if (entidade.situacao === 'ativa' && (!entidade.documento || !entidade.endereco || !entidade.data_abertura)) {
+    // "Sócias pessoas físicas" pode ser Ativa sem CNPJ: o que ela exige está em `entidade_licenciante` (D-CTR-06).
+    if (entidade.situacao === 'ativa' && entidade.tipo_pessoa !== 'socias_pf' && (!entidade.documento || !entidade.endereco || !entidade.data_abertura)) {
       contexto.addIssue({ code: 'custom', path: ['situacao'], message: 'Entidade ativa exige documento, endereço e data de abertura.' });
     }
   });

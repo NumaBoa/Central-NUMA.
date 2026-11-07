@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode }
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import { Controller, useForm, type UseFormRegisterReturn } from 'react-hook-form';
-import { Bell, Building2, CircleAlert, CreditCard, Database, Info, Layers, MapPin, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Bell, Building2, CircleAlert, CreditCard, Database, Info, Layers, MapPin, Scale, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { Campo, MensagemErro } from '@/componentes/campos/campo';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Selecao } from '@/componentes/campos/selecao';
@@ -14,6 +14,7 @@ import { aviso } from '@/componentes/padroes/aviso';
 import { EstadoErro } from '@/componentes/padroes/estados';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { ResumoErros, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
+import { SecaoLegalDaConfiguracao } from '@/componentes/f1/secao-legal-configuracao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Skeleton } from '@/componentes/ui/skeleton';
@@ -23,13 +24,14 @@ import { municipiosDaUf } from '@/dados/referencia/municipios';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarTelaGeral, esquemaFormularioGeral, formularioDosValores, lerConfiguracoes, pessoasParaBackup, responsavelDisponivel, salvarFormularioGeral, type DadosDaTelaGeral, type FormularioGeral } from '@/dominio/configuracoes';
 import { INFO_FASES, rotuloDaFase } from '@/dominio/fases';
+import { faseLiberada } from '@/dominio/navegacao';
 import { LEMBRETE_LINK_DRIVE } from '@/dominio/link-drive';
 import { cn } from '@/lib/utils';
 import { RegrasFinanceiras, SecaoCambio } from './secao-cambio';
 import { SecaoFase } from './secao-fase';
 
 type CampoDoFormulario = keyof FormularioGeral;
-type IdDaSecao = 'organizacao' | 'fase' | 'alertas' | 'financeiro' | 'backup';
+type IdDaSecao = 'organizacao' | 'fase' | 'alertas' | 'financeiro' | 'legal' | 'backup';
 type SecaoGeral = {
   id: IdDaSecao;
   rotulo: string;
@@ -64,10 +66,11 @@ const SECAO: Record<IdDaSecao, SecaoGeral> = {
     campos: ['alerta_vencimento_dias', 'alerta_renovacao_ferramenta_dias', 'alerta_fim_teste_dias', 'alerta_dominio_dias'],
   },
   financeiro: { id: 'financeiro', rotulo: 'Financeiro', icone: CreditCard, descricao: 'Combinados claros. Contas bem cuidadas.', nota: 'O câmbio é gravado ao adicionar ou remover, sem usar “Salvar alterações”.', campos: [] },
+  legal: { id: 'legal', rotulo: 'Legal e comercial', icone: Scale, descricao: 'O que a publicação e as propostas precisam saber.', nota: 'Esta seção grava com o próprio botão, sem usar “Salvar alterações”.', campos: [] },
   backup: { id: 'backup', rotulo: 'Backup', icone: Database, descricao: 'Quem cuida da cópia semanal da Central.', nota: OBRIGATORIOS, campos: ['responsavel_backup_id'] },
 };
 
-const SECOES: readonly SecaoGeral[] = [SECAO.organizacao, SECAO.fase, SECAO.alertas, SECAO.financeiro, SECAO.backup];
+const SECOES: readonly SecaoGeral[] = [SECAO.organizacao, SECAO.fase, SECAO.alertas, SECAO.financeiro, SECAO.legal, SECAO.backup];
 
 const ID_DO_CAMPO: Record<CampoDoFormulario, string> = {
   organizacao_nome: 'nome',
@@ -242,6 +245,10 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
   const { errors, isDirty, dirtyFields, isSubmitting } = formState;
   useAlteracoesPendentes(isDirty);
 
+  // Legal e comercial é da F1: aparece com a F1 ativa, ou quando uma tela da F1 traz até aqui (#legal).
+  const [legalPedida] = useState(() => window.location.hash === '#legal');
+  const mostrarLegal = legalPedida || faseLiberada('f1', configuracoes.fase_ativa);
+  const secoes = mostrarLegal ? SECOES : SECOES.filter((secao) => secao.id !== 'legal');
   const [secaoAberta, setSecaoAberta] = useState<IdDaSecao>(secaoDoEndereco);
   const [resumoAberto, setResumoAberto] = useState(false);
   const [focoPedido, setFocoPedido] = useState<{ campoId: string } | null>(null);
@@ -279,7 +286,7 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
   }
 
   const listaDeErros: ErroDeCampo[] = resumoAberto
-    ? SECOES.flatMap((secao) =>
+    ? secoes.flatMap((secao) =>
         secao.campos.flatMap((campo) => {
           const mensagem = errors[campo]?.message;
           return mensagem ? [{ campoId: ID_DO_CAMPO[campo], mensagem: `${secao.rotulo}: ${mensagem}` }] : [];
@@ -330,7 +337,7 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
   }, [municipios, uf, municipio]);
 
   const secaoAtual = SECAO[secaoAberta];
-  const secoesAlteradas = SECOES.filter((secao) => secao.campos.some((campo) => dirtyFields[campo]));
+  const secoesAlteradas = secoes.filter((secao) => secao.campos.some((campo) => dirtyFields[campo]));
   // Salvar e descartar valem para todas as seções: quando há alteração fora desta, a barra diz onde.
   const alteracaoEmOutraSecao = secoesAlteradas.some((secao) => secao.id !== secaoAberta);
   const estado = alteracaoEmOutraSecao ? `Alterações não salvas em ${POR_EXTENSO.format(secoesAlteradas.map((secao) => secao.rotulo))}` : 'Alterações não salvas';
@@ -341,7 +348,7 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
     <TabsPrimitive.Root value={secaoAberta} onValueChange={(id) => abrirSecao(id as IdDaSecao)} orientation="vertical" className={GRADE_DA_TELA}>
       <div className="rounded-lg border border-line bg-paper p-1.5 lg:p-2.5">
         <TabsPrimitive.List aria-label="Seções das configurações gerais" className="flex flex-wrap gap-1 lg:sticky lg:top-[88px] lg:flex-col">
-          {SECOES.map((item) => (
+          {secoes.map((item) => (
             <ItemDaNavegacao key={item.id} secao={item} erros={item.campos.filter((campo) => errors[campo]).length} alterada={item.campos.some((campo) => dirtyFields[campo])} atencao={item.id === 'backup' && faltaResponsavel && !errors.responsavel_backup_id} aoAbrir={abrirSecao} />
           ))}
         </TabsPrimitive.List>
@@ -466,6 +473,12 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
             <RegrasFinanceiras />
             <SecaoCambio cambios={cambios} />
           </PainelDaSecao>
+
+          {mostrarLegal && (
+            <PainelDaSecao secao={SECAO.legal}>
+              <SecaoLegalDaConfiguracao embutida />
+            </PainelDaSecao>
+          )}
 
           <PainelDaSecao secao={SECAO.backup}>
             {faltaResponsavel && (

@@ -29,6 +29,11 @@ export const ESQUEMAS_DAS_CHAVES = {
   /** Regra fixa: comprovante sempre obrigatório, com exceção justificada na baixa (D17). */
   comprovante_obrigatorio: z.literal(true),
   responsavel_backup_id: z.uuid(),
+  // M09 e M10: chaves de 16 §4.2. Sem padrão inventado: encarregado, canal e prazo do titular começam vazios.
+  encarregado_pessoa_id: z.uuid().nullable(),
+  canal_titular_email: z.email().nullable(),
+  prazo_resposta_titular_dias: dias.nullable(),
+  validade_proposta_dias: dias,
 };
 
 export const esquemaValoresConfiguracao = z.object(ESQUEMAS_DAS_CHAVES);
@@ -52,6 +57,10 @@ export const VALORES_PADRAO: ValoresConfiguracao = {
   alerta_dominio_dias: 45,
   comprovante_obrigatorio: true,
   responsavel_backup_id: ID_CAMILA,
+  encarregado_pessoa_id: null,
+  canal_titular_email: null,
+  prazo_resposta_titular_dias: null,
+  validade_proposta_dias: 15,
 };
 
 /** O nome de cada chave na tela e no histórico, e o texto da coluna `descricao`. */
@@ -70,6 +79,10 @@ export const CATALOGO_CONFIGURACAO: Record<ChaveConfiguracao, { rotulo: string; 
   alerta_dominio_dias: { rotulo: 'Vencimento de domínios', descricao: 'Antecedência, em dias, do alerta de domínio.' },
   comprovante_obrigatorio: { rotulo: 'Comprovante obrigatório em baixas', descricao: 'Regra fixa (D17 e RN-05.12).' },
   responsavel_backup_id: { rotulo: 'Responsável pelo backup semanal', descricao: 'Pessoa que faz o backup semanal.' },
+  encarregado_pessoa_id: { rotulo: 'Encarregado de dados (DPO)', descricao: 'Exigido para publicar a Política de Privacidade (RN-09.04).' },
+  canal_titular_email: { rotulo: 'Canal do titular', descricao: 'E-mail para pedidos de titulares (RN-09.04).' },
+  prazo_resposta_titular_dias: { rotulo: 'Prazo de resposta ao titular (dias)', descricao: 'Vazio: o prazo fica pendente em cada solicitação (M09 §5).' },
+  validade_proposta_dias: { rotulo: 'Validade das propostas (dias)', descricao: 'Padrão de novas propostas (D22).' },
 };
 
 export const CHAVES_CONFIGURACAO = Object.keys(ESQUEMAS_DAS_CHAVES) as ChaveConfiguracao[];

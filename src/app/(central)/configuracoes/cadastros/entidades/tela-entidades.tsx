@@ -14,6 +14,7 @@ import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { EtiquetaLivre, EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
+import { CamposDasSocias } from '@/componentes/f1/campos-socias';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
@@ -66,7 +67,7 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
 
   // O formulário começa do que está salvo a cada vez que abre, e não enquanto alguém digita.
   useEffect(() => {
-    if (aberto) reset(entidade ? formularioDaEntidade(entidade, representantesDaEntidade(entidade.id, dados.representantes)) : FORMULARIO_ENTIDADE_VAZIO);
+    if (aberto) reset(entidade ? formularioDaEntidade(entidade, representantesDaEntidade(entidade.id, dados.representantes), { socias: dados.socias.find((linha) => linha.entidade_id === entidade.id) ?? null, licenciantes: dados.licenciantes.filter((linha) => linha.entidade_id === entidade.id) }) : FORMULARIO_ENTIDADE_VAZIO);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- os dados mudam quando alguém mexe em outra aba
   }, [aberto, entidade?.id, reset]);
 
@@ -85,6 +86,8 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
     ['entidade-endereco-cep', errors.endereco?.cep?.message],
     ['entidade-representantes', errors.representantes?.message],
     ['entidade-abertura', errors.data_abertura?.message],
+    ['entidade-marca-comercial', errors.marca_comercial?.message],
+    ['entidade-socias', errors.licenciantes?.message ?? errors.licenciantes?.root?.message],
     ['entidade-padrao', errors.entidade_padrao?.message],
   ].flatMap(([campoId, mensagem]) => (mensagem ? [{ campoId: campoId as string, mensagem }] : []));
 
@@ -115,6 +118,16 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
           name="situacao"
           render={({ field }) => <Pilulas rotulo="Situação" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_SITUACAO_ENTIDADE)} />}
         />
+        {tipo === 'socias_pf' ? (
+          <>
+            {situacao === 'ativa' && <Faixa>Para ativar, sem CNPJ, são obrigatórios: nome civil, CPF válido e endereço de cada sócia, e proporções que somem 100%.</Faixa>}
+            <Campo id="entidade-marca-comercial" rotulo="Marca comercial" obrigatorio erro={errors.marca_comercial?.message} ajuda="A denominação usada no contrato. Não indica pessoa jurídica.">
+              {(controle) => <Input autoComplete="off" {...controle} {...register('marca_comercial')} />}
+            </Campo>
+            <Controller control={control} name="licenciantes" render={({ field }) => <CamposDasSocias valor={field.value} aoMudar={field.onChange} pessoas={opcoesDePessoa} erro={errors.licenciantes?.message ?? errors.licenciantes?.root?.message} />} />
+          </>
+        ) : (
+          <>
         {situacao === 'ativa' && <Faixa>Para ativar, são obrigatórios: {rotuloDocumento} válido, endereço, representante legal e data de abertura.</Faixa>}
         <Controller
           control={control}
@@ -150,6 +163,8 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
         <Campo id="entidade-abertura" rotulo="Data de abertura" obrigatorio={situacao === 'ativa'} erro={errors.data_abertura?.message}>
           {(controle) => <EntradaData {...controle} {...register('data_abertura')} />}
         </Campo>
+          </>
+        )}
         <div id="entidade-padrao" tabIndex={-1}>
           <Controller
             control={control}
