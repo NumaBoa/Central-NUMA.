@@ -31,6 +31,15 @@ export const esquemaProduto = esquemaControle.extend({
   tem_usuarios_reais: z.boolean(),
   data_inicio: z.iso.date().nullable(),
   situacao: z.enum(['ativo', 'pausado', 'descontinuado']),
+  // Ficha do M07 (T07.02). Opcionais: produto cadastrado antes do M07 e backups antigos não os têm, e vazio fica vazio.
+  descricao: z.string().nullable().optional(),
+  proposta_valor: z.string().nullable().optional(),
+  publico: z.string().nullable().optional(),
+  problema: z.string().nullable().optional(),
+  como_nasceu: z.string().nullable().optional(),
+  links: z.array(z.object({ rotulo: z.string(), url: z.string() })).optional(),
+  /** D21: cada app define depois; sem ela, o KPI mostra "Definição pendente". */
+  definicao_usuario_ativo: z.string().nullable().optional(),
 });
 
 export type Produto = z.infer<typeof esquemaProduto>;

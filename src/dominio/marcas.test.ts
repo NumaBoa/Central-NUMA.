@@ -305,15 +305,14 @@ describe('T02.04 Marcas e produtos', () => {
       expect(exigeMotivo('pausado', 'ativo')).toBe(false);
     });
 
-    it('sem motivo, não descontinua', async () => {
-      await expect(salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', situacao: 'descontinuado' }), ID_PRODUTO_KIPI)).rejects.toThrow('Informe o motivo para descontinuar.');
+    it('RN-07.08: o cadastro básico não muda situação, estágio nem fila: isso é em Produtos, com decisão', async () => {
+      await expect(salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', estagio: 'em_uso', situacao: 'descontinuado', motivo: 'Mudança de foco' }), ID_PRODUTO_KIPI)).rejects.toThrow('Estágio, fila e situação mudam em Produtos');
+      await expect(salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', estagio: 'crescimento' }), ID_PRODUTO_KIPI)).rejects.toThrow('Estágio, fila e situação mudam em Produtos');
       expect((await repositorios.produto.obter(ID_PRODUTO_KIPI))?.situacao).toBe('ativo');
     });
 
-    it('com motivo, registra no histórico e sai do contexto', async () => {
-      await salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', estagio: 'em_uso', tem_usuarios_reais: true, responsavel_id: ID_KIMBERLY, situacao: 'descontinuado', motivo: 'Mudança de foco' }), ID_PRODUTO_KIPI);
-      expect((await historicoRecente(1))[0]?.texto).toContain('Situação: de Ativo para Descontinuado');
-      expect((await historicoRecente(1))[0]?.texto).toContain('Motivo: Mudança de foco');
+    it('descontinuado sai do contexto', async () => {
+      await repositorios.produto.atualizar(ID_PRODUTO_KIPI, { situacao: 'descontinuado' });
       expect((await carregarContextos()).map((contexto) => contexto.nome)).not.toContain('Kipi');
     });
   });
@@ -332,7 +331,7 @@ describe('T02.04 Marcas e produtos', () => {
     });
 
     it('inativar a responsável não troca sozinho: o formulário pede outra', async () => {
-      await salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', responsavel_id: ID_KIMBERLY }), ID_PRODUTO_KIPI);
+      await salvarProduto(validado({ nome: 'Kipi', codigo_curto: 'KIPI', estagio: 'em_uso', responsavel_id: ID_KIMBERLY }), ID_PRODUTO_KIPI);
       await inativarPessoa(ID_KIMBERLY);
       const { produtos, pessoas } = await carregarMarcas();
       const kipi = produtos.find((produto) => produto.id === ID_PRODUTO_KIPI)!;

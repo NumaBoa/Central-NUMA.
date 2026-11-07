@@ -37,7 +37,7 @@ export const MODULOS_TOPO: readonly Modulo[] = [
 
 export const MODULOS_EMPRESA: readonly Modulo[] = [
   { id: 'empresa', nome: 'Empresa', fase: 'f0b' },
-  { id: 'produtos', nome: 'Produtos', fase: 'f0b' },
+  { id: 'produtos', nome: 'Produtos', fase: 'f0b', href: '/produtos' },
   { id: 'comercial', nome: 'Comercial', fase: 'f1' },
   { id: 'contratos', nome: 'Contratos', fase: 'f1' },
   { id: 'financeiro', nome: 'Financeiro', fase: 'f0a', href: '/financeiro' },

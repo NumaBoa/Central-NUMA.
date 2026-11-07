@@ -139,6 +139,13 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     responsavel_id: { rotulo: 'Responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'pessoa removida' },
     entidade_id: { rotulo: 'Entidade responsável', valor: (valor, nomes) => nomes.get(String(valor)) ?? 'entidade removida' },
     tem_usuarios_reais: { rotulo: 'Tem usuários reais', valor: simNao },
+    descricao: { rotulo: 'Descrição', semValores: true },
+    proposta_valor: { rotulo: 'Proposta de valor', semValores: true },
+    publico: { rotulo: 'Público', semValores: true },
+    problema: { rotulo: 'Problema que resolve', semValores: true },
+    como_nasceu: { rotulo: 'Como nasceu', semValores: true },
+    links: { rotulo: 'Links', semValores: true },
+    definicao_usuario_ativo: { rotulo: 'Definição de usuário ativo', semValores: true },
     data_inicio: { rotulo: 'Data de início', valor: (valor) => formatarDiaISO(String(valor)) },
     situacao: { rotulo: 'Situação', valor: (valor) => ROTULOS_SITUACAO_PRODUTO[valor as keyof typeof ROTULOS_SITUACAO_PRODUTO] },
   },
@@ -347,6 +354,33 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     cor: { rotulo: 'Cor' },
     modulos: { rotulo: 'Módulos', valor: (valor) => rotuloDosModulos(valor as string[]) },
   },
+  oferta: {
+    nome: { rotulo: 'Nome' },
+    tipo: { rotulo: 'Tipo' },
+    publico: { rotulo: 'Público' },
+    descricao: { rotulo: 'Descrição', semValores: true },
+    formalizacao: { rotulo: 'Formalização' },
+    periodicidade: { rotulo: 'Periodicidade' },
+    exclusoes: { rotulo: 'Exclusões', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => ({ em_estudo: 'Em estudo', aprovada: 'Aprovada', inativa: 'Inativa' })[String(valor)] ?? String(valor) },
+  },
+  canal_venda: {
+    nome: { rotulo: 'Nome' },
+    taxa_percentual: { rotulo: 'Taxa percentual' },
+    taxa_fixa: { rotulo: 'Taxa fixa' },
+    prazo_repasse_dias: { rotulo: 'Prazo de repasse' },
+    verificado_em: { rotulo: 'Última verificação', valor: (valor) => formatarDiaISO(String(valor)) },
+    fonte_url: { rotulo: 'Fonte', semValores: true },
+    situacao: { rotulo: 'Situação', valor: (valor) => (valor === 'ativo' ? 'Ativo' : 'Inativo') },
+  },
+  preco_versao: {
+    valor: { rotulo: 'Valor' },
+    moeda: { rotulo: 'Moeda' },
+    periodicidade: { rotulo: 'Periodicidade' },
+    valido_de: { rotulo: 'Início da validade', valor: (valor) => formatarDiaISO(String(valor)) },
+    valido_ate: { rotulo: 'Fim da validade', valor: (valor) => formatarDiaISO(String(valor)) },
+    situacao: { rotulo: 'Situação', valor: (valor) => ({ rascunho: 'Rascunho', aprovada: 'Aprovada', substituida: 'Substituída' })[String(valor)] ?? String(valor) },
+  },
 };
 
 /** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
@@ -395,6 +429,19 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
     const titulo = nomes.get(String(evento.depois?.titulo_id ?? evento.antes?.titulo_id ?? ''));
     return `o rateio${titulo ? ` de ${titulo}` : ''}`;
   }
+  if (evento.tabela === 'oferta') {
+    const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
+    return nome ? `a oferta ${nome}` : 'uma oferta';
+  }
+  if (evento.tabela === 'canal_venda') {
+    const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
+    return nome ? `o canal ${nome}` : 'um canal de venda';
+  }
+  if (evento.tabela === 'preco_versao') return `a versão de preço ${evento.depois?.versao ? `v${String(evento.depois.versao)}` : ''}`.trim();
+  if (evento.tabela === 'simulacao') return `a simulação ${textoDe(evento.depois?.nome) ?? ''}`.trim();
+  if (evento.tabela === 'decisao') return `a decisão ${textoDe(evento.depois?.titulo) ?? ''}`.trim();
+  if (evento.tabela === 'produto_estagio_historico') return 'uma mudança de estágio';
+  if (evento.tabela === 'kpi_mensal') return 'os indicadores do mês';
   if (evento.tabela === 'movimento_societario') return 'um movimento societário';
   if (evento.tabela === 'transferencia') return 'uma transferência';
   if (evento.tabela === 'conferencia_saldo') return 'uma conferência de saldo';
@@ -602,6 +649,14 @@ export async function historicoDaFerramenta(id: string): Promise<LinhaHistorico[
   const dela = new Set([id, ...assinaturas, ...contextos, ...anexos].map((linha) => (typeof linha === 'string' ? linha : linha.id)));
   const valores = new Set(assinaturas.map((assinatura) => assinatura.id));
   return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id)) || (evento.tabela === 'assinatura_valor_historico' && valores.has(String(evento.depois?.assinatura_id)))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico do produto (T07.02): o cadastro, os estágios, os indicadores, as ofertas, os preços e as simulações. */
+export async function historicoDoProduto(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, ofertas, estagios, simulacoes, objetivos, kpis, precos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.oferta.listar({ onde: { produto_id: id }, incluirArquivados: true }), repositorios.produto_estagio_historico.listar({ onde: { produto_id: id }, incluirArquivados: true }), repositorios.simulacao.listar({ onde: { produto_id: id }, incluirArquivados: true }), repositorios.objetivo.listar({ onde: { produto_id: id }, incluirArquivados: true }), repositorios.kpi_mensal.listar({ onde: { produto_id: id }, incluirArquivados: true }), repositorios.preco_versao.listar({ incluirArquivados: true })]);
+  const dasOfertas = new Set(ofertas.map((oferta) => oferta.id));
+  const dele = new Set([id, ...[...ofertas, ...estagios, ...simulacoes, ...objetivos, ...kpis, ...precos.filter((preco) => dasOfertas.has(preco.oferta_id))].map((linha) => linha.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
 }
 
 /** Aba Histórico do ativo: o cadastro e os links dele. */
