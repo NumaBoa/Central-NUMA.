@@ -29,12 +29,12 @@ const doAlvo = (alvo: AlvoDaRegra) => (alvo.tipo === 'oferta' ? { oferta_id: alv
 
 const MINUTOS_NO_DIA = 1440;
 const DIA_ZERO = Date.UTC(2000, 0, 1);
-const indiceDoDia = (dia: string) => Math.round((Date.parse(`${dia}T00:00:00Z`) - DIA_ZERO) / 86_400_000);
+export const indiceDoDia = (dia: string) => Math.round((Date.parse(`${dia}T00:00:00Z`) - DIA_ZERO) / 86_400_000);
 const diaDoIndice = (indice: number) => new Date(DIA_ZERO + indice * 86_400_000).toISOString().slice(0, 10);
 const minutosDaHora = (hora: string) => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5));
 
 /** O instante como minuto absoluto do relógio local (no fuso de T02.01). */
-function paraMinuto(instante: string, fuso?: string): number {
+export function paraMinuto(instante: string, fuso?: string): number {
   const { dia, hora } = diaEHoraNoFuso(instante, fuso);
   return indiceDoDia(dia) * MINUTOS_NO_DIA + minutosDaHora(hora);
 }
