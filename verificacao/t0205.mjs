@@ -43,7 +43,7 @@ const restaurarExemplos = async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
 };
 const mudarTabela = (nome, corpo) => c.avaliar(`(()=>{const k='numa-central:v1:${nome}';const l=JSON.parse(localStorage.getItem(k));${corpo};localStorage.setItem(k,JSON.stringify(l))})()`);
 
@@ -738,7 +738,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await irContrapartes();
   ok('as contrapartes entram', (await tabela('contraparte')).length === 3);
   ok('a entidade planejada entra', (await tabela('entidade')).length === 1 && (await tabela('entidade'))[0].id === ID_PLANEJADA);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 23);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 25);
   const r = (await tabela('pessoa')).find((x) => x.id === ID_RAFAEL);
   ok('o que existia continua como estava', r.funcao === 'Dado que precisa continuar' && r.contraparte_id === null, JSON.stringify(r));
   await restaurarExemplos();
@@ -748,7 +748,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.espera(420);
   await clicarNoDialogo('Limpar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros100')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros103')`);
   await c.avaliar(`(()=>{for(const t of ['contraparte','entidade','entidade_representante'])localStorage.removeItem('numa-central:v1:'+t);const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=4;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await ir(CONTRAPARTES);
   await c.ate(`document.querySelector('main').textContent.includes('Nenhuma contraparte ainda.')`);

@@ -4,10 +4,12 @@ import { comoSistema, idDaPessoaAtual } from '@/dados/sessao';
 import { hojeISO } from '@/lib/datas';
 import { gerarAlertas } from './alertas';
 import { atualizarSituacoesF1, gerarAlertasF1 } from './alertas-f1';
+import { gerarAlertasM06 } from './alertas-m06';
 import { estenderProgramacaoDosContratos } from './contratos';
 import { atualizarSituacoesDasFerramentas } from './ferramentas';
 import { atualizarSituacoesDosTitulos, estenderProgramacao } from './titulos';
 import { notificarFalhasDasRotinas } from './notificacoes';
+import { gerarOcorrenciasDasObrigacoes } from './obrigacoes';
 import { gerarOcorrencias } from './recorrencias';
 
 /** Uma rotina diz quantos itens novos gerou. Rodar de novo não duplica (RT-09). */
@@ -25,8 +27,8 @@ export type Rotina = {
  * Rotinas do dia, nesta ordem (02 §0.5).
  */
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
-  { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: async () => (await gerarAlertas()) + (await gerarAlertasF1()) },
-  { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: () => gerarOcorrencias() },
+  { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: async () => (await gerarAlertas()) + (await gerarAlertasF1()) + (await gerarAlertasM06()) },
+  { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: async () => (await gerarOcorrencias()) + (await gerarOcorrenciasDasObrigacoes()) },
   { nome: 'Atualizar situações', executar: async () => (await atualizarSituacoesDasFerramentas()) + (await atualizarSituacoesDosTitulos()) + (await atualizarSituacoesF1()) },
   { nome: 'Estender programação', soNoDiaPrimeiro: true, novidade: ['lançamento previsto', 'lançamentos previstos'], executar: async () => (await estenderProgramacao()) + (await estenderProgramacaoDosContratos()) },
 ];

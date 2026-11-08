@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { ArrowRightLeft, ChevronDown, Layers } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { Pilulas } from '@/componentes/campos/pilulas';
@@ -17,8 +18,9 @@ type Mudar = (parcial: Partial<FiltrosAtivos>) => void;
 /** Os grupos à vista; os demais ficam em "Outros tipos", para a faixa não crescer. */
 const GRUPOS_A_VISTA: readonly IdDaAbaDeAtivo[] = ['todos', 'dominios', 'lojas', 'repositorios'];
 
-/** T04.04: grupos de tipo, e não um filtro de tipo repetido. "Marcas" fica em breve, até o M06. */
+/** T04.04: grupos de tipo, e não um filtro de tipo repetido. "Marcas" leva a Empresa › Marcas (T06.05). */
 export function GruposDeAtivos({ aba, contadores, aoEscolher }: { aba: IdDaAbaDeAtivo; contadores: Record<IdDaAbaDeAtivo, number> | null; aoEscolher: (aba: IdDaAbaDeAtivo) => void }) {
+  const roteador = useRouter();
   const outros = ABAS_DE_ATIVO.filter((item) => !GRUPOS_A_VISTA.includes(item.id));
   const outroEscolhido = outros.find((item) => item.id === aba);
   return (
@@ -64,7 +66,7 @@ export function GruposDeAtivos({ aba, contadores, aoEscolher }: { aba: IdDaAbaDe
           </ul>
         )}
       </MenuSobreposto>
-      <PilulaFiltro filtro={{ id: 'marcas', rotulo: 'Marcas', emBreve: true }} ativa={false} aoClicar={() => {}} />
+      <PilulaFiltro filtro={{ id: 'marcas', rotulo: 'Marcas' }} ativa={false} aoClicar={() => roteador.push('/empresa/marcas')} />
     </div>
   );
 }

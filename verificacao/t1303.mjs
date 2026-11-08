@@ -284,7 +284,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   // migração
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:notificacao');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=9;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await c.recarregar();
-  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===23`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===25`);
   ok('versão anterior recebe a tabela', await c.avaliar(`localStorage.getItem('numa-central:v1:notificacao')!==null`));
   await irDados();
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Restaurar exemplos').click()`);
@@ -292,7 +292,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
   ok('notificações não contam como registro', true);
 });
 

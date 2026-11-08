@@ -89,7 +89,7 @@ const restaurarExemplos = async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
 };
 
 await c.tamanho(1440, 900);
@@ -585,14 +585,14 @@ await passo('histórico', async () => {
 await passo('limpar e restaurar exemplos', async () => {
   await restaurarExemplos();
   const m = await texto('main');
-  ok('a carga inicial conta as atividades, sem as ligações', m.includes('Registros151') && m.includes('51 de exemplo'), m.slice(0, 400));
+  ok('a carga inicial conta as atividades, sem as ligações', m.includes('Registros154') && m.includes('51 de exemplo'), m.slice(0, 400));
   await botao('Limpar exemplos');
   await dialogoAberto();
   await c.espera(420);
   ok('diz quantos saem', (await texto('.dialogo')).includes('51 registros de exemplo serão removidos'), await texto('.dialogo'));
   await clicarNoDialogo('Limpar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros100')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros103')`);
   ok('as atividades fictícias saem', (await tabela('atividade')).length === 0 && (await tabela('atividade_produto')).length === 0 && (await tabela('atividade_participante')).length === 0);
   await ir(MEU_DIA);
   await c.ate(`document.querySelector('main').textContent.includes('Tudo em dia por aqui.')`);
@@ -608,7 +608,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await ir(MEU_DIA);
   await c.ate(`document.querySelectorAll('main article').length>0`);
   ok('as atividades entram', (await tabela('atividade')).length === 17);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 23);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 25);
   ok('abre no quadro', await c.avaliar(`Boolean(document.querySelector('section[data-coluna]'))`));
   ok('o que existia continua como estava', (await tabela('pessoa')).find((x) => x.id === ID_CAMILA).funcao === 'Dado que precisa continuar');
   await restaurarExemplos();
@@ -617,7 +617,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.espera(420);
   await clicarNoDialogo('Limpar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros100')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros103')`);
   await c.avaliar(`(()=>{${antes}})()`);
   await ir(MEU_DIA);
   await c.ate(`document.querySelector('main').textContent.includes('Tudo em dia por aqui.')`);

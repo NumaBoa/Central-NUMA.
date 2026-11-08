@@ -79,7 +79,7 @@ await passo('T04.04: lista', async () => {
 await passo('T04.04: abas por tipo e filtros', async () => {
   await irLista();
   const abas = await c.avaliar(`[...document.querySelectorAll('main [aria-label="Tipos de ativo"] > button[aria-pressed]')].map(b=>b.textContent.trim())`);
-  ok('grupos à vista, com contadores', js(abas) === js(['Todos5', 'Domínios2', 'Contas de loja1', 'Repositórios1']), js(abas));
+  ok('grupos à vista, com contadores, e Marcas', js(abas) === js(['Todos5', 'Domínios2', 'Contas de loja1', 'Repositórios1', 'Marcas']), js(abas));
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>(b.getAttribute('aria-label')||'').startsWith('Outros tipos')).click()`);
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(120);
@@ -87,7 +87,7 @@ await passo('T04.04: abas por tipo e filtros', async () => {
   await c.tecla('Escape');
   await c.ate(`!document.querySelector('.menu-suspenso')`);
   ok('sem filtro de tipo repetindo os grupos', !(await c.avaliar(`Boolean(document.getElementById('filtro-tipo'))`)));
-  ok('Marcas aparece "Em breve", sem clique', await c.avaliar(`[...document.querySelectorAll('main *')].some(e=>e.childElementCount===0&&e.textContent.trim()==='Marcas')&&(document.querySelector('main').textContent.includes('Em breve'))`));
+  ok('Marcas leva a Empresa › Marcas (T06.05), sem "Em breve"', abas.includes('Marcas') && !(await c.avaliar(`document.querySelector('main').textContent.includes('Em breve')`)), js(abas));
   await abaDoTipo('Domínios');
   ok('Domínios', js(await nomes()) === js(['kipi-exemplo.com.br', 'urbana-exemplo.com.br']), js(await nomes()));
   await abaDoTipo('Todos');
@@ -373,7 +373,7 @@ await passo('Limpar exemplos e migração', async () => {
   await c.recarregar();
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum ativo ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', true);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 23);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 25);
 });
 
 await terminar();

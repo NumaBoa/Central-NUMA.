@@ -18,6 +18,7 @@ import { EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
+import { AvisoDaMarcaProvisoria } from '@/componentes/empresa/aviso-da-marca';
 import { EtiquetaEstagio } from '@/componentes/produtos/aparencia';
 import { useAvisoDeCredencial } from '@/componentes/produtos/aviso-credencial-m07';
 import { DialogoMudarEstagio } from '@/componentes/produtos/dialogo-mudar-estagio';
@@ -335,6 +336,7 @@ export function FichaDoProduto() {
         </header>
       </div>
 
+      <AvisoDaMarcaProvisoria marcaId={linha.marca?.id} />
       {!linha.responsavel && <Faixa tipo="atencao">Este produto está sem responsável. Edite e escolha uma pessoa.</Faixa>}
 
       <Tabs value={aba} onValueChange={(valor) => irPara(valor as IdDaArea)} className="min-w-0">

@@ -1,5 +1,6 @@
 'use client';
 
+import { AvisoDaMarcaProvisoria } from '@/componentes/empresa/aviso-da-marca';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Box, Pencil } from 'lucide-react';
@@ -90,6 +91,9 @@ export function FichaProduto() {
   return (
     <>
       {voltarPara(marca.id)}
+      <div className="mb-4 empty:hidden">
+        <AvisoDaMarcaProvisoria marcaId={marca?.id} />
+      </div>
       <Ficha
         tituloDePagina
         titulo={produto.nome}

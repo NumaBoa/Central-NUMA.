@@ -25,6 +25,7 @@ import { esquemaReceitaCanal } from './tipos/receita-canal';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 import { TABELAS_F1 } from './tabelas-f1';
+import { TABELAS_M06 } from './tabelas-m06';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -87,6 +88,7 @@ export const TABELAS = {
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
   auditoria: { rotulo: 'Histórico', esquema: esquemaEventoAuditoria },
   ...TABELAS_F1,
+  ...TABELAS_M06,
 } as const satisfies Record<string, { rotulo: string; esquema: z.ZodType }>;
 
 export type Tabela = keyof typeof TABELAS;
@@ -118,5 +120,7 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  *     esperava a fase dela fica pausada, para não começar a gerar sozinha.
  * 22: entra `reajuste_aplicado` (T11.10).
  * 23: entra `competencia_fechamento` (T05.10).
+ * 25: M06 acrescenta as tabelas de `tabelas-m06.ts`, com as sócias, o memorando em rascunho e o checklist de constituição
+ *     (feito como 20 na frente do M06; só acrescenta as tabelas que faltam).
  */
-export const VERSAO_DADOS = 23;
+export const VERSAO_DADOS = 25;

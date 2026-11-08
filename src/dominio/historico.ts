@@ -1,4 +1,5 @@
 import { ROTULOS_FUSO } from '@/dados/fuso';
+import { CAMPOS_LEGIVEIS_M06, registroPorExtensoM06 } from './historico-m06';
 import { listarHistorico } from '@/dados/historico';
 import { repositorios } from '@/dados/repositorios';
 import { TABELAS, type Tabela } from '@/dados/tabelas';
@@ -102,6 +103,7 @@ type CampoLegivel = {
 const simNao = (valor: unknown) => (valor ? 'sim' : 'não');
 
 const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegivel>>>> = {
+  ...CAMPOS_LEGIVEIS_M06,
   pessoa: {
     nome_completo: { rotulo: 'Nome completo' },
     nome_exibicao: { rotulo: 'Nome de exibição' },
@@ -404,6 +406,8 @@ function textoDe(valor: unknown): string | undefined {
 /** Como chamar o registro na frase. `undefined` quando o evento não diz: fica a frase genérica. */
 function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | undefined {
   const id = evento.registro_id ?? '';
+  const doM06 = registroPorExtensoM06(evento, nomes);
+  if (doM06) return doM06;
   if (evento.tabela === 'pessoa') return textoDe(evento.depois?.nome_completo) ?? textoDe(evento.antes?.nome_completo) ?? nomes.get(id);
   if (evento.tabela === 'area') {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
@@ -586,7 +590,16 @@ async function nomesDosRegistros(): Promise<Map<string, string>> {
     repositorios.ativo_digital.listar({ incluirArquivados: true }),
     repositorios.titulo.listar({ incluirArquivados: true }),
   ]);
-  return new Map([...titulos.map((titulo): [string, string] => [titulo.id, titulo.descricao]), ...ativos.map((ativo): [string, string] => [ativo.id, ativo.identificador]), ...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
+  const [acordos, versoes, reunioes, itensDaConstituicao, obrigacoes, socias] = await Promise.all([repositorios.acordo_societario.listar({ incluirArquivados: true }), repositorios.acordo_versao.listar({ incluirArquivados: true }), repositorios.reuniao.listar({ incluirArquivados: true }), repositorios.constituicao_item.listar({ incluirArquivados: true }), repositorios.obrigacao_corporativa.listar({ incluirArquivados: true }), repositorios.socia.listar({ incluirArquivados: true })]);
+  const doM06: [string, string][] = [
+    ...acordos.map((acordo): [string, string] => [acordo.id, acordo.titulo]),
+    ...versoes.map((versao): [string, string] => [versao.id, `V${versao.numero} de ${acordos.find((acordo) => acordo.id === versao.acordo_id)?.titulo ?? 'um acordo'}`]),
+    ...reunioes.map((reuniao): [string, string] => [reuniao.id, reuniao.titulo]),
+    ...itensDaConstituicao.map((item): [string, string] => [item.id, item.titulo]),
+    ...obrigacoes.map((obrigacao): [string, string] => [obrigacao.id, obrigacao.nome]),
+    ...socias.map((socia): [string, string] => [socia.id, pessoas.find((pessoa) => pessoa.id === socia.pessoa_id)?.nome_completo ?? 'uma sócia']),
+  ];
+  return new Map([...doM06, ...titulos.map((titulo): [string, string] => [titulo.id, titulo.descricao]), ...ativos.map((ativo): [string, string] => [ativo.id, ativo.identificador]), ...rotinas.map((rotina): [string, string] => [rotina.id, rotina.titulo]), ...[...ferramentas, ...categoriasDeFerramenta].map((linha): [string, string] => [linha.id, linha.nome]), ...pessoas.map((pessoa): [string, string] => [pessoa.id, pessoa.nome_completo]), ...[...areas, ...marcas, ...produtos, ...contrapartes, ...entidades, ...categorias, ...contas, ...feriados, ...etiquetas].map((registro): [string, string] => [registro.id, registro.nome]), ...atividades.map((atividade): [string, string] => [atividade.id, atividade.titulo]), ...itens.map((item): [string, string] => [item.id, item.texto])]);
 }
 
 function paraLinha(evento: EventoAuditoria, nomes: Nomes): LinhaHistorico {
@@ -684,4 +697,40 @@ export async function historicoDaPessoa(id: string): Promise<LinhaHistorico[]> {
   const [eventos, nomes] = await Promise.all([listarHistorico(), nomesDosRegistros()]);
   const dela = eventos.filter((evento) => (evento.tabela === 'pessoa' && evento.registro_id === id) || (evento.tabela === 'pessoa_area' && (evento.depois?.pessoa_id === id || evento.antes?.pessoa_id === id)));
   return dela.map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico do acordo: o acordo, as versões, as confirmações e os links. */
+export async function historicoDoAcordo(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, versoes, assinaturas, anexos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.acordo_versao.listar({ onde: { acordo_id: id }, incluirArquivados: true }), repositorios.acordo_assinatura.listar({ incluirArquivados: true }), repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true })]);
+  const ids = new Set(versoes.map((versao) => versao.id));
+  const dele = new Set([id, ...ids, ...assinaturas.filter((assinatura) => ids.has(assinatura.versao_id)).map((assinatura) => assinatura.id), ...anexos.map((anexo) => anexo.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dele.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico da marca (T06.05): as pesquisas, os processos e os prazos. O cadastro da marca é o de T02.04. */
+export async function historicoDaMarca(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, pesquisas, processos, prazos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.marca_pesquisa.listar({ onde: { marca_id: id }, incluirArquivados: true }), repositorios.marca_processo.listar({ onde: { marca_id: id }, incluirArquivados: true }), repositorios.marca_prazo.listar({ incluirArquivados: true })]);
+  const dosProcessos = new Set(processos.map((processo) => processo.id));
+  const dela = new Set([...pesquisas.map((pesquisa) => pesquisa.id), ...dosProcessos, ...prazos.filter((prazo) => dosProcessos.has(prazo.processo_id)).map((prazo) => prazo.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico da reunião: a reunião, os participantes e os links. */
+export async function historicoDaReuniao(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, participantes, anexos] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.reuniao_participante.listar({ onde: { reuniao_id: id }, incluirArquivados: true }), repositorios.anexo_link.listar({ onde: { registro_id: id }, incluirArquivados: true })]);
+  const dela = new Set([id, ...participantes.map((linha) => linha.id), ...anexos.map((anexo) => anexo.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Aba Histórico da obrigação: o cadastro e as ocorrências. */
+export async function historicoDaObrigacao(id: string): Promise<LinhaHistorico[]> {
+  const [eventos, nomes, ocorrencias] = await Promise.all([listarHistorico(), nomesDosRegistros(), repositorios.obrigacao_corporativa_ocorrencia.listar({ onde: { obrigacao_id: id }, incluirArquivados: true })]);
+  const dela = new Set([id, ...ocorrencias.map((ocorrencia) => ocorrencia.id)]);
+  return eventos.filter((evento) => Boolean(evento.registro_id && dela.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
+}
+
+/** Histórico de T06.02: a participação de cada sócia, com os motivos. */
+export async function historicoDasSocias(): Promise<LinhaHistorico[]> {
+  const [eventos, nomes] = await Promise.all([listarHistorico({ tabela: 'socia' }), nomesDosRegistros()]);
+  return eventos.map((evento) => paraLinha(evento, nomes));
 }

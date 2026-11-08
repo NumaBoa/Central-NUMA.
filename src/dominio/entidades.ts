@@ -6,6 +6,7 @@ import { emTransacao } from '@/dados/transacao';
 import type { Contraparte, Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte';
 import type { EntidadeLicenciante, EntidadeSocias } from '@/dados/tipos/contrato';
 import type { Pessoa } from '@/dados/tipos/pessoa';
+import { sincronizarAlertasDeTransferencia } from './alertas-m06';
 import { nomeDaContraparte } from './contrapartes';
 import { camposDoEndereco, CAMPOS_ENDERECO_VAZIOS, cepValido, enderecoCompleto, enderecoDosCampos, esquemaCamposEndereco } from './endereco';
 import { cnpjValido, cpfValido, formatarCnpj, normalizarCnpj, soDigitos } from './duplicidade';
@@ -215,10 +216,10 @@ export function pendenciasDaEntidade(entidade: Pick<Entidade, 'tipo_pessoa' | 's
   return entidade.situacao === 'ativa' ? [] : [`Entidade: ${entidade.nome} ainda não está Ativa. Rascunho pode; emissão final, não.`];
 }
 
-/** Grava a entidade e os representantes de uma vez. "Entidade padrão": só uma (T02.05). */
+/** Grava a entidade e os representantes de uma vez. "Entidade padrão": só uma (T02.05). PJ que fica Ativa gera as transferências pendentes (RN-06.07). */
 export async function salvarEntidade(formulario: FormularioEntidade, id?: string): Promise<Entidade> {
   const dados = dadosDaEntidade(formulario);
-  return emTransacao(async () => {
+  const salva = await emTransacao(async () => {
     const entidade = id ? await repositorios.entidade.atualizar(id, dados) : await repositorios.entidade.criar(dados);
     if (dados.entidade_padrao) {
       for (const outra of await repositorios.entidade.listar({ onde: { entidade_padrao: true } })) {
@@ -229,6 +230,8 @@ export async function salvarEntidade(formulario: FormularioEntidade, id?: string
     await definirSocias(entidade.id, formulario);
     return entidade;
   });
+  if (salva.tipo_pessoa === 'pj' && salva.situacao === 'ativa') await sincronizarAlertasDeTransferencia();
+  return salva;
 }
 
 /** O que depende da entidade. Contratos e propostas acrescentam aqui na F1. */

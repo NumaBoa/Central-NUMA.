@@ -107,6 +107,7 @@ function Resumo({ ativo, dados, entidades }: { ativo: AtivoDigital; dados: Dados
             </span>
           </Dado>
           <Dado rotulo="Requisito para transferir">{ativo.requisito_transferencia}</Dado>
+          {ativo.transferencia_situacao === 'impedida' && ativo.impedimento_motivo && <Dado rotulo="O que impede a transferência">{ativo.impedimento_motivo}</Dado>}
           {ativo.transferencia_situacao === 'concluida' && <Dado rotulo="Transferido em">{ativo.transferido_em && formatarDiaISO(ativo.transferido_em)}</Dado>}
         </dl>
         <p className="mt-3 flex items-start gap-2 rounded-md bg-mist px-3 py-2 text-ink-soft">
@@ -256,7 +257,7 @@ function AbaHistorico({ id }: { id: string }) {
  * T04.05: data, novo titular, evidência e observação. Só depois de feita no fornecedor; a evidência é
  * obrigatória (CA-04.07) e é conferida de novo pela regra ao confirmar.
  */
-function DialogoDeTransferencia({ ativo, dados, entidades, aoFechar }: { ativo: AtivoDigital; dados: DadosDosAtivos; entidades: readonly Entidade[] | undefined; aoFechar: () => void }) {
+export function DialogoDeTransferencia({ ativo, dados, entidades, aoFechar }: { ativo: AtivoDigital; dados: DadosDosAtivos; entidades: readonly Entidade[] | undefined; aoFechar: () => void }) {
   const [valores, setValores] = useState<FormularioTransferencia>(() => formularioTransferenciaVazio());
   const [erros, setErros] = useState<Partial<Record<keyof FormularioTransferencia, string>>>({});
   const [confirmando, setConfirmando] = useState(false);
@@ -359,7 +360,8 @@ export function FichaAtivo() {
   const consulta = useConsulta(carregarAtivos);
   const entidades = useConsulta(carregarEntidades);
   const [editando, setEditando] = useState(false);
-  const [transferindo, setTransferindo] = useState(false);
+  // Vindo do alerta de transferência (05-M03 §5): abre direto no registro.
+  const [transferindo, setTransferindo] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('acao') === 'transferir');
   const [arquivando, setArquivando] = useState(false);
 
   const voltar = (
@@ -522,7 +524,7 @@ export function FichaAtivo() {
         ]}
       />
       <FormularioDeAtivo aberto={editando} aoFechar={() => setEditando(false)} dados={dados} ativo={ativo} />
-      {transferindo && <DialogoDeTransferencia ativo={ativo} dados={dados} entidades={entidades.dados} aoFechar={() => setTransferindo(false)} />}
+      {transferindo && podeTransferir && <DialogoDeTransferencia ativo={ativo} dados={dados} entidades={entidades.dados} aoFechar={() => setTransferindo(false)} />}
       <Confirmacao
         aberto={arquivando}
         aoFechar={() => setArquivando(false)}

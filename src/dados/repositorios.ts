@@ -7,6 +7,8 @@ import { esquemaRecorrencia, type Recorrencia } from './tipos/recorrencia';
 import type { Repositorio, RepositorioConfiguracao } from './repositorio';
 import { criarRepositorioConfiguracaoLocal } from './repositorio-configuracao-local';
 import { criarRepositorioLocal } from './repositorio-local';
+import { repositoriosM06, type RepositoriosM06 } from './repositorios-m06';
+import { protegerDecisoes } from './decisao-imutavel';
 import { esquemaAnexoLink, esquemaChecklistItem, esquemaComentario, esquemaVinculo, type AnexoLink, type ChecklistItem, type Comentario, type Vinculo } from './tipos/apoio';
 import { esquemaArea, esquemaPessoaArea, type Area, type PessoaArea } from './tipos/area';
 import { esquemaAtividade, esquemaAtividadeParticipante, esquemaAtividadeProduto, type Atividade, type AtividadeParticipante, type AtividadeProduto } from './tipos/atividade';
@@ -82,7 +84,8 @@ export const repositorios: {
   concorrente_referencia: Repositorio<Concorrente>;
   kpi_definicao: Repositorio<KpiDefinicao>;
   kpi_mensal: Repositorio<KpiMensal>;
-} & RepositoriosF1 = {
+} & RepositoriosF1 &
+  RepositoriosM06 = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
   configuracao: criarRepositorioConfiguracaoLocal(),
@@ -120,7 +123,7 @@ export const repositorios: {
   movimento_societario: criarRepositorioLocal({ tabela: 'movimento_societario', esquema: esquemaMovimentoSocietario, prefixoCodigo: 'MOV' }),
   transferencia: criarRepositorioLocal({ tabela: 'transferencia', esquema: esquemaTransferencia }),
   conferencia_saldo: criarRepositorioLocal({ tabela: 'conferencia_saldo', esquema: esquemaConferenciaSaldo }),
-  decisao: criarRepositorioLocal({ tabela: 'decisao', esquema: esquemaDecisao, prefixoCodigo: 'DEC' }),
+  decisao: protegerDecisoes(criarRepositorioLocal({ tabela: 'decisao', esquema: esquemaDecisao, prefixoCodigo: 'DEC' })),
   decisao_decisor: criarRepositorioLocal({ tabela: 'decisao_decisor', esquema: esquemaDecisaoDecisor }),
   produto_estagio_historico: criarRepositorioLocal({ tabela: 'produto_estagio_historico', esquema: esquemaEstagioHistorico }),
   objetivo: criarRepositorioLocal({ tabela: 'objetivo', esquema: esquemaObjetivo }),
@@ -138,4 +141,5 @@ export const repositorios: {
   kpi_definicao: criarRepositorioLocal({ tabela: 'kpi_definicao', esquema: esquemaKpiDefinicao }),
   kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),
   ...repositoriosF1,
+  ...repositoriosM06,
 };
