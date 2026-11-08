@@ -108,6 +108,7 @@ function Conteudo({ dados, aoMudar }: { dados: Dados; aoMudar: () => void }) {
             {item('Apontar horas', () => setJanela('horas'))}
             {item('Gerar tarefas do escopo', () => setJanela('tarefas'))}
             {ficha.entrega_realizada && !ficha.aceite_em && item('Registrar aceite', () => setJanela('aceite'))}
+            {marcosFeitos && !suspensa && item('Concluir', () => setJanela('concluir'))}
             {!suspensa && item('Suspender', () => setJanela('suspender'))}
             {item('Cancelar implantação', () => setJanela('cancelar'), true)}
           </div>

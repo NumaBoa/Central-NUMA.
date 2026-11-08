@@ -5,7 +5,7 @@ import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 
 export type AreaOperacao = 'implantacoes' | 'suporte' | 'sla' | 'incidentes' | 'horas' | 'notas' | 'estimado';
 
-/** As áreas do M12 (14-M12 §3). Só as construídas têm link; as outras ficam "Em breve". */
+/** As áreas do M12 (14-M12 §3), todas construídas. */
 const AREAS: readonly { id: AreaOperacao; rotulo: string; icone: typeof Rocket; href?: string }[] = [
   { id: 'implantacoes', rotulo: 'Implantações', icone: Rocket, href: '/operacao' },
   { id: 'suporte', rotulo: 'Suporte', icone: LifeBuoy, href: '/operacao/suporte' },
@@ -13,7 +13,7 @@ const AREAS: readonly { id: AreaOperacao; rotulo: string; icone: typeof Rocket; 
   { id: 'incidentes', rotulo: 'Incidentes', icone: ShieldAlert, href: '/operacao/incidentes' },
   { id: 'horas', rotulo: 'Horas', icone: Clock, href: '/operacao/horas' },
   { id: 'notas', rotulo: 'Notas de liberação', icone: Megaphone, href: '/operacao/notas' },
-  { id: 'estimado', rotulo: 'Estimado × realizado', icone: BarChart3 },
+  { id: 'estimado', rotulo: 'Estimado × realizado', icone: BarChart3, href: '/operacao/estimado' },
 ];
 
 export function AbasOperacao({ ativa }: { ativa: AreaOperacao }) {

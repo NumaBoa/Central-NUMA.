@@ -31,7 +31,8 @@ import { idDaPessoaAtual } from '@/dados/sessao';
 import type { Oportunidade, Viabilidade } from '@/dados/tipos/comercial';
 import { useConsulta } from '@/dados/use-consulta';
 import { atividadesDoRegistro } from '@/dominio/atividades-painel';
-import { avancarEtapa, carregarComercial, criarProposta, encerrarOportunidade, esquemaFormularioViabilidade, estaAbertaNoFunil, ETAPAS_ABERTAS, REFERENCIA_HISTORICA, reabrirOportunidade, registrarProximaAcao, ROTULOS_CONCLUSAO_VIABILIDADE, ROTULOS_ETAPA, ROTULOS_MOTIVO_PERDA, ROTULOS_SITUACAO_VERSAO, ROTULOS_TIPO_OPORTUNIDADE, salvarViabilidade, textoDosValores, type FormularioViabilidade } from '@/dominio/comercial';
+import { ReferenciaHistorica } from '@/componentes/operacao/referencia-historica';
+import { avancarEtapa, carregarComercial, criarProposta, encerrarOportunidade, esquemaFormularioViabilidade, estaAbertaNoFunil, ETAPAS_ABERTAS, reabrirOportunidade, registrarProximaAcao, ROTULOS_CONCLUSAO_VIABILIDADE, ROTULOS_ETAPA, ROTULOS_MOTIVO_PERDA, ROTULOS_SITUACAO_VERSAO, ROTULOS_TIPO_OPORTUNIDADE, salvarViabilidade, textoDosValores, type FormularioViabilidade } from '@/dominio/comercial';
 import { nomeDaContraparte, ROTULOS_ORIGEM } from '@/dominio/contrapartes';
 import { carregarContextos } from '@/dominio/contextos';
 import { historicoDoRegistro } from '@/dominio/historico';
@@ -46,7 +47,7 @@ async function carregar(id: string) {
 }
 type Dados = Awaited<ReturnType<typeof carregar>>;
 
-function FormularioViabilidade({ oportunidadeId, viabilidade, pessoas, aoFechar }: { oportunidadeId: string; viabilidade: Viabilidade | null; pessoas: Dados['dados']['pessoas']; aoFechar: () => void }) {
+function FormularioViabilidade({ oportunidadeId, viabilidade, pessoas, produtoIds, aoFechar }: { oportunidadeId: string; viabilidade: Viabilidade | null; pessoas: Dados['dados']['pessoas']; produtoIds: readonly string[]; aoFechar: () => void }) {
   const numero = (valor: number | null) => (valor === null ? '' : valor.toLocaleString('pt-BR'));
   const { register, control, handleSubmit, formState } = useForm<FormularioViabilidade>({
     resolver: zodResolver(esquemaFormularioViabilidade),
@@ -109,7 +110,7 @@ function FormularioViabilidade({ oportunidadeId, viabilidade, pessoas, aoFechar 
         <Campo id="viab-riscos" rotulo="Riscos">
           {(controle) => <Textarea {...controle} rows={2} {...register('riscos')} />}
         </Campo>
-        <Dado rotulo="Referência histórica">{REFERENCIA_HISTORICA}</Dado>
+        <Dado rotulo="Referência histórica"><ReferenciaHistorica produtoIds={produtoIds} /></Dado>
         <Controller
           control={control}
           name="conclusao"
@@ -381,7 +382,7 @@ export function FichaOportunidade() {
                   <Dado rotulo="Custo estimado">{viabilidade.custo_estimado === null ? null : formatarDinheiro(viabilidade.custo_estimado, 'BRL')}</Dado>
                   <Dado rotulo="Capacidade">{viabilidade.capacidade}</Dado>
                   <Dado rotulo="Riscos">{viabilidade.riscos}</Dado>
-                  <Dado rotulo="Referência histórica">{REFERENCIA_HISTORICA}</Dado>
+                  <Dado rotulo="Referência histórica"><ReferenciaHistorica produtoIds={ligacoes.produtos} /></Dado>
                   <Dado rotulo="Decidido por">{`${viabilidade.decididores.map(nome).join(', ')} em ${formatarDiaISO(viabilidade.decidido_em)}`}</Dado>
                 </ListaDeDados>
               </CartaoDePainel>
@@ -411,7 +412,7 @@ export function FichaOportunidade() {
         ]}
       />
       {janela === 'editar' && <FormularioOportunidade dados={comercial} oportunidade={oportunidade} ligacoes={ligacoes} aoFechar={() => setJanela('')} />}
-      {janela === 'viabilidade' && <FormularioViabilidade oportunidadeId={oportunidade.id} viabilidade={viabilidade} pessoas={comercial.pessoas} aoFechar={() => setJanela('')} />}
+      {janela === 'viabilidade' && <FormularioViabilidade oportunidadeId={oportunidade.id} viabilidade={viabilidade} pessoas={comercial.pessoas} produtoIds={ligacoes.produtos} aoFechar={() => setJanela('')} />}
       {janela === 'acao' && <DialogoProximaAcao oportunidade={oportunidade} pessoas={internas} aoFechar={() => setJanela('')} />}
       {janela === 'encerrar' && aberta && <DialogoEncerrar oportunidade={oportunidade} temAceite={temAceite} aoFechar={() => setJanela('')} />}
       <Confirmacao aberto={reabrindo} aoFechar={() => setReabrindo(false)} titulo="Reabrir a oportunidade?" texto="Ela volta para Negociação. O histórico guarda o motivo." rotuloConfirmar="Reabrir" pedirMotivo aoConfirmar={(motivo) => { setReabrindo(false); void executar(() => reabrirOportunidade(oportunidade.id, motivo), 'Oportunidade reaberta.'); }} />
