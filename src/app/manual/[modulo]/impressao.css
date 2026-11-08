@@ -264,12 +264,18 @@ html:has(.manual-impressao) body {
 
 /* ---------- Assuntos e artigos ---------- */
 
-.assunto {
-  break-before: page;
+/*
+ * Um assunto novo continua na mesma folha, com espaço e o título grande: forçar página nova deixava folhas quase
+ * vazias nos manuais menores. O título nunca fica sozinho no pé da folha.
+ */
+.assunto + .assunto {
+  margin-top: 14mm;
+  padding-top: 8mm;
+  border-top: 1.2pt solid rgba(99, 102, 241, 0.35);
 }
 
-.sumario + .assunto {
-  break-before: auto;
+.assunto-kicker {
+  break-after: avoid;
 }
 
 .assunto-kicker {
@@ -383,6 +389,11 @@ html:has(.manual-impressao) body {
 
 .manual-impressao .procedimento > * + * {
   margin-top: 4mm;
+}
+
+/* O resultado esperado fica junto dos passos: nunca sozinho no alto da folha seguinte. */
+.manual-impressao .procedimento > .item-procedimento + .caixa-de-orientacao {
+  break-before: avoid;
 }
 
 /* O título de um procedimento não fica sozinho no pé da folha. */

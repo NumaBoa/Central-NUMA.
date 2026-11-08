@@ -57,6 +57,7 @@ export function TelaFechamento() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/fechamento-mensal"
         kicker="Financeiro"
         titulo="Fechamento mensal"
         resumo="Confira o mês e feche a competência: depois de fechada, ela não aceita lançamento, baixa nem rateio."

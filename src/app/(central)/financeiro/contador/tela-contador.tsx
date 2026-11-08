@@ -86,6 +86,7 @@ export function TelaContador() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/pacote-contador"
         kicker="Financeiro"
         titulo="Pacote do contador"
         resumo="Os arquivos da competência para a contabilidade e o registro de cada envio."

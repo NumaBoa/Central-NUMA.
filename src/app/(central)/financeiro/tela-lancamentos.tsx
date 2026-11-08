@@ -421,6 +421,7 @@ export function TelaLancamentos() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro"
         kicker="Financeiro"
         titulo="Lançamentos"
         resumo="O que vence, o que foi pago e o que ainda está em aberto."

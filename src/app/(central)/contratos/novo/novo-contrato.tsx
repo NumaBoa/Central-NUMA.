@@ -67,7 +67,7 @@ export function NovoContrato() {
         <ArrowLeft className="size-4" aria-hidden />
         Contratos
       </LinkCentral>
-      <CabecalhoPagina kicker="Contratos" titulo="Novo contrato" resumo="Societário fica em Empresa. Parceiro leva os termos de repasse nos itens." />
+      <CabecalhoPagina comoUsar="/ajuda/contratos/novo-contrato" kicker="Contratos" titulo="Novo contrato" resumo="Societário fica em Empresa. Parceiro leva os termos de repasse nos itens." />
       <CartaoDePainel className="mt-5 max-w-3xl">
         <div className="grid gap-[18px] md:grid-cols-2">
           <Campo id="novo-familia" rotulo="Família" obrigatorio>

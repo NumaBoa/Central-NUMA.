@@ -101,16 +101,19 @@ function pontuar(item: Indexado, termos: readonly string[]): number {
   let total = 0;
   for (const termo of termos) {
     let melhor = 0;
+    const campos = new Set<string>();
     for (const variante of variantes(termo)) {
       const peso = variante === termo ? 1 : 0.8;
       if (contem(item.titulo, variante)) melhor = Math.max(melhor, 5 * peso);
       else if (contem(item.chaves, variante)) melhor = Math.max(melhor, 4 * peso);
       else if (contem(item.resumo, variante)) melhor = Math.max(melhor, 3 * peso);
       else if (contem(item.corpo, variante)) melhor = Math.max(melhor, 1 * peso);
+      for (const campo of ['titulo', 'chaves', 'resumo', 'corpo'] as const) if (contem(item[campo], variante)) campos.add(campo);
     }
     // Todo termo precisa aparecer de algum jeito: busca com duas palavras não traz o que só tem uma.
     if (!melhor) return 0;
-    total += melhor;
+    // Desempate: o artigo em que o termo aparece em mais lugares (título, palavras-chave, resumo, texto) é mais certeiro.
+    total += melhor + 0.25 * (campos.size - 1);
   }
   return total;
 }

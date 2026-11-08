@@ -208,6 +208,7 @@ export function TelaInventario() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/legal/inventario"
         kicker="Legal e privacidade"
         titulo="Inventário de tratamento"
         resumo="O que a Numa trata, para quê, onde e por quanto tempo."

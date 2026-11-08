@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { BotaoComoUsar } from '@/componentes/ajuda/botao-como-usar';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { OndasDoCabecalho } from '@/componentes/marca/ondas-do-cabecalho';
 import { EmBreve } from '@/componentes/padroes/etiquetas';
@@ -15,11 +16,17 @@ type CabecalhoPaginaProps = {
   acoes?: ReactNode;
   /** As ondas da marca na área livre entre o título e as ações (decisão de Kimberly em 08/11/2026). */
   ondas?: boolean;
+  /**
+   * "Como usar": o endereço do manual do módulo ou do artigo da tela. Põe o botão antes das ações e liga as ondas
+   * (pedido de Kimberly em 08/11/2026: ondas e "Como usar" em todos os cabeçalhos principais dos módulos).
+   */
+  comoUsar?: string;
   className?: string;
 };
 
 /** Cabeçalho da página (18 §10.2): kicker, título, linha de resumo e ações à direita. */
-export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, ondas = false, className }: CabecalhoPaginaProps) {
+export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, comoUsar, ondas = Boolean(comoUsar), className }: CabecalhoPaginaProps) {
+  const temAcoes = Boolean(acoes || comoUsar);
   return (
     <div className={className}>
       {migalhas && (
@@ -40,7 +47,12 @@ export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, ondas
           {resumo && <div className="mt-2.5 text-[13px] leading-[1.6] text-ink-soft md:text-sm">{resumo}</div>}
         </div>
         {ondas && <OndasDoCabecalho className="max-h-28" />}
-        {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
+        {temAcoes && (
+          <div className="flex flex-wrap items-center gap-2">
+            {comoUsar && <BotaoComoUsar href={comoUsar} />}
+            {acoes}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -198,7 +198,7 @@ export function TelaReajustes() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Contratos" titulo="Reajuste" resumo={`Datas-base dos próximos ${HORIZONTE_DIAS} dias. Padrão: IPCA, anual, a partir do início da vigência (D25).`} />
+      <CabecalhoPagina comoUsar="/ajuda/contratos/reajuste" kicker="Contratos" titulo="Reajuste" resumo={`Datas-base dos próximos ${HORIZONTE_DIAS} dias. Padrão: IPCA, anual, a partir do início da vigência (D25).`} />
       <AbasContratos ativa="reajustes" />
       <div className="mt-5 space-y-5">
         {consulta.estado === 'erro' && <EstadoErro aoTentarDeNovo={consulta.recarregar} />}

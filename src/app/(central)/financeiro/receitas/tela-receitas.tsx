@@ -153,6 +153,7 @@ export function TelaReceitas() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/receita-por-canal"
         kicker="Financeiro"
         titulo="Receita por canal"
         resumo="Lojas e gateways: o que entrou em cada mês, por produto e canal."

@@ -773,6 +773,7 @@ export function TelaSimulador() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/produtos/simulador"
         kicker="Produtos"
         titulo="Simulador de preços"
         resumo="Uma simulação não é preço: serve para entender o cenário antes de decidir."

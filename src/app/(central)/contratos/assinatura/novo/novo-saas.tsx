@@ -65,7 +65,7 @@ export function NovoContratoSaas() {
         <ArrowLeft className="size-4" aria-hidden />
         Contratos
       </LinkCentral>
-      <CabecalhoPagina kicker="Contratos" titulo="Novo contrato de assinatura" resumo="Sobre o modelo único MOD-SAAS-LIC: o texto jurídico não se edita aqui." />
+      <CabecalhoPagina comoUsar="/ajuda/contratos/novo-contrato" kicker="Contratos" titulo="Novo contrato de assinatura" resumo="Sobre o modelo único MOD-SAAS-LIC: o texto jurídico não se edita aqui." />
       <CartaoDePainel className="mt-5 max-w-3xl">
         <Faixa tipo="atencao" className="mb-4">MOD-SAAS-LIC v2.0 está em Rascunho para validação jurídica. Dá para preparar o contrato; o final pede confirmação e motivo enquanto o modelo não for validado.</Faixa>
         <div className="grid gap-[18px] md:grid-cols-2">

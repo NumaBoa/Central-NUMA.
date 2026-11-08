@@ -224,6 +224,7 @@ export function TelaBiblioteca() {
 
   const cabecalho = (
     <CabecalhoPagina
+      comoUsar="/ajuda/marketing"
       kicker={KICKER_MARKETING}
       titulo="Biblioteca"
       resumo="Encontre e reutilize os materiais da Numa e dos produtos. Os arquivos ficam no Drive."
@@ -297,7 +298,8 @@ export function TelaBiblioteca() {
           aoMudar={mudar}
           aoLimpar={limpar}
           rotuloBusca="Buscar por título, etiqueta, descrição ou código"
-          rotuloAvancados="Mais filtros"
+          rotuloAvancados="Mais filtros"
+
           seletores={[
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'tipo', rotulo: 'Tipo', icone: Shapes, campo: 'tipo', opcoes: paraOpcoes(ROTULOS_TIPO_ARQUIVO), largura: 130 }),
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesContexto, largura: 150 }),

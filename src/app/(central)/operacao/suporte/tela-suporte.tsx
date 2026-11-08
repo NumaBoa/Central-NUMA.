@@ -82,7 +82,7 @@ export function TelaSuporte() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Solicitações de suporte" resumo="Atender dentro do combinado. Novo escopo não é suporte: vira proposta de aditivo." acoes={botaoNovo} />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/solicitacao-suporte" kicker="Operação" titulo="Solicitações de suporte" resumo="Atender dentro do combinado. Novo escopo não é suporte: vira proposta de aditivo." acoes={botaoNovo} />
       <AbasOperacao ativa="suporte" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as solicitações." aoTentarDeNovo={consulta.recarregar} />}

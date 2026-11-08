@@ -279,6 +279,7 @@ export function TelaFerramentas() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/ferramentas"
         kicker="Ferramentas e ativos"
         titulo="Ferramentas"
         resumo={`${formatarNumero(doContexto.length)} ${doContexto.length === 1 ? 'ferramenta' : 'ferramentas'}: o que a Numa usa, quanto custa e em nome de quem está.`}

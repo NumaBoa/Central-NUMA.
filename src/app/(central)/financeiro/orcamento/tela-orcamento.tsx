@@ -133,6 +133,7 @@ export function TelaOrcamento() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/orcamento"
         kicker="Financeiro"
         titulo="Orçamento"
         resumo="Quanto cada contexto pode gastar por mês, e quanto já foi."

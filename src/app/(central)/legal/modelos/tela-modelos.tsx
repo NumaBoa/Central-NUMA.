@@ -112,6 +112,7 @@ export function TelaModelos() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/legal/modelos"
         kicker="Legal e privacidade"
         titulo="Modelos de documentos"
         resumo="Modelo comum: produto, plano e cliente fornecem os dados."

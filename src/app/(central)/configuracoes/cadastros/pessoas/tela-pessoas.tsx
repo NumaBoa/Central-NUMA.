@@ -84,6 +84,7 @@ export function TelaPessoas() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/cadastros/pessoas"
         migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Pessoas']}
         kicker="Configurações"
         titulo="Pessoas"

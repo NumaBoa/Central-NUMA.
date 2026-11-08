@@ -227,6 +227,7 @@ export function TelaRepasses() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/repasses"
         kicker="Financeiro"
         titulo="Repasses a parceiros"
         resumo="As vendas dos parceiros e o que cabe a cada um, pelos termos do contrato vigentes na data de cada venda."

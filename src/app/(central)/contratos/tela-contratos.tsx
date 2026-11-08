@@ -118,7 +118,7 @@ export function TelaContratos() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Contratos" titulo="Contratos" resumo="O que foi combinado, com as quatro situações separadas." acoes={botaoNovo} />
+      <CabecalhoPagina comoUsar="/ajuda/contratos" kicker="Contratos" titulo="Contratos" resumo="O que foi combinado, com as quatro situações separadas." acoes={botaoNovo} />
       <AbasContratos ativa="contratos" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler os contratos." aoTentarDeNovo={consulta.recarregar} />}

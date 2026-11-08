@@ -122,7 +122,7 @@ export function TelaCustos() {
 
   return (
     <div className="space-y-5">
-      <CabecalhoPagina kicker="Financeiro" titulo="Resultado por produto" resumo="Quanto cada produto custa e quanto rende, com os rateios." />
+      <CabecalhoPagina comoUsar="/ajuda/financeiro/resultado-por-produto" kicker="Financeiro" titulo="Resultado por produto" resumo="Quanto cada produto custa e quanto rende, com os rateios." />
       <AbasFinanceiro ativa="custos" />
 
       <div className="grid grid-cols-2 items-end gap-3 md:flex md:flex-wrap" role="group" aria-label="Filtros dos custos">

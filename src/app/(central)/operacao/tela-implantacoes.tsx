@@ -81,7 +81,7 @@ export function TelaImplantacoes() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Implantações" resumo="O que foi vendido, entregue dentro do combinado. O prazo contratual vem do contrato e não muda aqui." acoes={botaoNovo} />
+      <CabecalhoPagina comoUsar="/ajuda/operacao" kicker="Operação" titulo="Implantações" resumo="O que foi vendido, entregue dentro do combinado. O prazo contratual vem do contrato e não muda aqui." acoes={botaoNovo} />
       <AbasOperacao ativa="implantacoes" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as implantações." aoTentarDeNovo={consulta.recarregar} />}

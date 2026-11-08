@@ -54,7 +54,7 @@ export function TelaNotas() {
   const botaoNovo = <Button onClick={() => setCriando(true)}><Plus aria-hidden />Nova nota</Button>;
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Notas de liberação" resumo="O que mudou em cada versão, para dentro ou para os clientes." acoes={botaoNovo} />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/notas-de-liberacao" kicker="Operação" titulo="Notas de liberação" resumo="O que mudou em cada versão, para dentro ou para os clientes." acoes={botaoNovo} />
       <AbasOperacao ativa="notas" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as notas." aoTentarDeNovo={consulta.recarregar} />}

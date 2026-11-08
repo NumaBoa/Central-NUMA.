@@ -111,6 +111,7 @@ export function TelaCategorias() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/categorias"
         migalhas={['Central Numa', 'Financeiro', 'Categorias']}
         kicker="Financeiro"
         titulo="Categorias financeiras"

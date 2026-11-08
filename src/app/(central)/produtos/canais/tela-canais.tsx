@@ -201,6 +201,7 @@ export function TelaCanais() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/produtos/canais"
         kicker="Produtos"
         titulo="Canais de venda"
         resumo="Por onde a receita entra e quanto cada canal cobra. Os valores são informados por vocês, com fonte e data."

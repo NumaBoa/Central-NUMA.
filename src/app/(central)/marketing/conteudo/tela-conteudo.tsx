@@ -297,6 +297,7 @@ export function TelaConteudo() {
 
   const cabecalho = (
     <CabecalhoPagina
+      comoUsar="/ajuda/marketing/calendario-editorial"
       kicker={KICKER_MARKETING}
       titulo="Calendário editorial"
       resumo="Planeje as peças da Numa e das marcas. A Central registra o que foi ao ar; quem publica é você, na rede."
@@ -356,7 +357,8 @@ export function TelaConteudo() {
           aoMudar={mudar}
           aoLimpar={limpar}
           rotuloBusca="Buscar peça por título, texto ou código"
-          rotuloAvancados="Mais filtros"
+          rotuloAvancados="Mais filtros"
+
           seletores={[
             seletorDeOpcoes<FiltrosConteudo>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesDeContexto(dados.produtos), largura: 150 }),
             seletorDeOpcoes<FiltrosConteudo>({ id: 'canal', rotulo: 'Canal', icone: Radio, campo: 'canal', opcoes: paraOpcoes(ROTULOS_CANAL), largura: 120 }),

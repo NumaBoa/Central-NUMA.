@@ -117,7 +117,7 @@ await passo('índice dos manuais', async () => {
   await ir('/ajuda');
   await c.ate(`document.querySelector('main h1')?.textContent==='Manuais da Central'`);
   ok('os 13 módulos', await c.avaliar(`document.querySelectorAll('main ul > li').length===13`));
-  ok('M03 publicado; os outros em preparação, sem link', await c.avaliar(`(()=>{const l=[...document.querySelectorAll('main ul > li')];return l.filter(x=>x.querySelector('a')).length===1&&l.find(x=>x.querySelector('a'))?.textContent.includes('Meu dia')&&l.filter(x=>x.textContent.includes('Manual em preparação')).length===12})()`));
+  ok('os 13 manuais publicados, cada um com link', await c.avaliar(`(()=>{const l=[...document.querySelectorAll('main ul > li')];return l.filter(x=>x.querySelector('a')).length===13&&!l.some(x=>x.textContent.includes('Manual em preparação'))})()`));
   await c.foto('d-indice-1440');
 });
 
@@ -130,7 +130,13 @@ await passo('busca: Registros e Como fazer', async () => {
   await buscar('reembolso');
   await c.ate(`document.querySelector('.busca-global [role=option]')`);
   let t = await textoDaBusca();
-  ok('reembolso: lançamentos em Registros; Como fazer explica que não há artigo', t.includes('Registros') && t.includes('Lançamentos') && t.includes('Como fazer') && t.includes('Nenhum artigo de ajuda sobre “reembolso”'), t.slice(0, 260));
+  ok('reembolso: lançamentos em Registros e o artigo do Financeiro em Como fazer', t.includes('Registros') && t.includes('Lançamentos') && t.includes('Como fazer') && t.includes('Reembolsar uma sócia') && t.includes('Manual Financeiro'), t.slice(0, 260));
+  await buscar('xilofone');
+  await c.ate(`(document.querySelector('.busca-global')?.textContent??'').includes('nem nos registros nem nos manuais')`);
+  ok('sem registro nem artigo, o aviso diz isso', true);
+  await buscar('cartorio');
+  await c.ate(`(document.querySelector('.busca-global [role=listbox]')?.textContent??'').includes('Nenhum artigo de ajuda sobre')`);
+  ok('com registro e sem artigo, Como fazer explica e leva aos manuais', await c.avaliar(`[...document.querySelectorAll('.busca-global [role=listbox] a')].some(a=>a.getAttribute('href')==='/ajuda')`));
   await c.foto('e-busca-reembolso');
 
   await buscar('dar baixa');
@@ -160,9 +166,11 @@ await passo('busca: Registros e Como fazer', async () => {
   const antes = await dados();
   for (let i = 0; i < acao; i++) await c.tecla('ArrowDown');
   await c.tecla('Enter');
-  await c.ate(`location.pathname==='/meu-dia/rotinas'`);
+  await c.ate(`location.pathname==='/meu-dia/rotinas'&&!document.querySelector('.busca-global')`);
   await c.espera(500);
-  ok('o atalho leva à tela, sem abrir formulário nem mudar dados', !(await c.avaliar(`Boolean(document.querySelector('.janela,.dialogo'))`)) && (await dados()) === antes);
+  ok('o atalho leva à tela, sem abrir formulário', !(await c.avaliar(`Boolean(document.querySelector('.janela,.dialogo'))`)), await c.avaliar(`document.querySelector('.janela,.dialogo')?.textContent.slice(0,120)`));
+  const depois = await dados();
+  ok('o atalho não muda dados', depois === antes, depois === antes ? '' : JSON.parse(depois).filter(([k, v]) => !JSON.parse(antes).some(([k2, v2]) => k2 === k && v2 === v)).map(([k]) => k).join(','));
 
   await abrirBusca();
   await buscar('kipi');

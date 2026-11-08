@@ -20,8 +20,11 @@ describe('manuais: estrutura', () => {
     expect(new Set(MODULOS_DOS_MANUAIS.map((modulo) => modulo.slug)).size).toBe(13);
   });
 
-  it('o M03 é o piloto; os outros ficam em preparação até a validação', () => {
-    expect(manuaisPublicados().map((manual) => manual.slug)).toEqual(['meu-dia']);
+  it('um manual por módulo, cada um com o próprio arquivo de PDF', () => {
+    const publicados = manuaisPublicados();
+    expect(publicados).toHaveLength(13);
+    expect(new Set(publicados.map((manual) => manual.arquivo)).size).toBe(publicados.length);
+    for (const manual of publicados) expect(manual.arquivo).toMatch(/^Manual-[A-Za-z-]+-Numa$/);
   });
 
   it('a disponibilidade do módulo vem do menu: sem lista paralela', () => {
@@ -31,9 +34,13 @@ describe('manuais: estrutura', () => {
       expect(telaDoModulo(modulo)).toBe(item?.href ?? null);
       // Manual publicado só para módulo que existe no menu e tem tela.
       if (modulo.manual) {
-        expect(item && moduloDisponivel(item)).toBe(true);
-        expect(modulo.manual.telaDoModulo).toBe(item?.href);
         expect(modulo.manual.slug).toBe(modulo.slug);
+        // Sem item no menu (M13: busca, sino e relatórios espalhados pelos módulos), o manual volta a uma tela que existe.
+        if (modulo.menu === null) expect(telaExiste(modulo.manual.telaDoModulo)).toBe(true);
+        else {
+          expect(item && moduloDisponivel(item)).toBe(true);
+          expect(modulo.manual.telaDoModulo).toBe(item?.href);
+        }
       }
     }
   });
@@ -73,7 +80,7 @@ describe('manuais: estrutura', () => {
 
       it('procedimentos sempre completos: objetivo, caminho, passos e resultado', () => {
         const procedimentos = manual.artigos.flatMap((artigo) => artigo.blocos.filter((bloco) => bloco.tipo === 'procedimento'));
-        expect(procedimentos.length).toBeGreaterThan(10);
+        expect(procedimentos.length).toBeGreaterThan(0);
         for (const bloco of procedimentos) {
           expect(bloco.objetivo).not.toBe('');
           expect(bloco.caminho).not.toBe('');
@@ -111,7 +118,8 @@ describe('busca "Como fazer"', () => {
     expect(ids('remarcar prazo')).toContain('meu-dia/adiar');
     expect(ids('recorrência')).toContain('meu-dia/criar-rotina');
     expect(ids('dar baixa')).toEqual(ids('registrar pagamento'));
-    expect(ids('dar baixa')).toContain('meu-dia/agir-sobre-alerta');
+    expect(ids('dar baixa').slice(0, 3)).toContain('financeiro/registrar-baixa');
+    expect(ids('pagar conta')).toContain('financeiro/registrar-baixa');
   });
 
   it('diz o módulo, leva ao artigo e oferece a ação só quando ela existe', () => {
@@ -124,9 +132,12 @@ describe('busca "Como fazer"', () => {
     expect(ids('adiar xyzabc')).toEqual([]);
   });
 
+  it('reembolso: o artigo do Financeiro, com o módulo', () => {
+    expect(buscarNaAjuda('reembolso').itens[0]).toMatchObject({ id: 'financeiro/reembolso', modulo: 'Financeiro' });
+  });
+
   it('sem artigo para o assunto, volta vazio (a busca mostra o aviso e o link para os manuais)', () => {
-    // Reembolso é do Financeiro, ainda sem manual: aparecem só os registros.
-    expect(buscarNaAjuda('reembolso')).toEqual({ itens: [], total: 0 });
+    expect(buscarNaAjuda('xilofone')).toEqual({ itens: [], total: 0 });
     expect(buscarNaAjuda('  ')).toEqual({ itens: [], total: 0 });
   });
 

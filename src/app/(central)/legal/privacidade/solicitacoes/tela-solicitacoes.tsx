@@ -234,6 +234,7 @@ export function TelaSolicitacoes() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/legal/solicitacoes-titulares"
         kicker="Legal e privacidade"
         titulo="Solicitações de titulares"
         resumo="Cada pedido com quem responde, o prazo aplicável e a evidência da resposta."
