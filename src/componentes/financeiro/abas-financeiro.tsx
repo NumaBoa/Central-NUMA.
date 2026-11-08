@@ -1,8 +1,8 @@
-import { ArrowLeftRight, Gauge, Landmark, Receipt, Users } from 'lucide-react';
+import { ArrowLeftRight, Gauge, Landmark, PieChart, Receipt, Users } from 'lucide-react';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 
-/** As seções do Financeiro já construídas (F0a e, desde 07/11/2026, o Orçamento da F0b). */
-export function AbasFinanceiro({ ativa }: { ativa: 'lancamentos' | 'socias' | 'transferencias' | 'contas' | 'orcamento' }) {
+/** As seções do Financeiro já construídas (F0a e F0b: Orçamento e Custos por produto). */
+export function AbasFinanceiro({ ativa }: { ativa: 'lancamentos' | 'socias' | 'transferencias' | 'contas' | 'orcamento' | 'custos' }) {
   return (
     <AbasPagina
       rotulo="Seções do financeiro"
@@ -13,6 +13,7 @@ export function AbasFinanceiro({ ativa }: { ativa: 'lancamentos' | 'socias' | 't
         { rotulo: 'Transferências', icone: ArrowLeftRight, href: '/financeiro/transferencias', ativa: ativa === 'transferencias' },
         { rotulo: 'Contas e saldos', icone: Landmark, href: '/financeiro/contas', ativa: ativa === 'contas' },
         { rotulo: 'Orçamento', icone: Gauge, href: '/financeiro/orcamento', ativa: ativa === 'orcamento' },
+        { rotulo: 'Custos por produto', icone: PieChart, href: '/financeiro/custos', ativa: ativa === 'custos' },
       ]}
     />
   );
