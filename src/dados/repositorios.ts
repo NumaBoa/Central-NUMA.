@@ -21,6 +21,7 @@ import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
 import { esquemaDecisao, esquemaDecisaoDecisor, type Decisao, type DecisaoDecisor } from './tipos/decisao';
 import { esquemaCanalVenda, esquemaConcorrente, esquemaConfiguracaoContratual, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao, type CanalVenda, type Concorrente, type ConfiguracaoContratualRegistro, type EstagioHistorico, type KpiDefinicao, type KpiMensal, type Objetivo, type Oferta, type OfertaRecurso, type PrecoVersao, type Simulacao } from './tipos/precificacao';
 import { repositoriosF1, type RepositoriosF1 } from './repositorios-f1';
+import { esquemaOrcamento, type Orcamento } from './tipos/orcamento';
 
 /** Ponto de acesso aos dados. Na etapa com servidor, só estas implementações mudam (02 §0.3). */
 export const repositorios: {
@@ -71,6 +72,7 @@ export const repositorios: {
   simulacao: Repositorio<Simulacao>;
   preco_versao: Repositorio<PrecoVersao>;
   configuracao_contratual: Repositorio<ConfiguracaoContratualRegistro>;
+  orcamento: Repositorio<Orcamento>;
   concorrente_referencia: Repositorio<Concorrente>;
   kpi_definicao: Repositorio<KpiDefinicao>;
   kpi_mensal: Repositorio<KpiMensal>;
@@ -122,6 +124,7 @@ export const repositorios: {
   simulacao: criarRepositorioLocal({ tabela: 'simulacao', esquema: esquemaSimulacao, prefixoCodigo: 'SIM' }),
   preco_versao: criarRepositorioLocal({ tabela: 'preco_versao', esquema: esquemaPrecoVersao }),
   configuracao_contratual: criarRepositorioLocal({ tabela: 'configuracao_contratual', esquema: esquemaConfiguracaoContratual }),
+  orcamento: criarRepositorioLocal({ tabela: 'orcamento', esquema: esquemaOrcamento }),
   concorrente_referencia: criarRepositorioLocal({ tabela: 'concorrente_referencia', esquema: esquemaConcorrente }),
   kpi_definicao: criarRepositorioLocal({ tabela: 'kpi_definicao', esquema: esquemaKpiDefinicao }),
   kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),

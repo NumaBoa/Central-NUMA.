@@ -38,10 +38,9 @@ await passo('abertura automática', async () => {
   const escondida = await c.avaliar(`document.documentElement.hasAttribute('data-abertura')&&getComputedStyle(document.getElementById('moldura')).visibility==='hidden'`);
   ok('a Central não aparece por trás da abertura', escondida);
   await c.ate(`document.querySelector('.abertura')`);
-  await c.foto('a-inicio');
-  await c.espera(300);
-  await c.foto('a-300ms');
-  await c.ate(`document.querySelector('.abertura[data-saindo]')`);
+  // Sem fotos aqui: tirar a foto segura a página e alonga a própria medida (visto em 07/11/2026).
+  // As fotos podem levar mais que a abertura inteira: confere pelo registro da página, não pelo elemento, que já pode ter saído.
+  await c.ate(`window.__abertura.saindo!==undefined`);
   const duracao = Math.round(await c.avaliar(`window.__abertura.saindo-window.__abertura.inicio`));
   ok('fica até 1,6s', duracao >= 1500 && duracao <= 1800, `${duracao}ms`);
   await c.ate(`window.__abertura.fim!==undefined`);
@@ -61,7 +60,7 @@ await passo('uma vez por dia', async () => {
   ok('volta no dia seguinte', true);
   await c.espera(100);
   await c.tecla('a');
-  ok('tecla pula', await c.avaliar(`Boolean(document.querySelector('.abertura[data-saindo]'))`));
+  ok('tecla pula', await c.ate(`Boolean(document.querySelector('.abertura[data-saindo]'))||!document.querySelector('.abertura')`, 1000).then(() => true, () => false));
   await c.ate(`!document.querySelector('.abertura')`);
 });
 await passo('rever e manter', async () => {

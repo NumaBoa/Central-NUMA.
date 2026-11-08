@@ -717,7 +717,7 @@ await passo('dados: versão anterior, limpar e restaurar', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:recorrencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=8;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irRotinas();
   ok('versão 8 recebe as rotinas', (await tabela('recorrencia')).length === 7);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 19);
   await restaurar();
   await irMeuDia();
   await c.espera(500);

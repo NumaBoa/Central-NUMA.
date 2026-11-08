@@ -88,7 +88,7 @@ function CartaoDoProduto({ linha, hoje }: { linha: LinhaDoPortfolio; hoje: strin
       </div>
       <dl className="grid gap-1.5">
         <Linha rotulo="Custo médio">{textoDoCusto(linha.custo, dinheiro)}</Linha>
-        <Linha rotulo="Orçamento">Sem orçamento: chega com a T05.08</Linha>
+        <Linha rotulo="Orçamento">Em Financeiro › Orçamento</Linha>
         <Linha rotulo="Ofertas">{textoDasOfertas(linha)}</Linha>
         <Linha rotulo="Usuários ativos">{textoDosUsuarios(linha)}</Linha>
         <Linha rotulo="Legal">Sem dados: chega com o M09</Linha>

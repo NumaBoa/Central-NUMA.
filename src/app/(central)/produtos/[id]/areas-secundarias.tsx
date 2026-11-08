@@ -149,7 +149,7 @@ export function AreaObjetivos({ produtoId, pessoas }: { produtoId: string; pesso
   );
 }
 
-/** Custos rateados (M05). A tela T05.09 e o orçamento T05.08 ainda não existem: aqui só o que os lançamentos já dizem. */
+/** Custos rateados (M05), pela mesma conta da T05.09. O orçamento fica na T05.08, em Financeiro › Orçamento. */
 export function AreaCustos({ produtoId, hoje }: { produtoId: string; hoje: string }) {
   const consulta = useConsulta(async () => {
     const [meses, medio] = await Promise.all([custosPorMesDoProduto(produtoId), custoMedioDoProduto(produtoId, hoje)]);
@@ -194,7 +194,13 @@ export function AreaCustos({ produtoId, hoje }: { produtoId: string; hoje: strin
         <EstadoVazio icone={Coins} titulo="Nenhum custo rateado a este produto." texto="Os custos aparecem aqui quando um lançamento do Financeiro for rateado a ele." />
       )}
       <p className="text-xs text-ink-soft">Rateios não são saídas adicionais de caixa. Valores em moeda estrangeira em aberto são estimados.</p>
-      <Indisponivel titulo="Orçamento">Sem orçamento cadastrado: a T05.08 ainda não foi construída. Isso não quer dizer orçamento zero.</Indisponivel>
+      <p className="text-[13px]">
+        O orçamento mensal deste produto fica em{' '}
+        <LinkCentral href="/financeiro/orcamento" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2 md:min-h-0">
+          Financeiro › Orçamento
+        </LinkCentral>
+        .
+      </p>
     </div>
   );
 }
