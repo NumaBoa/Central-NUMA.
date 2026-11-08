@@ -15,6 +15,8 @@ import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { Oferta, PrecoVersao } from '@/dados/tipos/precificacao';
 import type { Acordo, AcordoVersao, MarcaPesquisa, MarcaProcesso } from '@/dados/tipos/sociedade';
 import type { Baixa, Titulo } from '@/dados/tipos/titulo';
+import type { CompetenciaFechamento } from '@/dados/tipos/fechamento';
+import type { Repasse } from '@/dados/tipos/repasse';
 import { hojeISO } from '@/lib/datas';
 import { exigeParticipacao } from './acordos';
 import { criticosPendentes, itensATransferir } from './ativos-a-transferir';
@@ -58,10 +60,12 @@ export type DadosDaJornada = {
   entidades: Entidade[];
   pessoas: Pessoa[];
   contratos: Contrato[];
+  fechamentos: CompetenciaFechamento[];
+  repasses: Repasse[];
 };
 
 export async function carregarDadosDaJornada(): Promise<DadosDaJornada> {
-  const [ferramentas, assinaturas, contextos, ativos, titulos, baixas, contas, acordos, versoes, produtos, documentos, versoesLegais, marcas, pesquisas, processos, ofertas, precos, entidades, pessoas, contratos] = await Promise.all([
+  const [ferramentas, assinaturas, contextos, ativos, titulos, baixas, contas, acordos, versoes, produtos, documentos, versoesLegais, marcas, pesquisas, processos, ofertas, precos, entidades, pessoas, contratos, fechamentos, repasses] = await Promise.all([
     repositorios.ferramenta.listar(),
     repositorios.assinatura_ferramenta.listar(),
     repositorios.ferramenta_contexto.listar(),
@@ -82,8 +86,10 @@ export async function carregarDadosDaJornada(): Promise<DadosDaJornada> {
     repositorios.entidade.listar(),
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.contrato.listar(),
+    repositorios.competencia_fechamento.listar(),
+    repositorios.repasse.listar(),
   ]);
-  return { ferramentas, assinaturas, contextos, ativos, titulos, baixas, contas, acordos, versoes, produtos, documentos, versoesLegais, marcas, pesquisas, processos, ofertas, precos, entidades, pessoas, contratos };
+  return { ferramentas, assinaturas, contextos, ativos, titulos, baixas, contas, acordos, versoes, produtos, documentos, versoesLegais, marcas, pesquisas, processos, ofertas, precos, entidades, pessoas, contratos, fechamentos, repasses };
 }
 
 const plural = (quantidade: number, singular: string, varios: string) => (quantidade === 1 ? singular : varios);
@@ -179,6 +185,22 @@ function marco10({ contratos }: DadosDaJornada): Pick<Marco, 'situacao' | 'detal
   return { situacao: emCurso ? 'em_andamento' : 'nao_iniciado', detalhe: emCurso ? 'Contrato em andamento, ainda sem assinatura' : 'Nenhum contrato ainda', atingidoEm: null };
 }
 
+/** ME-11: competência fechada e pacote enviado ao contador (T05.10 e T05.11). */
+function marco11({ fechamentos }: DadosDaJornada): Pick<Marco, 'situacao' | 'detalhe' | 'atingidoEm'> {
+  const fechadas = fechamentos.filter((linha) => !linha.arquivado_em && linha.situacao === 'fechada').sort((a, b) => a.competencia.localeCompare(b.competencia));
+  const completa = fechadas.find((linha) => (linha.envios_contador ?? []).length > 0);
+  if (completa) return { situacao: 'atingido', detalhe: 'Competência fechada e pacote enviado ao contador', atingidoEm: completa.fechada_em?.slice(0, 10) ?? null };
+  if (fechadas.length) return { situacao: 'em_andamento', detalhe: 'Competência fechada; falta registrar o envio ao contador', atingidoEm: null };
+  return { situacao: fechamentos.some((linha) => !linha.arquivado_em) ? 'em_andamento' : 'nao_iniciado', detalhe: 'Nenhuma competência fechada ainda', atingidoEm: null };
+}
+
+/** ME-12: primeiro repasse a parceiro (T05.13). Clínica formalizada não tem registro próprio ainda. */
+function marco12({ repasses }: DadosDaJornada): Pick<Marco, 'situacao' | 'detalhe' | 'atingidoEm'> {
+  const primeiro = repasses.filter((linha) => !linha.arquivado_em && linha.situacao !== 'cancelado').sort((a, b) => a.periodo_fim.localeCompare(b.periodo_fim))[0];
+  if (primeiro) return { situacao: 'atingido', detalhe: 'Primeiro repasse a parceiro gerado', atingidoEm: primeiro.criado_em?.slice(0, 10) ?? null };
+  return { situacao: 'nao_iniciado', detalhe: 'Nenhum repasse a parceiro ainda', atingidoEm: null };
+}
+
 /** Os 12 marcos de 01 §2, na ordem. */
 export function marcosDaJornada(dados: DadosDaJornada, hoje: string = hojeISO()): Marco[] {
   return [
@@ -192,8 +214,8 @@ export function marcosDaJornada(dados: DadosDaJornada, hoje: string = hojeISO())
     { codigo: 'ME-08', nome: 'Empresa constituída', criterio: 'Entidade PJ Ativa, com regime tributário, conta PJ e contador cadastrados.', fase: 'f1', href: '/empresa/entidade', ...marco08(dados) },
     { codigo: 'ME-09', nome: 'Ativos transferidos', criterio: 'Nenhum ativo crítico com titular diferente da Numa.', fase: 'f1', href: '/empresa/ativos', ...marco09(dados) },
     { codigo: 'ME-10', nome: 'Primeira venda', criterio: 'Primeiro contrato assinado ou primeira receita de adesão registrada.', fase: 'f1', href: '/contratos', ...marco10(dados) },
-    { codigo: 'ME-11', nome: 'Primeiro fechamento', criterio: 'Primeiro fechamento mensal concluído e pacote enviado ao contador.', fase: 'f1', href: null, situacao: 'nao_iniciado', atingidoEm: null, detalhe: 'O fechamento mensal (M05) ainda não existe' },
-    { codigo: 'ME-12', nome: 'Ecossistema', criterio: 'Primeiro parceiro com repasse ou clínica formalizado.', fase: 'f2', href: null, situacao: 'nao_iniciado', atingidoEm: null, detalhe: 'Os repasses chegam na Fase 2' },
+    { codigo: 'ME-11', nome: 'Primeiro fechamento', criterio: 'Primeiro fechamento mensal concluído e pacote enviado ao contador.', fase: 'f1', href: '/financeiro/fechamento', ...marco11(dados) },
+    { codigo: 'ME-12', nome: 'Ecossistema', criterio: 'Primeiro parceiro com repasse ou clínica formalizado.', fase: 'f2', href: '/financeiro/repasses', ...marco12(dados) },
   ];
 }
 

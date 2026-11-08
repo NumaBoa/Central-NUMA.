@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Pencil, Plus, Save, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Pencil, Percent, Plus, Save, Trash2, TriangleAlert } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { Selecao } from '@/componentes/campos/selecao';
@@ -11,6 +11,9 @@ import { AcoesDoFluxo } from '@/componentes/f1/acoes-fluxo';
 import { AvisoCatalogoDeExemplo, CaixasDeSelecao, CartaoDePainel, EtapasLaterais, executar, ListaDePendencias, paraOpcoes } from '@/componentes/f1/apoio';
 import { carregarTelaDoContrato, type TelaDoContrato } from '@/componentes/f1/dados-contrato';
 import { DialogoItem, dadosDoItemExistente, type ItemParaEditar } from '@/componentes/f1/dialogo-item';
+import { DialogoTermosDeRepasse } from '@/componentes/f1/dialogo-termos-repasse';
+import { textoDosTermos } from '@/dominio/repasses';
+import type { ItemContrato } from '@/dados/tipos/contrato';
 import { DocumentoRenderizadoVista } from '@/componentes/f1/documento';
 import { ListaDeEmissoes } from '@/componentes/f1/emissao';
 import { EditorSaas } from '@/componentes/f1/editor-saas';
@@ -85,6 +88,8 @@ function Assistente({ tela }: { tela: TelaDoContrato }) {
   const alterado = JSON.stringify(partes) !== JSON.stringify(partesIniciais) || JSON.stringify(versao) !== JSON.stringify(versaoInicial);
   useAlteracoesPendentes(alterado);
   const [item, setItem] = useState<ItemParaEditar | { id: null; dados: typeof ITEM_VAZIO } | null>(null);
+  const [termos, setTermos] = useState<ItemContrato | null>(null);
+  const deParceiro = contrato.familia === 'parceiro';
   const internas = useMemo(() => pessoasDoSeletor(tela.pessoas), [tela.pessoas]);
   const daContraparte = tela.pessoas.filter((pessoa) => pessoa.contraparte_id === contrato.contraparte_id && !pessoa.arquivado_em);
   const nomeDaPessoa = (pessoaId: string | null) => tela.pessoas.find((pessoa) => pessoa.id === pessoaId)?.nome_completo ?? 'Pessoa removida';
@@ -142,12 +147,14 @@ function Assistente({ tela }: { tela: TelaDoContrato }) {
                 <span className="font-semibold">{linha.descricao}</span>
                 {editavel && (
                   <span className="flex">
+                    {deParceiro && <Button variante="icone" tamanho="icone" aria-label={`Termos de repasse de ${linha.descricao}`} onClick={() => setTermos(linha)}><Percent aria-hidden /></Button>}
                     <Button variante="icone" tamanho="icone" aria-label={`Editar ${linha.descricao}`} onClick={() => setItem({ id: linha.id, dados: dadosDoItemExistente(linha, linha.desconto), desconto_por: linha.desconto_por, desconto_em: linha.desconto_em })}><Pencil aria-hidden /></Button>
                     <Button variante="icone" tamanho="icone" aria-label={`Tirar ${linha.descricao}`} onClick={() => void executar(() => removerItemDoContrato(linha.id), 'Item retirado.')}><Trash2 aria-hidden /></Button>
                   </span>
                 )}
               </div>
               <p className="mt-1 text-ink-soft">{linha.quantidade.toLocaleString('pt-BR')} × {linha.valor_unitario === null ? 'valor vazio' : formatarDinheiro(linha.valor_unitario, contrato.moeda)} · {linha.periodicidade ? ROTULOS_PERIODICIDADE_VALOR[linha.periodicidade] : ''}{linha.valor_total !== null && ` · ${formatarDinheiro(linha.valor_total, contrato.moeda)}`}</p>
+              {deParceiro && <p className="mt-1 text-xs" data-termos-de-repasse>Repasse: {textoDosTermos(linha)}</p>}
               {tela.diferencas[linha.id] && <p className="mt-1 text-xs font-semibold text-warn">{tela.diferencas[linha.id]}</p>}
               {(linha.desconto || linha.desconto_percentual) && <p className="mt-1 text-xs">Desconto {linha.desconto_justificativa ? `· ${linha.desconto_justificativa} · por ${nomeDaPessoa(linha.desconto_por)}` : '· sem justificativa'}</p>}
             </li>
@@ -232,6 +239,7 @@ function Assistente({ tela }: { tela: TelaDoContrato }) {
         <EtapasLaterais rotulo="Etapas do contrato" etapas={ETAPAS} ativa={etapa} aoEscolher={setEtapa} pendencias={pendenciasPorEtapa} />
         <CartaoDePainel titulo={ETAPAS.find((linha) => linha.id === etapa)?.rotulo}>{conteudo[etapa]}</CartaoDePainel>
       </div>
+      {termos && <DialogoTermosDeRepasse item={termos} aoFechar={() => setTermos(null)} />}
       {item && <DialogoItem produtos={tela.produtos.filter((produto) => !produto.arquivado_em)} item={item} nomeDaPessoa={nomeDaPessoa} aoFechar={() => setItem(null)} aoSalvar={async (valores, itemId) => { await salvarItemDoContrato(atual.id, valores, itemId ?? undefined); aviso(itemId ? 'Item atualizado.' : 'Item adicionado.'); }} />}
     </>
   );
