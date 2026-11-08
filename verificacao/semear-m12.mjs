@@ -26,6 +26,14 @@ export function scriptDoContrato(hoje) {
   return `(()=>{const t=${JSON.stringify(tabelas)};for(const [nome,linhas] of Object.entries(t)){const k='numa-central:v1:'+nome;const atuais=JSON.parse(localStorage.getItem(k)||'[]');for(const linha of linhas)if(!atuais.some(a=>a.id===linha.id))atuais.push(linha);localStorage.setItem(k,JSON.stringify(atuais))}})()`;
 }
 
+/** As regras de SLA da oferta: normal 4 h / 16 h e crítica 1 h / 4 h, em horas úteis, 9h–18h. */
+export function scriptDasRegras() {
+  const agora = new Date().toISOString();
+  const linha = (id, prioridade, resposta, resolucao) => ({ id, criado_em: agora, criado_por: null, atualizado_em: agora, atualizado_por: null, arquivado_em: null, arquivado_por: null, versao_registro: 1, exemplo: false, oferta_id: ID_OFERTA, contrato_id: null, prioridade, resposta_horas: resposta, resolucao_horas: resolucao, contagem: 'horas_uteis', horario_inicio: '09:00', horario_fim: '18:00', disponibilidade_minima: null, creditos: null });
+  const regras = [linha('7e000000-0000-4000-8000-000000000011', 'normal', 4, 16), linha('7e000000-0000-4000-8000-000000000012', 'critica', 1, 4)];
+  return `(()=>{const k='numa-central:v1:sla_regra';const atuais=JSON.parse(localStorage.getItem(k)||'[]');for(const r of ${JSON.stringify(regras)})if(!atuais.some(a=>a.id===r.id))atuais.push(r);localStorage.setItem(k,JSON.stringify(atuais))})()`;
+}
+
 /** Hoje + n dias, em aaaa-mm-dd. */
 export const somarDias = (dia, dias) => {
   const data = new Date(`${dia}T12:00:00Z`);

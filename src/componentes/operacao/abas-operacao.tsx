@@ -8,7 +8,7 @@ export type AreaOperacao = 'implantacoes' | 'suporte' | 'sla' | 'incidentes' | '
 /** As áreas do M12 (14-M12 §3). Só as construídas têm link; as outras ficam "Em breve". */
 const AREAS: readonly { id: AreaOperacao; rotulo: string; icone: typeof Rocket; href?: string }[] = [
   { id: 'implantacoes', rotulo: 'Implantações', icone: Rocket, href: '/operacao' },
-  { id: 'suporte', rotulo: 'Suporte', icone: LifeBuoy },
+  { id: 'suporte', rotulo: 'Suporte', icone: LifeBuoy, href: '/operacao/suporte' },
   { id: 'sla', rotulo: 'Regras de SLA', icone: Gauge, href: '/operacao/sla' },
   { id: 'incidentes', rotulo: 'Incidentes', icone: ShieldAlert },
   { id: 'horas', rotulo: 'Horas', icone: Clock, href: '/operacao/horas' },

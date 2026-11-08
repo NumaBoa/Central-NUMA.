@@ -6,5 +6,6 @@ import { hojeISO } from '@/lib/datas';
 
 export async function gerarAlertasM12(hoje: string = hojeISO()): Promise<number> {
   const { sincronizarAlertasDasImplantacoes } = await import('./implantacoes');
-  return sincronizarAlertasDasImplantacoes(hoje);
+  const { sincronizarAlertasDoSuporte } = await import('./suporte');
+  return (await sincronizarAlertasDasImplantacoes(hoje)) + (await sincronizarAlertasDoSuporte());
 }
