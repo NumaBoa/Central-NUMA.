@@ -122,7 +122,7 @@ export async function recalcularRateio(tituloId: string, valor: number): Promise
 
 const paraProduto = (contexto: string) => (contexto === ID_INSTITUCIONAL ? null : contexto);
 
-async function gravarRateio(tituloId: string, valor: number, linhas: readonly { contexto: string; percentual: number }[]): Promise<void> {
+export async function gravarRateio(tituloId: string, valor: number, linhas: readonly { contexto: string; percentual: number }[]): Promise<void> {
   const valores = valoresDoRateio(
     valor,
     linhas.map((linha) => linha.percentual),
