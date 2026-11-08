@@ -16,7 +16,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { PERIODICIDADES, SITUACOES_DA_OBRIGACAO } from '@/dados/tipos/sociedade';
 import { useConsulta } from '@/dados/use-consulta';
-import { carregarObrigacoes, filtrarObrigacoes, MENSAGEM_FASE_DAS_OBRIGACOES, FILTROS_OBRIGACOES_INICIAIS, linhasDasObrigacoes, NOTA_PAGAMENTO, NOTA_SEM_PRESUNCAO, ROTULOS_PERIODICIDADE_OBRIGACAO, ROTULOS_SITUACAO_OBRIGACAO, type LinhaDaObrigacao } from '@/dominio/obrigacoes';
+import { carregarObrigacoes, filtrarObrigacoes, FILTROS_OBRIGACOES_INICIAIS, linhasDasObrigacoes, NOTA_PAGAMENTO, NOTA_SEM_PRESUNCAO, ROTULOS_PERIODICIDADE_OBRIGACAO, ROTULOS_SITUACAO_OBRIGACAO, type LinhaDaObrigacao } from '@/dominio/obrigacoes';
 import { nomeDaPessoa } from '@/dominio/sociedade';
 import { formatarDiaISO } from '@/lib/formatacao';
 

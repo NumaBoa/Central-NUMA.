@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowRight, Check, Circle, CircleDot } from 'lucide-react';
 import { MolduraDaEmpresa, SituacaoDaEntidadeDaEmpresa, SituacaoDaVersaoDoAcordo, SituacaoDoProcesso } from '@/componentes/empresa/aparencia';
-import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EstadoCarregando, EstadoErro } from '@/componentes/padroes/estados';
 import { EtiquetaLivre, EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
@@ -17,7 +16,6 @@ import { ROTULOS_TIPO_ATIVO } from '@/dominio/ativos';
 import { criticosPendentes } from '@/dominio/ativos-a-transferir';
 import { nomeDaContraparte } from '@/dominio/contrapartes';
 import { formatarDocumentoDaEntidade } from '@/dominio/entidades';
-import { rotuloDaFase } from '@/dominio/fases';
 import { marcosAtingidos, proximoMarco, type Marco, type SituacaoDoMarco } from '@/dominio/jornada';
 import { AVISO_NOME_PROVISORIO, ROTULOS_RESULTADO_PESQUISA } from '@/dominio/marcas-inpi';
 import { carregarPainelDaEmpresa } from '@/dominio/painel-empresa';
