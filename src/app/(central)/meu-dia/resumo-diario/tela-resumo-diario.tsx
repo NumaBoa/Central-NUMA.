@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Clock3, Info, Messag
 import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { Logo } from '@/componentes/marca/logo';
+import { BotaoComoUsar } from '@/componentes/ajuda/botao-como-usar';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EstadoCarregando, EstadoErro } from '@/componentes/padroes/estados';
 import { EtiquetaContexto } from '@/componentes/padroes/etiquetas';
@@ -99,17 +100,21 @@ export function TelaResumoDiario() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        ondas
         migalhas={['Meu dia', 'Rotinas', 'Resumo diário']}
         kicker="Meu dia"
         titulo="Resumo diário por e-mail"
         resumo="Como o e-mail vai ficar. É só uma prévia, com os dados deste navegador."
         acoes={
-          <Button asChild variante="secundario">
-            <LinkCentral href="/meu-dia/rotinas">
-              <ArrowLeft aria-hidden />
-              Voltar às Rotinas
-            </LinkCentral>
-          </Button>
+          <>
+            <BotaoComoUsar href="/ajuda/meu-dia/previa-resumo-diario" />
+            <Button asChild variante="secundario">
+              <LinkCentral href="/meu-dia/rotinas">
+                <ArrowLeft aria-hidden />
+                Voltar às Rotinas
+              </LinkCentral>
+            </Button>
+          </>
         }
       />
       <Faixa className="mx-auto max-w-[720px]">Nenhum e-mail é enviado nesta etapa. O envio chega com o servidor. Para ver o de outra pessoa, troque em “Você é”.</Faixa>

@@ -9,6 +9,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
+import { BotaoComoUsar } from '@/componentes/ajuda/botao-como-usar';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { CartoesDeResumo } from '@/componentes/padroes/cartoes-resumo';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
@@ -271,12 +272,14 @@ export function TelaRotinas() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        ondas
         migalhas={['Meu dia', 'Rotinas']}
         kicker="Meu dia"
         titulo="Rotinas e recorrências"
         resumo="O que se repete fica organizado por aqui: cada ocorrência vira uma atividade no Meu dia, até 30 dias à frente."
         acoes={
           <>
+            <BotaoComoUsar href="/ajuda/meu-dia/criar-rotina" />
             <Button asChild variante="secundario">
               <LinkCentral href="/meu-dia">
                 <ArrowLeft aria-hidden />

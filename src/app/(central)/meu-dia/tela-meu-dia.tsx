@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useAdicionarAtividade } from '@/componentes/atividades/adicionar-atividade';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
+import { BotaoComoUsar } from '@/componentes/ajuda/botao-como-usar';
+import { OndasDoCabecalho } from '@/componentes/marca/ondas-do-cabecalho';
 import { EstadoCarregando, EstadoErro, EstadoVazio, EstadoVazioFiltro } from '@/componentes/padroes/estados';
 import { CartoesDeResumo } from '@/componentes/padroes/cartoes-resumo';
 import { CLASSE_LINHA_MENU, MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
@@ -39,18 +41,6 @@ import { BarraDoMeuDia, ROTULOS_CARTAO } from './filtros-meu-dia';
 import { ListaAtividades } from './lista-atividades';
 import { JanelaAtividade } from './janela-atividade';
 import { QuadroAtividades } from './quadro-atividades';
-
-/** Linhas calmas do cabeçalho do Meu dia, versão estática em SVG (18 §2.2). */
-function LinhasDoCabecalho() {
-  return (
-    <svg aria-hidden className="pointer-events-none absolute top-0 right-0 hidden h-full w-[46%] lg:block" viewBox="0 0 520 140" preserveAspectRatio="none" fill="none">
-      {[34, 52, 70, 88, 106].map((base, i) => (
-        <path key={base} d={`M0 ${base} C 110 ${base - 18 + i * 3}, 210 ${base + 22 - i * 4}, 330 ${base - 6} S 470 ${base + 14 - i * 2}, 520 ${base - 10}`} stroke="var(--espresso)" strokeOpacity=".12" strokeWidth="1" />
-      ))}
-      <path d="M0 78 C 120 44, 190 118, 300 74 S 460 40, 520 62" stroke="var(--indigo)" strokeOpacity=".55" strokeWidth="1.4" />
-    </svg>
-  );
-}
 
 const TIPOS_DO_MENU = [
   { tipo: 'tarefa', rotulo: 'Tarefa', icone: <CheckSquare aria-hidden /> },
@@ -120,30 +110,36 @@ function LinksDoDia() {
 function CabecalhoDoDia({ nome, resumo }: { nome: string; resumo: ResumoDoDia }) {
   const frase = fraseDoResumo(resumo);
   return (
-    <header className="relative">
-      <LinhasDoCabecalho />
-      <div className="relative float-right ml-3 hidden items-center gap-1 md:flex">
-        <LinksDoDia />
-        <BotaoAdicionar />
+    <header className="flex items-start gap-4">
+      <div className="min-w-0 flex-1 md:flex-initial md:shrink">
+        <p className="relative text-[13px] leading-[18px] font-medium text-ink-soft first-letter:uppercase">{dataPorExtenso()}</p>
+        <h1 className="relative mt-1.5 texto-display">
+          {saudacao()}, {primeiroNome(nome)}.
+        </h1>
+        <p className="relative mt-2 text-[15px] leading-[22px] text-ink-soft md:text-base">
+          {frase ? (
+            <>
+              {frase.abertura}
+              <mark>{frase.itens}</mark>
+              {frase.resto}
+            </>
+          ) : (
+            'Nada para hoje por enquanto.'
+          )}
+        </p>
+        <div className="relative mt-3 flex items-center gap-0.5 md:hidden">
+          <BotaoAdicionar />
+          <LinksDoDia />
+        </div>
       </div>
-      <p className="relative text-[13px] leading-[18px] font-medium text-ink-soft first-letter:uppercase">{dataPorExtenso()}</p>
-      <h1 className="relative mt-1.5 texto-display">
-        {saudacao()}, {primeiroNome(nome)}.
-      </h1>
-      <p className="relative mt-2 text-[15px] leading-[22px] text-ink-soft md:text-base">
-        {frase ? (
-          <>
-            {frase.abertura}
-            <mark>{frase.itens}</mark>
-            {frase.resto}
-          </>
-        ) : (
-          'Nada para hoje por enquanto.'
-        )}
-      </p>
-      <div className="relative mt-3 flex items-center gap-0.5 md:hidden">
-        <BotaoAdicionar />
+      {/* No celular, "Como usar" fica no canto, só com o ícone: a linha dos botões não tem espaço. */}
+      <BotaoComoUsar href="/ajuda/meu-dia" compacto className="-mt-2.5 -mr-2 shrink-0 md:hidden" />
+      {/* As ondas ocupam só a área livre entre o texto e os botões (decisão de Kimberly em 08/11/2026). */}
+      <OndasDoCabecalho className="max-h-28" />
+      <div className="hidden shrink-0 items-center gap-1 md:flex">
         <LinksDoDia />
+        <BotaoComoUsar href="/ajuda/meu-dia" />
+        <BotaoAdicionar />
       </div>
     </header>
   );

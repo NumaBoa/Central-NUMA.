@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
+import { OndasDoCabecalho } from '@/componentes/marca/ondas-do-cabecalho';
 import { EmBreve } from '@/componentes/padroes/etiquetas';
 import { FaixaDeAbas } from '@/componentes/padroes/faixa-de-abas';
 import { cn } from '@/lib/utils';
@@ -12,11 +13,13 @@ type CabecalhoPaginaProps = {
   titulo: string;
   resumo?: ReactNode;
   acoes?: ReactNode;
+  /** As ondas da marca na área livre entre o título e as ações (decisão de Kimberly em 08/11/2026). */
+  ondas?: boolean;
   className?: string;
 };
 
 /** Cabeçalho da página (18 §10.2): kicker, título, linha de resumo e ações à direita. */
-export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, className }: CabecalhoPaginaProps) {
+export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, ondas = false, className }: CabecalhoPaginaProps) {
   return (
     <div className={className}>
       {migalhas && (
@@ -30,11 +33,13 @@ export function CabecalhoPagina({ migalhas, kicker, titulo, resumo, acoes, class
         </nav>
       )}
       <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
-        <div className="min-w-0">
+        {/* Com as ondas, o texto não ocupa a largura toda: elas ficam no espaço livre ao lado do título. */}
+        <div className={cn('min-w-0', ondas && 'lg:max-w-[680px]')}>
           <div className="mb-2.5 flex items-center gap-2 text-[13px] leading-[18px] font-semibold text-ink-soft before:size-2 before:shrink-0 before:rounded-full before:bg-indigo">{kicker}</div>
           <h1>{titulo}</h1>
           {resumo && <div className="mt-2.5 text-[13px] leading-[1.6] text-ink-soft md:text-sm">{resumo}</div>}
         </div>
+        {ondas && <OndasDoCabecalho className="max-h-28" />}
         {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
       </div>
     </div>
