@@ -6,6 +6,7 @@ import { gerarAlertas } from './alertas';
 import { atualizarSituacoesF1, gerarAlertasF1 } from './alertas-f1';
 import { gerarAlertasM06 } from './alertas-m06';
 import { gerarAlertasM12 } from './alertas-m12';
+import { gerarAlertasM08 } from './alertas-m08';
 import { estenderProgramacaoDosContratos } from './contratos';
 import { atualizarSituacoesDasFerramentas } from './ferramentas';
 import { atualizarSituacoesDosTitulos, estenderProgramacao } from './titulos';
@@ -28,7 +29,7 @@ export type Rotina = {
  * Rotinas do dia, nesta ordem (02 §0.5).
  */
 export const ROTINAS_DO_DIA: readonly Rotina[] = [
-  { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: async () => (await gerarAlertas()) + (await gerarAlertasF1()) + (await gerarAlertasM06()) + (await gerarAlertasM12()) },
+  { nome: 'Gerar alertas', novidade: ['alerta novo', 'alertas novos'], executar: async () => (await gerarAlertas()) + (await gerarAlertasF1()) + (await gerarAlertasM06()) + (await gerarAlertasM12()) + (await gerarAlertasM08()) },
   { nome: 'Gerar ocorrências de rotinas', novidade: ['ocorrência nova', 'ocorrências novas'], executar: async () => (await gerarOcorrencias()) + (await gerarOcorrenciasDasObrigacoes()) },
   { nome: 'Atualizar situações', executar: async () => (await atualizarSituacoesDasFerramentas()) + (await atualizarSituacoesDosTitulos()) + (await atualizarSituacoesF1()) },
   { nome: 'Estender programação', soNoDiaPrimeiro: true, novidade: ['lançamento previsto', 'lançamentos previstos'], executar: async () => (await estenderProgramacao()) + (await estenderProgramacaoDosContratos()) },

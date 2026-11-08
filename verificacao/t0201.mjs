@@ -467,7 +467,7 @@ await passo('câmbio', async () => {
   ok('continua guardado como arquivado', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:cambio_referencia'))[0].arquivado_em!==null`));
   const h = await historicoDados();
   ok('histórico do câmbio', h.some((l) => l.includes('adicionou o câmbio de USD de')) && h.some((l) => l.includes('removeu o câmbio de USD de')), h.slice(0, 2).join(' ; '));
-  ok('câmbio removido não conta como registro', (await texto('main')).includes('Registros154'));
+  ok('câmbio removido não conta como registro', (await texto('main')).includes('Registros180'));
   await voltarGeral();
 });
 
@@ -510,7 +510,7 @@ await passo('responsável fora da lista', async () => {
   await esperarAviso('Configurações salvas.');
   ok('dá para escolher Bruna', (await valor('responsavel')) === '2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03');
   await irPara('/configuracoes/dados');
-  await c.ate(`document.querySelector('main').textContent.includes('51 de exemplo')`);
+  await c.ate(`document.querySelector('main').textContent.includes('77 de exemplo')`);
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Limpar exemplos').click()`);
   await dialogoAberto();
   await c.espera(420);
@@ -549,7 +549,7 @@ await passo('restaurar exemplos', async () => {
   await dialogoAberto();
   await c.espera(420);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Restaurar exemplos').click()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros180')`);
   await voltarGeral();
   ok('tudo volta aos padrões', [await valor('nome'), await valor('email'), await valor('moeda'), await valor('vencimentos'), await valor('responsavel')].join('|') === 'Numa||BRL|3|1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02');
   ok('câmbio vazio de novo', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:cambio_referencia')||'[]').every(l=>l.arquivado_em)`));
@@ -559,7 +559,7 @@ await passo('quem já tinha dados da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:configuracao');localStorage.removeItem('numa-central:v1:cambio_referencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=1;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m));const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l[2].funcao='Dado que precisa continuar';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
-  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 26);
+  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 27);
   ok('o que já existia continua', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:pessoa'))[2].funcao==='Dado que precisa continuar'`));
   const h = await historicoDados();
   ok('fica no histórico', h[0]?.includes('Sistema atualizou os dados para a nova versão da Central'), h[0]);

@@ -56,14 +56,14 @@ await passo('as rotinas do dia geram os alertas da F0a', async () => {
   await pularAbertura();
   ok('sem rodar as rotinas, nenhum alerta gerado', (await alertas()).length === 0);
   const aviso = await rodarRotinas();
-  ok('o aviso conta os alertas novos (02 §0.5)', aviso.includes('3 alertas novos'), aviso);
+  ok('o aviso conta os alertas novos (02 §0.5)', aviso.includes('5 alertas novos'), aviso);
   const lista = await alertas();
-  ok('três alertas, todos de exemplo, como os registros de onde vieram', lista.length === 3 && lista.every((a) => a.exemplo), lista.map((a) => a.titulo).join(' | '));
+  ok('cinco alertas, todos de exemplo, como os registros de onde vieram (três da F0a e dois de direitos de uso do M08)', lista.length === 5 && lista.every((a) => a.exemplo), lista.map((a) => a.titulo).join(' | '));
   ok('dois pagamentos vencidos, com Registrar baixa', ['Pagamento vencido: Certificado digital', 'Pagamento vencido: Honorários de contabilidade'].every((t) => lista.some((a) => a.titulo === t && a.alerta_motivo === 'Vencido' && a.alerta_acao === 'registrar_baixa')));
   ok('mensal automática não tem alerta de renovação (decisão de 06/11)', !lista.some((a) => a.alerta_motivo === 'Renovação'), lista.map((a) => a.titulo).join(' | '));
   ok('o domínio, 45 dias antes, para a responsável dele', lista.some((a) => a.titulo === 'Renovar o domínio kipi-exemplo.com.br' && a.responsavel_id === ID_CAMILA));
   const outra = await rodarRotinas();
-  ok('rodar de novo não duplica (RT-09)', outra.includes('nada novo') && (await alertas()).length === 3, outra);
+  ok('rodar de novo não duplica (RT-09)', outra.includes('nada novo') && (await alertas()).length === 5, outra);
 });
 
 await passo('no Meu dia, a origem e o botão da ação (RN-03.12)', async () => {

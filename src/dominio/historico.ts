@@ -24,6 +24,7 @@ import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODIC
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
 import { CAMPOS_LEGIVEIS_M12 } from './historico-m12';
+import { CAMPOS_LEGIVEIS_M08, fraseDaExportacaoM08, fraseDaImportacaoM08, registroPorExtensoM08 } from './integracoes/historico-m08';
 
 type Nomes = ReadonlyMap<string, string>;
 
@@ -47,7 +48,7 @@ function fraseDaAcaoExecutada(depois: EventoAuditoria['depois']): string {
     case 'rodar_rotinas':
       return 'rodou as rotinas do dia';
     default:
-      return 'executou uma ação';
+      return fraseDaImportacaoM08(depois) ?? 'executou uma ação';
   }
 }
 
@@ -385,6 +386,7 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     situacao: { rotulo: 'Situação', valor: (valor) => ({ rascunho: 'Rascunho', aprovada: 'Aprovada', substituida: 'Substituída' })[String(valor)] ?? String(valor) },
   },
   ...CAMPOS_LEGIVEIS_M12,
+  ...CAMPOS_LEGIVEIS_M08,
 };
 
 /** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
@@ -410,6 +412,8 @@ function registroPorExtenso(evento: EventoAuditoria, nomes: Nomes): string | und
   const id = evento.registro_id ?? '';
   const doM06 = registroPorExtensoM06(evento, nomes);
   if (doM06) return doM06;
+  const doM08 = registroPorExtensoM08(evento);
+  if (doM08) return doM08;
   if (evento.tabela === 'pessoa') return textoDe(evento.depois?.nome_completo) ?? textoDe(evento.antes?.nome_completo) ?? nomes.get(id);
   if (evento.tabela === 'area') {
     const nome = textoDe(evento.depois?.nome) ?? textoDe(evento.antes?.nome) ?? nomes.get(id);
@@ -526,8 +530,10 @@ export function descreverEvento(evento: EventoAuditoria, nomes: Nomes): string {
   const porExtenso = registroPorExtenso(evento, nomes);
   const motivo = evento.motivo ? `. Motivo: ${evento.motivo}` : '';
   switch (evento.acao) {
-    case 'exportou':
-      return `${quem} exportou todos os dados`;
+    case 'exportou': {
+      const exportacaoM08 = fraseDaExportacaoM08(evento.depois);
+      return exportacaoM08 ? `${quem} ${exportacaoM08}` : `${quem} exportou todos os dados`;
+    }
     case 'executou_acao':
       return `${quem} ${fraseDaAcaoExecutada(evento.depois)}`;
     case 'inseriu':

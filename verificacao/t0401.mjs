@@ -97,7 +97,7 @@ const restaurarExemplos = async () => {
   await dialogoAberto();
   await c.espera(120);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros154')&&!document.querySelector('.dialogo')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros180')&&!document.querySelector('.dialogo')`);
 };
 
 await c.tamanho(1440, 900);
@@ -1115,7 +1115,7 @@ await passo('Limpar exemplos, e o estado vazio', async () => {
   await clicarBotao('Limpar exemplos');
   await dialogoAberto();
   await c.espera(120);
-  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('51 registros de exemplo serão removidos'), await texto('.dialogo'));
+  ok('conta as ferramentas nos exemplos', (await texto('.dialogo')).includes('77 registros de exemplo serão removidos'), await texto('.dialogo'));
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
   await c.ate(`document.querySelector('main').textContent.includes('Registros103')`);
   ok('as categorias ficam', (await tabela('categoria_ferramenta')).length === 15);
@@ -1147,7 +1147,7 @@ await passo('migração da versão anterior', async () => {
   await irLista();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('quem vem da versão anterior recebe a tela pronta', (await nomes()).length === 6, js(await nomes()));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 26);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 27);
   ok('as categorias entram', (await tabela('categoria_ferramenta')).length === 15);
 });
 

@@ -287,7 +287,7 @@ describe('T02.01 Configurações gerais', () => {
     });
 
     it('o menu não depende da fase: libera o que foi construído e nunca o que não foi (decisão de 07/11/2026)', async () => {
-      const construidos = ['meu-dia', 'empresa', 'produtos', 'comercial', 'contratos', 'financeiro', 'operacao', 'ferramentas', 'legal'];
+      const construidos = ['meu-dia', 'empresa', 'produtos', 'comercial', 'contratos', 'financeiro', 'operacao', 'ferramentas', 'legal', 'marca'];
       const liberados = () => [...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo)).map((modulo) => modulo.id);
       expect(liberados()).toEqual(construidos);
     });

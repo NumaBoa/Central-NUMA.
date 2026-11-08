@@ -150,7 +150,9 @@ await passo('T03.01: concluir e adiar direto, no quadro', async () => {
 });
 
 await passo('T03.01: concluir um alerta não faz a ação de origem', async () => {
-  const alerta = (await tabela('atividade')).find((a) => a.tipo === 'alerta' && a.situacao === 'a_fazer');
+  // Um alerta que está na tela: com o M08, há alertas de prazo mais longo que ficam fora do recorte.
+  const naTela = await c.avaliar(`[...document.querySelectorAll('[data-atividade]')].map((e) => e.getAttribute('data-atividade'))`);
+  const alerta = (await tabela('atividade')).find((a) => a.tipo === 'alerta' && a.situacao === 'a_fazer' && naTela.includes(a.id));
   ok('há um alerta no quadro', Boolean(alerta), alerta?.titulo);
   await abrirMenu(`document.querySelector('[data-atividade=${js(alerta.id)}] button[aria-label^="Ações de"]')`);
   ok('o menu avisa', /Não paga nem renova/.test(await texto('.menu-suspenso')));

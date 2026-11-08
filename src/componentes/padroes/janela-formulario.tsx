@@ -58,6 +58,8 @@ type JanelaFormularioProps = {
   iconeSalvar?: ReactNode;
   /** Só para ler: sem salvar, e "Cancelar" vira "Fechar". */
   soLeitura?: boolean;
+  /** O campo do erro pode estar em outra aba: quem usa abas mostra a aba e dá o foco. */
+  aoEscolherErro?: (campoId: string) => void;
   children: ReactNode;
 };
 
@@ -79,6 +81,7 @@ export function JanelaFormulario({
   tituloGrande = false,
   iconeSalvar,
   soLeitura = false,
+  aoEscolherErro,
   children,
 }: JanelaFormularioProps) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
@@ -113,7 +116,7 @@ export function JanelaFormulario({
               <BotaoFechar className="hidden md:inline-grid" onClick={pedirFechar} />
             </header>
             <div className={cn('min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-7', colunas === 2 && 'janela-colunas')}>
-              <ResumoErros erros={erros} />
+              <ResumoErros erros={erros} aoEscolher={aoEscolherErro} />
               {children}
             </div>
             <footer className="flex flex-wrap justify-end gap-2 border-t border-line px-4 pt-3 pb-[calc(12px+var(--area-segura-baixo))] md:px-7 md:py-3 max-md:[&>*]:flex-1">
