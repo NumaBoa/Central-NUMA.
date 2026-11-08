@@ -19,6 +19,7 @@ import { JanelaFormulario } from '@/componentes/padroes/janela-formulario';
 import { AbasProdutos, textoDoPrecoComPeriodo, ValorOuFalta } from '@/componentes/produtos/aparencia';
 import { useAvisoDeCredencial } from '@/componentes/produtos/aviso-credencial-m07';
 import { GraficoLinhas } from '@/componentes/produtos/grafico-linhas';
+import { HorasApontadasNoSimulador } from '@/componentes/operacao/horas-no-simulador';
 import { Button, variantesBotao } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
@@ -488,6 +489,7 @@ function SimuladorDoProduto({ dados, ofertaInicial, hoje }: { dados: DadosDoSimu
             <Campo id="sim-valor_hora" rotulo="Valor-hora (vh)" erro={errosVisiveis.valor_hora} ajuda="Sem valor padrão: informe nesta simulação.">
               {(controle) => <Input {...controle} inputMode="decimal" autoComplete="off" value={entradas.valor_hora} onChange={(evento) => mudar({ valor_hora: evento.target.value })} />}
             </Campo>
+            <HorasApontadasNoSimulador produtoId={produto.id} aoUsar={(horas) => mudar({ horas })} />
           </div>
         )}
       </div>

@@ -27,6 +27,7 @@ import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 import { TABELAS_F1 } from './tabelas-f1';
 import { TABELAS_M06 } from './tabelas-m06';
+import { TABELAS_M12 } from './tabelas-m12';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -92,6 +93,7 @@ export const TABELAS = {
   auditoria: { rotulo: 'Histórico', esquema: esquemaEventoAuditoria },
   ...TABELAS_F1,
   ...TABELAS_M06,
+  ...TABELAS_M12,
 } as const satisfies Record<string, { rotulo: string; esquema: z.ZodType }>;
 
 export type Tabela = keyof typeof TABELAS;
@@ -126,5 +128,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 24: entram `venda_parceiro` e `repasse` (T05.13); o item de contrato ganha os termos de repasse, opcionais.
  * 25: M06 acrescenta as tabelas de `tabelas-m06.ts`, com as sócias, o memorando em rascunho e o checklist de constituição
  *     (feito como 20 na frente do M06; só acrescenta as tabelas que faltam).
+ * 26: M12 acrescenta as tabelas de `tabelas-m12.ts` (feito como 21 na frente do M12; só acrescenta as que faltam).
  */
-export const VERSAO_DADOS = 25;
+export const VERSAO_DADOS = 26;

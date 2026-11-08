@@ -23,6 +23,7 @@ import { esquemaPessoa, type Pessoa } from './tipos/pessoa';
 import { esquemaDecisao, esquemaDecisaoDecisor, type Decisao, type DecisaoDecisor } from './tipos/decisao';
 import { esquemaCanalVenda, esquemaConcorrente, esquemaConfiguracaoContratual, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao, type CanalVenda, type Concorrente, type ConfiguracaoContratualRegistro, type EstagioHistorico, type KpiDefinicao, type KpiMensal, type Objetivo, type Oferta, type OfertaRecurso, type PrecoVersao, type Simulacao } from './tipos/precificacao';
 import { repositoriosF1, type RepositoriosF1 } from './repositorios-f1';
+import { repositoriosM12, type RepositoriosM12 } from './repositorios-m12';
 import { esquemaOrcamento, type Orcamento } from './tipos/orcamento';
 import { esquemaCompetenciaFechamento, type CompetenciaFechamento } from './tipos/fechamento';
 import { esquemaReajusteAplicado, type ReajusteAplicado } from './tipos/reajuste';
@@ -88,7 +89,8 @@ export const repositorios: {
   kpi_definicao: Repositorio<KpiDefinicao>;
   kpi_mensal: Repositorio<KpiMensal>;
 } & RepositoriosF1 &
-  RepositoriosM06 = {
+  RepositoriosM06 &
+  RepositoriosM12 = {
   pessoa: criarRepositorioLocal({ tabela: 'pessoa', esquema: esquemaPessoa }),
   backup_registro: criarRepositorioLocal({ tabela: 'backup_registro', esquema: esquemaBackupRegistro }),
   configuracao: criarRepositorioConfiguracaoLocal(),
@@ -147,4 +149,5 @@ export const repositorios: {
   kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),
   ...repositoriosF1,
   ...repositoriosM06,
+  ...repositoriosM12,
 };

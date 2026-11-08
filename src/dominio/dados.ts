@@ -11,6 +11,7 @@ import { idDaPessoaAtual, pessoaAtual } from '@/dados/sessao';
 import { NOMES_TABELAS, TABELAS, VERSAO_DADOS, type Tabela } from '@/dados/tabelas';
 import { TABELAS_F1_FORA_DA_CONTAGEM } from '@/dados/tabelas-f1';
 import { TABELAS_M06_FORA_DA_CONTAGEM } from '@/dados/tabelas-m06';
+import { TABELAS_M12_FORA_DA_CONTAGEM } from '@/dados/tabelas-m12';
 import type { PessoaArea } from '@/dados/tipos/area';
 import type { Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
@@ -52,7 +53,7 @@ const TABELAS_DE_REGISTROS = NOMES_TABELAS.filter((tabela) => tabela !== 'audito
  * O que conta como cadastro para quem usa: exportar não pode aumentar o número de registros, as
  * configurações são sempre as mesmas chaves, e as ligações entre pessoa e área fazem parte da pessoa.
  */
-const FORA_DA_CONTAGEM: readonly Tabela[] = ['conferencia_saldo', 'backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico', 'titulo_rateio', 'baixa', ...TABELAS_F1_FORA_DA_CONTAGEM, ...TABELAS_M06_FORA_DA_CONTAGEM];
+const FORA_DA_CONTAGEM: readonly Tabela[] = ['conferencia_saldo', 'backup_registro', 'configuracao', 'pessoa_area', 'entidade_representante', 'etiqueta_vinculo', 'atividade_produto', 'atividade_participante', 'checklist_item', 'comentario', 'vinculo', 'anexo_link', 'notificacao', 'ferramenta_contexto', 'assinatura_ferramenta', 'assinatura_valor_historico', 'titulo_rateio', 'baixa', ...TABELAS_F1_FORA_DA_CONTAGEM, ...TABELAS_M06_FORA_DA_CONTAGEM, ...TABELAS_M12_FORA_DA_CONTAGEM];
 const TABELAS_DE_CADASTRO = TABELAS_DE_REGISTROS.filter((tabela) => !FORA_DA_CONTAGEM.includes(tabela));
 
 const esquemaArquivo = z.object({

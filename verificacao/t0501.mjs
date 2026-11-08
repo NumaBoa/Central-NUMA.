@@ -533,7 +533,7 @@ await passo('Limpar exemplos, estado vazio e migração', async () => {
   await ir('/financeiro');
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum lançamento ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', (await texto('main')).includes('Que tal lançar a primeira despesa?'));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 25);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 26);
   await c.foto('g-vazio');
 });
 

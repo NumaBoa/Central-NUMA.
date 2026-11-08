@@ -33,13 +33,15 @@ import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
 import { cn } from '@/lib/utils';
 import { DialogoAssinatura, DialogoEncerramento, DialogoEnvioAssinatura, DialogoEvento, DialogoMudanca, DialogoProgramacao, DialogoSuspensao } from './dialogos-contrato';
+import { AbaOperacaoDoContrato } from '@/componentes/operacao/aba-operacao-contrato';
+import { JanelaCriarImplantacao } from '@/componentes/operacao/criar-implantacao';
 
 async function carregar(id: string) {
   const [tela, baixas] = await Promise.all([carregarTelaDoContrato(id), repositorios.baixa.listar()]);
   return tela ? { tela, baixas } : null;
 }
 
-type Janela = '' | 'envio' | 'assinatura' | 'programacao' | 'evento' | 'mudanca' | 'suspensao' | 'encerramento' | 'recusa' | 'cancelar' | 'retomar';
+type Janela = '' | 'envio' | 'assinatura' | 'programacao' | 'evento' | 'mudanca' | 'suspensao' | 'encerramento' | 'recusa' | 'cancelar' | 'retomar' | 'implantacao';
 
 function AbaHistorico({ id }: { id: string }) {
   const consulta = useConsulta(() => historicoDoRegistro('contrato', id), [id]);
@@ -122,6 +124,7 @@ function Conteudo({ tela, baixas }: { tela: TelaDoContrato; baixas: Awaited<Retu
             {emElaboracao && item('Abrir o assistente', editar)}
             {emElaboracao?.fluxo === 'enviado_assinatura' && item('Registrar recusa', () => setJanela('recusa'))}
             {vigente && !encerrado && item('Ativar programação financeira', () => setJanela('programacao'))}
+            {vigente && !encerrado && item('Criar implantação', () => setJanela('implantacao'))}
             {vigente && !encerrado && !contrato.versao_elaboracao_id && item('Nova versão, aditivo ou correção', () => setJanela('mudanca'))}
             {vigente && !encerrado && item('Renovação', () => roteador.push('/contratos/renovacao'))}
             {vigente && !encerrado && !contrato.suspensao && item('Suspender', () => setJanela('suspensao'))}
@@ -158,7 +161,7 @@ function Conteudo({ tela, baixas }: { tela: TelaDoContrato; baixas: Awaited<Retu
       {diferencas.length > 0 && <Faixa>Dado atual difere do assinado: {diferencas.join(', ')}. O documento assinado e o retrato da assinatura continuam como estavam.</Faixa>}
       {contrato.suspensao && <Faixa tipo="atencao">Suspenso desde {formatarDiaISO(contrato.suspensao.inicio)}{contrato.suspensao.fim ? ` até ${formatarDiaISO(contrato.suspensao.fim)}` : ''}: {contrato.suspensao.motivo}</Faixa>}
       {vigente && contrato.versao_elaboracao_id && emElaboracao && <Faixa>V{emElaboracao.numero} ({emElaboracao.tipo === 'renovacao' ? 'renovação' : 'aditivo'}) em {ROTULOS_DOCUMENTAL[emElaboracao.fluxo].toLowerCase()}, em paralelo à V{vigente.numero} vigente.</Faixa>}
-      {vigente && !tela.programacoes.length && !encerrado && <Faixa acao={<Button variante="secundario" tamanho="pequeno" onClick={() => setJanela('programacao')}>Ativar programação</Button>}>Assinado: o próximo passo é ativar a programação financeira. Implantação é da F2.</Faixa>}
+      {vigente && !tela.programacoes.length && !encerrado && <Faixa acao={<Button variante="secundario" tamanho="pequeno" onClick={() => setJanela('programacao')}>Ativar programação</Button>}>Assinado: o próximo passo é ativar a programação financeira.</Faixa>}
       {documental === 'recusado' && <Faixa tipo="erro">Recusado: {atual.recusa_motivo}. Devolva para rascunho no assistente para ajustar e enviar de novo.</Faixa>}
       {documental === 'cancelado' && <Faixa>Cancelado: {contrato.cancelado_motivo}</Faixa>}
       {encerrado && <Faixa>Encerrado em {formatarDiaISO(contrato.encerrado_em as string)}. Títulos quitados e saldos anteriores ficaram preservados.</Faixa>}
@@ -316,6 +319,7 @@ function Conteudo({ tela, baixas }: { tela: TelaDoContrato; baixas: Awaited<Retu
               </ul>
             ),
           },
+          { id: 'operacao', rotulo: 'Operação', conteudo: <AbaOperacaoDoContrato contratoId={contrato.id} aoCriar={vigente && !encerrado ? () => setJanela('implantacao') : undefined} /> },
           { id: 'atividades', rotulo: 'Atividades', conteudo: <AbaAtividades consultar={() => atividadesDoRegistro('contrato', contrato.id)} dependencia={contrato.id} vazio="Os alertas e as tarefas deste contrato aparecem aqui." /> },
           { id: 'historico', rotulo: 'Histórico', conteudo: <AbaHistorico id={contrato.id} /> },
         ]}
@@ -327,6 +331,7 @@ function Conteudo({ tela, baixas }: { tela: TelaDoContrato; baixas: Awaited<Retu
       {janela === 'mudanca' && <DialogoMudanca tela={tela} aoFechar={() => setJanela('')} aoCriarAditivo={editar} />}
       {janela === 'suspensao' && <DialogoSuspensao tela={tela} aoFechar={() => setJanela('')} />}
       {janela === 'encerramento' && <DialogoEncerramento tela={tela} aoFechar={() => setJanela('')} />}
+      {janela === 'implantacao' && <JanelaCriarImplantacao contratoId={contrato.id} aoFechar={() => setJanela('')} aoCriar={(implantacaoId) => roteador.push(`/operacao/${implantacaoId}`)} />}
       <Confirmacao aberto={janela === 'recusa'} aoFechar={() => setJanela('')} titulo="Registrar recusa da assinatura?" texto="A versão fica Recusada. Nada é apagado." rotuloConfirmar="Registrar recusa" pedirMotivo aoConfirmar={(motivo) => { setJanela(''); void executar(() => registrarRecusaDoContrato(contrato.id, motivo), 'Recusa registrada.'); }} />
       <Confirmacao aberto={janela === 'cancelar'} aoFechar={() => setJanela('')} titulo="Cancelar este contrato?" texto="Só contrato não assinado é cancelado. Ele fica no histórico." rotuloConfirmar="Cancelar contrato" rotuloCancelar="Voltar" perigo pedirMotivo aoConfirmar={(motivo) => { setJanela(''); void executar(() => cancelarContrato(contrato.id, motivo), 'Contrato cancelado.'); }} />
       <Confirmacao aberto={janela === 'retomar'} aoFechar={() => setJanela('')} titulo="Retomar o contrato?" texto="Os títulos marcados como suspensos voltam ao normal." rotuloConfirmar="Retomar" pedirMotivo aoConfirmar={(motivo) => { setJanela(''); void executar(() => retomarContrato(contrato.id, motivo), 'Contrato retomado.'); }} />

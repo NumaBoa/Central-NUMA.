@@ -1,6 +1,7 @@
 import { chaveDaTabela, driver, gravarTabelas, lerTabela } from './armazenamento';
 import { acrescentarTabelasF1, modeloSaasInicial, VALORES_INICIAIS_F1, versaoSaasInicial } from './carga-f1';
 import { acrescentarTabelasM06, tabelasIniciaisM06, VALORES_INICIAIS_M06 } from './carga-m06';
+import { acrescentarTabelasM12, tabelasIniciaisM12 } from './carga-m12';
 import { novoEvento } from './evento';
 import { controle, gerarExemplos } from './exemplos';
 import { gerarUuid } from '@/lib/ids';
@@ -129,7 +130,7 @@ const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
-  return { ...gerarExemplos(agora), ...(Object.fromEntries(TABELAS_DO_M07.map((tabela) => [tabela, []])) as Record<(typeof TABELAS_DO_M07)[number], never[]>), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora), modelo_documento: modeloSaasInicial(agora), modelo_versao: versaoSaasInicial(agora), ...tabelasIniciaisM06(agora) };
+  return { ...gerarExemplos(agora), ...tabelasIniciaisM12(), ...(Object.fromEntries(TABELAS_DO_M07.map((tabela) => [tabela, []])) as Record<(typeof TABELAS_DO_M07)[number], never[]>), configuracao: configuracoesIniciais(agora), area: areasIniciais(agora), pessoa_area: ligacoesIniciais(agora), marca: marcasIniciais(agora), produto: produtosIniciais(agora), entidade: entidadesIniciais(agora), entidade_representante: [], categoria_financeira: categoriasIniciais(agora), feriado: feriadosIniciais(agora), etiqueta: [], etiqueta_vinculo: [], cambio_referencia: [], backup_registro: [], recorrencia: [...rotinasIniciais(agora), rotinaDeExemplo(agora)], categoria_ferramenta: categoriasDeFerramentaIniciais(agora), modelo_documento: modeloSaasInicial(agora), modelo_versao: versaoSaasInicial(agora), ...tabelasIniciaisM06(agora) };
 }
 
 /**
@@ -253,6 +254,8 @@ function migrar(versao: number) {
   acrescentarTabelasF1(alteracoes, agora);
   // M06: idem, com a carga da especificação nas tabelas que faltarem.
   acrescentarTabelasM06(alteracoes, agora);
+  // 26: M12 Operação, vazio (feito como 21 na frente do M12; só acrescenta as tabelas que faltam).
+  acrescentarTabelasM12(alteracoes);
   // A rotina de exemplo vem sem ocorrência passada: os códigos das atividades já estão em uso.
   if (versao < 9 && driver().getItem(chaveDaTabela('recorrencia')) === null) alteracoes.recorrencia = [...rotinasIniciais(agora), ...(aindaHaExemplos() ? [rotinaDeExemplo(agora)] : [])];
   try {

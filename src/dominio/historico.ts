@@ -23,6 +23,7 @@ import { rotuloDaCompetencia, ROTULOS_SITUACAO_TITULO, ROTULOS_TIPO_BAIXA, ROTUL
 import { ROTULOS_ACORDO_DADOS, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR } from './ferramentas';
 import { ROTULOS_ESTAGIO, ROTULOS_SITUACAO_PRODUTO, ROTULOS_TIPO_PRODUTO } from './produtos';
 import { ROTULOS_SITUACAO_ROTINA } from './recorrencias';
+import { CAMPOS_LEGIVEIS_M12 } from './historico-m12';
 
 type Nomes = ReadonlyMap<string, string>;
 
@@ -383,6 +384,7 @@ const CAMPOS_LEGIVEIS: Readonly<Record<string, Readonly<Record<string, CampoLegi
     valido_ate: { rotulo: 'Fim da validade', valor: (valor) => formatarDiaISO(String(valor)) },
     situacao: { rotulo: 'Situação', valor: (valor) => ({ rascunho: 'Rascunho', aprovada: 'Aprovada', substituida: 'Substituída' })[String(valor)] ?? String(valor) },
   },
+  ...CAMPOS_LEGIVEIS_M12,
 };
 
 /** "Função: de Sócia para Diretora; CPF" (P2: o histórico diz o que mudou, de quanto para quanto). */
@@ -653,6 +655,13 @@ export async function historicoDaAtividade(id: string): Promise<LinhaHistorico[]
 export async function historicoDoRegistro(tabela: Tabela, id: string): Promise<LinhaHistorico[]> {
   const [eventos, nomes] = await Promise.all([listarHistorico({ tabela, registroId: id }), nomesDosRegistros()]);
   return eventos.map((evento) => paraLinha(evento, nomes));
+}
+
+/** Um registro e as partes dele (os marcos da implantação, as respostas da solicitação, os links), numa linha do tempo só. */
+export async function historicoDosRegistros(ids: readonly string[]): Promise<LinhaHistorico[]> {
+  const [eventos, nomes] = await Promise.all([listarHistorico(), nomesDosRegistros()]);
+  const procurados = new Set(ids);
+  return eventos.filter((evento) => Boolean(evento.registro_id && procurados.has(evento.registro_id))).map((evento) => paraLinha(evento, nomes));
 }
 
 /** Aba Histórico da ficha da pessoa (P2): o cadastro dela e as áreas em que entrou ou de que saiu. */

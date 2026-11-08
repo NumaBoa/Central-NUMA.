@@ -14,6 +14,7 @@ import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { notificarMencoes } from './notificacoes';
 import { ORIGEM_DO_ALERTA_F1, REGISTROS_VINCULAVEIS_F1 } from './integracoes/meu-dia-f1';
 import { ORIGEM_DO_ALERTA_M06, ORIGEM_TRANSFERENCIA, REGISTROS_VINCULAVEIS_M06 } from './integracoes/meu-dia-m06';
+import { ORIGEM_DO_ALERTA_M12, REGISTROS_VINCULAVEIS_M12 } from './integracoes/meu-dia-m12';
 
 const TIPO_DO_REGISTRO = 'atividade';
 export const TEXTO_DO_COMENTARIO_REMOVIDO = 'Comentário removido';
@@ -27,6 +28,7 @@ export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; hr
   titulo: { rotulo: 'Lançamento', href: (id) => `/financeiro/${id}` },
   ...REGISTROS_VINCULAVEIS_F1,
   ...REGISTROS_VINCULAVEIS_M06,
+  ...REGISTROS_VINCULAVEIS_M12,
 };
 
 export { CAMINHO_DA_ATIVIDADE };
@@ -336,7 +338,7 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
 // ---------- RN-03.20: a atividade aparece na ficha do registro vinculado ----------
 
 /** A origem do alerta, para cada tipo de registro que tem ficha. */
-const ORIGEM_DO_ALERTA: Readonly<Record<string, string>> = { titulo: 'titulo', ferramenta: 'ferramenta', ativo_digital: 'ativo', ...ORIGEM_DO_ALERTA_F1, ...ORIGEM_DO_ALERTA_M06 };
+const ORIGEM_DO_ALERTA: Readonly<Record<string, string>> = { titulo: 'titulo', ferramenta: 'ferramenta', ativo_digital: 'ativo', ...ORIGEM_DO_ALERTA_F1, ...ORIGEM_DO_ALERTA_M06, ...ORIGEM_DO_ALERTA_M12 };
 
 /** Vinculadas a um registro: pelo `vinculo`, no caso do produto também pelo contexto, e os alertas que nasceram dele. */
 export async function atividadesDoRegistro(tipo: string, id: string): Promise<Atividade[]> {

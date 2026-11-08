@@ -373,7 +373,7 @@ await passo('Limpar exemplos e migração', async () => {
   await c.recarregar();
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum ativo ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', true);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 25);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 26);
 });
 
 await terminar();
