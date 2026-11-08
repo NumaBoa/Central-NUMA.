@@ -861,7 +861,7 @@ await passo('arquivar e restaurar', async () => {
   await c.ate(`!document.querySelector('main').textContent.includes('foi arquivada')`);
   ok('restaura', !(await ferramenta('Com fornecedor')).arquivado_em);
   const fornecedor = (await ferramenta('Com fornecedor')).fornecedor_id;
-  await ir(`/configuracoes/cadastros/contrapartes/${fornecedor}`);
+  await ir(`/comercial/contrapartes/${fornecedor}/cadastro`);
   await c.ate(`document.querySelector('main h1')?.textContent.includes('Fornecedor Rápido')`);
   await c.espera(120);
   await aba('Ferramentas fornecidas');
@@ -876,7 +876,7 @@ await passo('CA-04.01: fichas dos produtos', async () => {
   const produtos = await tabela('produto');
   for (const nome of ['Kipi', 'Zupi']) {
     const p = produtos.find((x) => x.nome === nome);
-    await ir(`/configuracoes/cadastros/marcas/produtos/${p.id}`);
+    await ir(`/produtos/${p.id}/cadastro`);
     await c.ate(`document.querySelector('main h1')?.textContent.includes(${js(nome)})`);
     await c.espera(120);
     await aba('Ferramentas');
@@ -891,11 +891,11 @@ await passo('vínculos em outros cadastros', async () => {
   const atividades = await tabela('atividade');
   ok('há atividades abertas', atividades.length > 0);
   const zupi = produtos.find((x) => x.nome === 'Zupi');
-  await ir(`/configuracoes/cadastros/marcas/produtos/${zupi.id}`);
+  await ir(`/produtos/${zupi.id}/cadastro`);
   await c.ate(`document.querySelector('main h1')?.textContent.includes('Zupi')`);
   ok('a ficha do produto carrega', true);
   const fornecedor = (await ferramenta('Nuvem Clara Hosting')).fornecedor_id;
-  await ir(`/configuracoes/cadastros/contrapartes/${fornecedor}`);
+  await ir(`/comercial/contrapartes/${fornecedor}/cadastro`);
   await c.ate(`document.querySelector('main h1')`);
   await c.espera(120);
   await clicarBotao('Arquivar');
@@ -904,7 +904,7 @@ await passo('vínculos em outros cadastros', async () => {
   ok('RN-02.04: fornecedor de ferramenta não arquiva', aviso.includes('Nuvem Clara Hosting'), aviso.slice(0, 300));
   await c.tecla('Escape');
   await c.espera(160);
-  await ir('/configuracoes/cadastros/contas');
+  await ir('/financeiro/contas/cadastro');
   await c.ate(`document.querySelector('main table tbody tr')`);
   await c.espera(120);
   await clicarBotao('Arquivar Cartão pessoal — Kimberly');
@@ -913,7 +913,7 @@ await passo('vínculos em outros cadastros', async () => {
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].reverse()[0].click()`);
   await esperarAviso('Esta conta está em uso');
   ok('RN-02.04: conta de pagamento não arquiva', (await ultimoAviso()).includes('Conta de pagamento'), await ultimoAviso());
-  await ir('/configuracoes/cadastros/categorias');
+  await ir('/financeiro/categorias');
   await c.ate(`document.querySelector('main table tbody tr, main li')`);
   await c.espera(160);
   await clicarBotao('Arquivar Hospedagem e nuvem');
@@ -1147,7 +1147,7 @@ await passo('migração da versão anterior', async () => {
   await irLista();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('quem vem da versão anterior recebe a tela pronta', (await nomes()).length === 6, js(await nomes()));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
   ok('as categorias entram', (await tabela('categoria_ferramenta')).length === 15);
 });
 

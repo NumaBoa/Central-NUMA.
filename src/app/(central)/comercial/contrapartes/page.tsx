@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { TelaContrapartesComercial } from './tela-contrapartes-comercial';
+import { TelaContrapartes } from './tela-contrapartes';
 
 export const metadata: Metadata = { title: 'Contrapartes' };
 
 export default function PaginaContrapartesComercial() {
-  return <TelaContrapartesComercial />;
+  return <TelaContrapartes />;
 }

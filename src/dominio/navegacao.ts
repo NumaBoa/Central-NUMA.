@@ -2,14 +2,13 @@
  * Menu da Central (01 §4 e 18 §10.2). Decisão de 05/11/2026: a estrutura final fica sempre visível,
  * e o que ainda não está disponível aparece esmaecido como "Em breve", sem link.
  * Decisão de Kimberly em 07/11/2026: tudo o que já foi construído fica liberado no menu, em qualquer fase.
- * A fase continua decidindo as rotinas do dia (`fase_minima`), não o que aparece no menu.
+ * A fase da Numa saiu do sistema em 08/11/2026: `fase` aqui é só a da especificação (01 §4).
  */
 export const FASES = ['f0a', 'f0b', 'f1', 'f2', 'f3'] as const;
 export type Fase = (typeof FASES)[number];
 
 export type IconeModulo =
   | 'meu-dia'
-  | 'visao-geral'
   | 'empresa'
   | 'produtos'
   | 'comercial'
@@ -34,7 +33,6 @@ export type Modulo = {
 
 export const MODULOS_TOPO: readonly Modulo[] = [
   { id: 'meu-dia', nome: 'Meu dia', fase: 'f0a', href: '/meu-dia' },
-  { id: 'visao-geral', nome: 'Visão geral', fase: 'f1' },
 ];
 
 export const MODULOS_EMPRESA: readonly Modulo[] = [
@@ -61,10 +59,6 @@ export const IDS_BARRA_CELULAR: readonly IconeModulo[] = ['meu-dia', 'financeiro
 
 /** O Meu dia é a tela inicial do sistema (05-M03 §1). */
 export const TELA_INICIAL = '/meu-dia';
-
-export function faseLiberada(fase: Fase, faseAtiva: Fase): boolean {
-  return FASES.indexOf(fase) <= FASES.indexOf(faseAtiva);
-}
 
 /** Tela construída aparece no menu em qualquer fase; só o que não existe fica "Em breve" (decisão de 07/11/2026). */
 export function moduloDisponivel(modulo: Modulo): boolean {

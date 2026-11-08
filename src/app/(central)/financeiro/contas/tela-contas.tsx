@@ -9,10 +9,62 @@ import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Button } from '@/componentes/ui/button';
 import { useConsulta } from '@/dados/use-consulta';
 import { nomeDoTitular, ROTULOS_TIPO_CONTA } from '@/dominio/contas';
+import { SecaoCambio } from '@/app/(central)/configuracoes/secao-cambio';
+import type { Soma } from '@/dominio/custos-relatorio';
+import { projecaoDeCaixa } from '@/dominio/projecao-caixa';
 import { carregarSaldos, contasDoPainel, saldoDaConta, ultimaMovimentacao } from '@/dominio/saldos';
+import { cn } from '@/lib/utils';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
 
-const CADASTRO = '/configuracoes/cadastros/contas';
+const CADASTRO = '/financeiro/contas/cadastro';
+
+/** Sem câmbio, a projeção fica escrita em aberto, nunca zero. */
+function ValorProjetado({ soma, className }: { soma: Soma; className?: string }) {
+  if (soma.valor === null) return <span className={cn('text-warn', className)}>Falta câmbio</span>;
+  return (
+    <span className={cn('tabular-nums', soma.valor < 0 && 'text-warn', className)} data-valor={soma.valor}>
+      {formatarDinheiro(soma.valor, 'BRL')}
+      {soma.estimado && <span className="text-xs font-normal text-ink-soft"> (estimado)</span>}
+    </span>
+  );
+}
+
+/** Projeção de 30, 60 e 90 dias (15-M13 §2), aqui onde já se olha o saldo. */
+function ProjecaoDeCaixa({ dados }: { dados: Parameters<typeof projecaoDeCaixa>[0] }) {
+  const horizontes = projecaoDeCaixa(dados);
+  return (
+    <section aria-labelledby="projecao-titulo" className="space-y-3" data-projecao-de-caixa>
+      <h2 id="projecao-titulo" className="text-base font-semibold">
+        Projeção de caixa
+      </h2>
+      <ul className="grid gap-3 md:grid-cols-3">
+        {horizontes.map((horizonte) => (
+          <li key={horizonte.dias} className="rounded-lg border border-line bg-paper p-4 md:px-5 md:py-[18px]" data-horizonte={horizonte.dias}>
+            <span className="block text-[13px] font-semibold text-ink-soft">
+              Em {horizonte.dias} dias · até {formatarDiaISO(horizonte.ate)}
+            </span>
+            <ValorProjetado soma={horizonte.projetado} className="mt-2 block texto-kpi font-semibold md:max-lg:text-[26px] md:max-lg:leading-[30px]" />
+            <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[13px]">
+              <dt className="text-ink-soft">Saldo hoje</dt>
+              <dd className="text-right">
+                <ValorProjetado soma={horizonte.saldo} />
+              </dd>
+              <dt className="text-ink-soft">+ A receber</dt>
+              <dd className="text-right">
+                <ValorProjetado soma={horizonte.aReceber} />
+              </dd>
+              <dt className="text-ink-soft">− A pagar</dt>
+              <dd className="text-right">
+                <ValorProjetado soma={horizonte.aPagar} />
+              </dd>
+            </dl>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[13px] text-ink-soft">Saldo das contas com saldo controlado, mais o que vence a receber e menos o que vence a pagar até a data, em aberto e previstos. Vencidos ainda em aberto entram. Moeda estrangeira, pelo câmbio de referência.</p>
+    </section>
+  );
+}
 
 /** T05.07: cartões por conta. O saldo só aparece em conta controlada (RN-05.16). */
 export function TelaContas() {
@@ -70,6 +122,14 @@ export function TelaContas() {
           })}
         </ul>
       )}
+      {contas.length > 0 && <ProjecaoDeCaixa dados={dados} />}
+      <section id="cambio" aria-labelledby="cambio-titulo" className="scroll-mt-24 space-y-3 rounded-lg border border-line bg-paper p-4 md:px-5 md:py-[18px]">
+        <h2 id="cambio-titulo" className="text-base font-semibold">
+          Câmbio de referência
+        </h2>
+        <p className="text-[13px] text-ink-soft">Usado para estimar em reais o que está em moeda estrangeira. Atualizado no fechamento mensal (D25). Cada linha grava ao confirmar.</p>
+        <SecaoCambio cambios={dados.cambios} />
+      </section>
     </div>
   );
 }

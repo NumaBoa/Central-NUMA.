@@ -1,11 +1,11 @@
 // Verificação da T02.04 (Marcas e produtos) no sistema real.
 import { iniciar, ID_KIMBERLY } from './apoio.mjs';
 
-const MARCAS = '/configuracoes/cadastros/marcas';
+const MARCAS = '/produtos/marcas';
 const ID_MARCA_NUMA = 'b3d1f2e5-8c40-4b21-9d12-1a2b3c4d5e01';
 const ID_MARCA_KIPI = 'b3d1f2e5-8c40-4b21-9d12-1a2b3c4d5e03';
 const ID_PRODUTO_KIPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f03';
-const FICHA_KIPI = `${MARCAS}/produtos/${ID_PRODUTO_KIPI}`;
+const FICHA_KIPI = `/produtos/${ID_PRODUTO_KIPI}/cadastro`;
 
 const h = await iniciar({ nome: 't0204', porta: 9344 });
 const { c, ok, passo, ir, texto, valor, preencher, escolher, opcoes, esperarAviso, marcarPilula, clicarNoDialogo, dialogoAberto, dialogoFechado, painelAberto, painelFechado, pularAbertura, tabela, conferirTela, idPorRotulo } = h;
@@ -37,7 +37,7 @@ await passo('tela', async () => {
   await pularAbertura();
   await pronta();
   ok('título e contadores', (await texto('main h1')) === 'Marcas e produtos' && (await texto('main')).includes('6 marcas · 5 produtos'));
-  ok('no segundo nível de Cadastros base', (await c.avaliar(`document.querySelector('nav[aria-label="Cadastros base"] a[aria-current]').textContent`)) === 'Marcas e produtos');
+  ok('na aba Marcas de Produtos (decisão de 07/11/2026)', await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Seções de produtos"] a[href="/produtos/marcas"][aria-current]'))`));
   ok('o título da aba diz a tela', (await c.avaliar(`document.title`)).startsWith('Marcas e produtos'));
   const marcas = await nomesDasMarcas();
   ok('as 6 marcas da carga inicial', marcas.length === 6 && marcas[0].startsWith('Numa') && marcas[1].startsWith('Sobrevivência Urbana'), marcas.join('|'));
@@ -297,7 +297,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:marca');localStorage.removeItem('numa-central:v1:produto');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=3;m.contexto_id='zupi';localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMarcas();
   ok('marcas e produtos entram', (await tabela('marca')).length === 6);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
   await c.ate(`document.querySelector('[aria-label^="Contexto"]').getAttribute('aria-label')==='Contexto: Zupi'`);
   ok('quem estava em um produto continua nele', true);
   await c.clicar('[aria-label^="Contexto"]');
@@ -346,7 +346,7 @@ await passo('celular', async () => {
   await c.espera(200);
   ok('marcas em fileira de pílulas, com rolagem só nela', await c.avaliar(`(()=>{const u=document.querySelector('nav[aria-label="Marcas"] ul');return u.scrollWidth>u.clientWidth&&document.documentElement.scrollWidth<=innerWidth})()`));
   ok('produtos em cartões', await c.avaliar(`document.querySelector('main ul[aria-label^="Produtos de"]').getBoundingClientRect().height>0&&document.querySelector('main table').getBoundingClientRect().height===0`));
-  ok('o segundo nível rola até o item ativo', await c.avaliar(`(()=>{const a=document.querySelector('nav[aria-label="Cadastros base"] a[aria-current]').getBoundingClientRect();return a.left>=0&&a.right<=360})()`));
+  ok('as abas do módulo cabem, com a ativa visível e sem rolagem da página', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main nav a[aria-current]')].find(x=>x.getBoundingClientRect().width>0);const r=a?.getBoundingClientRect();return Boolean(r)&&r.left>=0&&r.right<=innerWidth+1&&document.documentElement.scrollWidth<=innerWidth})()`));
   await c.foto('j-marcas');
   await clicarMarca('Mimo');
   ok('escolher no celular funciona', (await texto('main section h2')) === 'Mimo');

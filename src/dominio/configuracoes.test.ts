@@ -9,7 +9,6 @@ import { VALORES_PADRAO, type Configuracao } from '@/dados/tipos/configuracao';
 import { hojeISO } from '@/lib/datas';
 import { EXEMPLOS_INICIAIS, REGISTROS_INICIAIS } from './apoio-testes';
 import {
-  avancarFase,
   carregarTelaGeral,
   esquemaFormularioGeral,
   formularioDosValores,
@@ -18,11 +17,10 @@ import {
   responsavelDisponivel,
   salvarFormularioGeral,
   valoresDoFormulario,
-  voltarFase,
   type FormularioGeral,
 } from './configuracoes';
 import { analisarArquivo, aplicarImportacao, contagensAtuais, exportarTudo, limparExemplos, restaurarExemplos, resumoDosDados, type ArquivoDeDados } from './dados';
-import { historicoRecente, ultimaMudancaDeFase } from './historico';
+import { historicoRecente } from './historico';
 import { moduloDisponivel, MODULOS_EMPRESA, MODULOS_TOPO } from './navegacao';
 
 const ID_BRUNA = '2d9f3e74-5b8a-4c3d-9f4e-7a0c9e6b3c03';
@@ -62,7 +60,6 @@ describe('T02.01 Configurações gerais', () => {
         moeda_padrao: 'BRL',
         uf_padrao: 'RJ',
         municipio_padrao: 'Rio de Janeiro',
-        fase_ativa: 'f0a',
         alerta_vencimento_dias: 3,
         alerta_renovacao_ferramenta_dias: 15,
         alerta_fim_teste_dias: 3,
@@ -284,48 +281,14 @@ describe('T02.01 Configurações gerais', () => {
     });
   });
 
-  describe('fase ativa', () => {
-    it('avança uma fase de cada vez e registra quem avançou', async () => {
-      expect(await avancarFase()).toBe('f0b');
-      expect((await lerConfiguracoes()).fase_ativa).toBe('f0b');
-      expect((await ultimaMudancaDeFase())?.texto).toBe('Kimberly Grebe avançou para a Fase 0b');
-    });
-
-    it('voltar exige motivo: sem ele, nada muda', async () => {
-      await avancarFase();
-      await expect(voltarFase('   ')).rejects.toMatchObject({ tipo: 'validacao' });
-      expect((await lerConfiguracoes()).fase_ativa).toBe('f0b');
-    });
-
-    it('voltar registra o motivo e não apaga dados', async () => {
-      await avancarFase();
-      await repositorios.cambio_referencia.criar({ moeda: 'USD', valor_brl: 5.5, data_referencia: '2026-11-05', fonte: null });
-      const antes = await resumoDosDados();
-      expect(await voltarFase('  Ainda faltam telas da F0a  ')).toBe('f0a');
-      expect((await lerConfiguracoes()).fase_ativa).toBe('f0a');
-      expect((await ultimaMudancaDeFase())?.texto).toBe('Kimberly Grebe voltou para a Fase 0a. Motivo: Ainda faltam telas da F0a');
-      expect((await resumoDosDados()).registros).toBe(antes.registros);
-      expect(await repositorios.cambio_referencia.listar()).toHaveLength(1);
-    });
-
-    it('não passa das pontas', async () => {
-      await expect(voltarFase('motivo')).rejects.toMatchObject({ tipo: 'validacao' });
-      for (let i = 0; i < 4; i++) await avancarFase();
-      expect((await lerConfiguracoes()).fase_ativa).toBe('f3');
-      await expect(avancarFase()).rejects.toMatchObject({ tipo: 'validacao' });
-    });
-
-    it('sem mudança de fase, a seção não mostra nada', async () => {
-      await salvarFormularioGeral({ ...formularioDosValores(await lerConfiguracoes(), await repositorios.pessoa.listar()), moeda_padrao: 'USD' });
-      expect(await ultimaMudancaDeFase()).toBeNull();
+  describe('sem fase da Numa (decisão de 08/11/2026)', () => {
+    it('a configuração não tem mais a fase', async () => {
+      expect('fase_ativa' in (await lerConfiguracoes())).toBe(false);
     });
 
     it('o menu não depende da fase: libera o que foi construído e nunca o que não foi (decisão de 07/11/2026)', async () => {
       const construidos = ['meu-dia', 'produtos', 'comercial', 'contratos', 'financeiro', 'ferramentas', 'legal'];
       const liberados = () => [...MODULOS_TOPO, ...MODULOS_EMPRESA].filter((modulo) => moduloDisponivel(modulo)).map((modulo) => modulo.id);
-      expect(liberados()).toEqual(construidos);
-      for (let i = 0; i < 4; i++) await avancarFase();
-      expect((await lerConfiguracoes()).fase_ativa).toBe('f3');
       expect(liberados()).toEqual(construidos);
     });
   });
@@ -333,10 +296,8 @@ describe('T02.01 Configurações gerais', () => {
   describe('com os outros dados', () => {
     it('carrega tudo o que a tela precisa, inclusive a lista oficial', async () => {
       const tela = await carregarTelaGeral();
-      expect(tela.configuracoes.fase_ativa).toBe('f0a');
       expect(tela.pessoas).toHaveLength(4);
       expect(tela.cambios).toEqual([]);
-      expect(tela.mudancaDeFase).toBeNull();
       expect(tela.municipios.ufs).toHaveLength(27);
     });
 
@@ -352,7 +313,7 @@ describe('T02.01 Configurações gerais', () => {
     });
 
     it('restaurar exemplos volta aos padrões e limpa o câmbio', async () => {
-      await repositorios.configuracao.salvar({ organizacao_nome: 'Numa Planejada', fase_ativa: 'f1' });
+      await repositorios.configuracao.salvar({ organizacao_nome: 'Numa Planejada', moeda_padrao: 'USD' });
       await repositorios.cambio_referencia.criar({ moeda: 'USD', valor_brl: 5.5, data_referencia: '2026-11-05', fonte: null });
       await restaurarExemplos();
       expect(await lerConfiguracoes()).toEqual(VALORES_PADRAO);

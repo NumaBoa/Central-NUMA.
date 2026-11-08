@@ -125,7 +125,7 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
 /** Os campos da oferta que chegaram na versão 18, vazios: nenhum padrão é inventado. */
 const CAMPOS_NOVOS_DA_OFERTA = { regras_uso: null, suporte_canal: null, suporte_horario: null, suporte_prazo_critico: null, suporte_prazo_normal: null, disponibilidade_meta: null, disponibilidade_compensacao: null, teste_dias: null, adicionais_ids: [] };
 
-const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico', 'objetivo', 'oferta', 'oferta_recurso', 'canal_venda', 'simulacao', 'preco_versao', 'concorrente_referencia', 'kpi_definicao', 'kpi_mensal', 'configuracao_contratual', 'orcamento'] as const;
+const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico', 'objetivo', 'oferta', 'oferta_recurso', 'canal_venda', 'simulacao', 'preco_versao', 'concorrente_referencia', 'kpi_definicao', 'kpi_mensal', 'configuracao_contratual', 'orcamento', 'receita_canal'] as const;
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
@@ -219,6 +219,26 @@ function migrar(versao: number) {
   if (versao < 16) for (const tabela of TABELAS_DO_M07) if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = [];
   // 18: a oferta ganha os campos do contrato SaaS (19 §8), vazios; a configuração contratual (T07.10) começa vazia.
   if (versao < 19 && driver().getItem(chaveDaTabela('orcamento')) === null) alteracoes.orcamento = [];
+  if (versao < 20 && driver().getItem(chaveDaTabela('receita_canal')) === null) alteracoes.receita_canal = [];
+  if (versao < 22 && driver().getItem(chaveDaTabela('reajuste_aplicado')) === null) alteracoes.reajuste_aplicado = [];
+  if (versao < 23 && driver().getItem(chaveDaTabela('competencia_fechamento')) === null) alteracoes.competencia_fechamento = [];
+  // 21: sai a fase da Numa (decisão de Kimberly em 08/11/2026). A rotina que ainda esperava a fase dela não
+  // começa a gerar sozinha: fica pausada, e quem quiser a retoma em Meu dia › Rotinas.
+  if (versao < 21) {
+    try {
+      const ordem = ['f0a', 'f0b', 'f1', 'f2', 'f3'];
+      const configuracao = lerTabela<Record<string, unknown>>('configuracao');
+      const linhaDaFase = configuracao.find((linha) => linha.chave === 'fase_ativa');
+      const faseAtiva = ordem.indexOf(String(linhaDaFase?.valor ?? 'f0a'));
+      if (linhaDaFase) alteracoes.configuracao = configuracao.filter((linha) => linha !== linhaDaFase);
+      const rotinas = lerTabela<Record<string, unknown>>('recorrencia');
+      if (rotinas.some((linha) => 'fase_minima' in linha)) {
+        alteracoes.recorrencia = rotinas.map(({ fase_minima: faseMinima, ...linha }) => (linha.situacao === 'ativa' && typeof faseMinima === 'string' && ordem.indexOf(faseMinima) > faseAtiva ? { ...linha, situacao: 'pausada' } : linha));
+      }
+    } catch {
+      // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
+    }
+  }
   if (versao < 18) {
     if (driver().getItem(chaveDaTabela('configuracao_contratual')) === null) alteracoes.configuracao_contratual = [];
     try {

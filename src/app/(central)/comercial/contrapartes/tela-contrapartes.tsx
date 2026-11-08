@@ -9,7 +9,7 @@ import { Selecao } from '@/componentes/campos/selecao';
 import { aviso } from '@/componentes/padroes/aviso';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
-import { EtiquetaLivre, EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
+import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { BarraFiltros, type FiltroAtivo } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
@@ -33,22 +33,24 @@ import {
   type FiltrosContrapartes,
 } from '@/dominio/contrapartes';
 import { formatarNumero } from '@/lib/formatacao';
-import { AbasConfiguracoes, SubabasCadastros } from '../../abas';
-import { FormularioContraparte } from './formulario-contraparte';
+import { FormularioContraparte } from '@/app/(central)/configuracoes/cadastros/contrapartes/formulario-contraparte';
+import { caminhoDoCadastroDaContraparte, PapeisDaContraparte, SituacaoDaContraparte } from '@/componentes/contrapartes/etiquetas-contraparte';
+import { AbasComercial } from '@/componentes/f1/abas-modulos';
+import { carregarComercial, ETAPAS_FUNIL_ORDEM, ROTULOS_ETAPA } from '@/dominio/comercial-contrapartes';
+import { carregarContratos } from '@/dominio/contratos';
 
-export const CAMINHO_DE_CONTRAPARTES = '/configuracoes/cadastros/contrapartes';
-
-export function SituacaoDaContraparte({ situacao }: { situacao: Contraparte['situacao'] }) {
-  return <EtiquetaSituacao tipo={situacao === 'ativa' ? 'sucesso' : 'neutro'}>{situacao === 'ativa' ? 'Ativa' : 'Inativa'}</EtiquetaSituacao>;
-}
-
-export function PapeisDaContraparte({ papeis }: { papeis: Contraparte['papeis'] }) {
-  return (
-    <span className="flex flex-wrap gap-1">
-      {papeis.map((papel) => (
-        <EtiquetaLivre key={papel}>{ROTULOS_PAPEL_CONTRAPARTE[papel]}</EtiquetaLivre>
-      ))}
-    </span>
+/** T10.01: o que a visão comercial acrescenta a cada contraparte (contratados, interesse e etapa mais avançada). */
+async function carregarVisaoComercial() {
+  const [comercial, contratos] = await Promise.all([carregarComercial(), carregarContratos()]);
+  const nomeProduto = (id: string) => comercial.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido';
+  return new Map(
+    comercial.contrapartes.map((contraparte) => {
+      const oportunidades = comercial.oportunidades.filter((linha) => linha.contraparte_id === contraparte.id);
+      const contratados = [...new Set(contratos.linhas.filter((linha) => linha.contraparte_id === contraparte.id && (linha.vigencia === 'vigente' || linha.vigencia === 'futuro')).flatMap((linha) => linha.produtos))];
+      const etapas = oportunidades.map((linha) => linha.etapa).sort((a, b) => ETAPAS_FUNIL_ORDEM.indexOf(b) - ETAPAS_FUNIL_ORDEM.indexOf(a));
+      const interesse = [...new Set(oportunidades.flatMap((linha) => linha.produtos))].filter((id) => !contratados.includes(id));
+      return [contraparte.id, { contratados: contratados.map(nomeProduto).join(', ') || '—', interesse: interesse.map(nomeProduto).join(', ') || '—', etapa: etapas[0] ? ROTULOS_ETAPA[etapas[0] as keyof typeof ROTULOS_ETAPA] : '—' }] as const;
+    }),
   );
 }
 
@@ -57,9 +59,14 @@ function plural(quantidade: number): string {
 }
 
 /** T02.06 (P1). "Produtos relacionados" entra com os contratos, na F1; ferramentas e lançamentos, com T04 e T05. */
+/**
+ * T02.06 e T10.01: todas as contrapartes, com o cadastro completo e a visão comercial. Desde 07/11/2026 (decisão de
+ * Kimberly) fica em Comercial › Contrapartes; o endereço de Configurações redireciona.
+ */
 export function TelaContrapartes() {
   const roteador = useRouter();
   const consulta = useConsulta(carregarContrapartes);
+  const comercial = useConsulta(carregarVisaoComercial);
   const [filtros, setFiltros] = useState<FiltrosContrapartes>(FILTROS_CONTRAPARTES_INICIAIS);
   const [cadastrando, setCadastrando] = useState(false);
 
@@ -78,7 +85,7 @@ export function TelaContrapartes() {
   const mudar = (parcial: Partial<FiltrosContrapartes>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
   const limpar = () => setFiltros((atuais) => ({ ...FILTROS_CONTRAPARTES_INICIAIS, arquivadas: atuais.arquivadas }));
   const filtrando = Boolean(filtros.busca.trim()) || filtros.papel !== 'todos' || filtros.situacao !== 'todas' || Boolean(filtros.responsavel || filtros.uf || filtros.cidade || filtros.origem);
-  const abrir = (contraparte: Contraparte) => roteador.push(`${CAMINHO_DE_CONTRAPARTES}/${contraparte.id}`);
+  const abrir = (contraparte: Contraparte) => roteador.push(caminhoDoCadastroDaContraparte(contraparte.id));
 
   const nomeDaPessoa = (id: string) => dados?.pessoas.find((pessoa) => pessoa.id === id)?.nome_completo;
 
@@ -121,13 +128,17 @@ export function TelaContrapartes() {
     { id: 'papeis', titulo: 'Papéis', essencial: true, celula: (contraparte) => <PapeisDaContraparte papeis={contraparte.papeis} /> },
     { id: 'responsavel', titulo: 'Responsável', celula: (contraparte) => <ResponsavelDaContraparte contraparte={contraparte} /> },
     { id: 'situacao', titulo: 'Situação', essencial: true, ordenar: (a, b) => a.situacao.localeCompare(b.situacao), celula: (contraparte) => <SituacaoDaContraparte situacao={contraparte.situacao} /> },
+    // T10.01: a visão comercial, nas colunas opcionais (Colunas).
+    { id: 'contratados', titulo: 'Contratados', celula: (contraparte) => comercial.dados?.get(contraparte.id)?.contratados ?? '—' },
+    { id: 'interesse', titulo: 'Interesse', celula: (contraparte) => comercial.dados?.get(contraparte.id)?.interesse ?? '—' },
+    { id: 'etapa', titulo: 'Etapa mais avançada', celula: (contraparte) => comercial.dados?.get(contraparte.id)?.etapa ?? '—' },
   ];
 
   return (
     <>
       <CabecalhoPagina
-        migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Contrapartes']}
-        kicker="Configurações"
+        migalhas={['Central Numa', 'Comercial', 'Contrapartes']}
+        kicker="Comercial"
         titulo="Contrapartes"
         resumo={contrapartes ? plural(ativas) : undefined}
         acoes={
@@ -137,8 +148,7 @@ export function TelaContrapartes() {
           </Button>
         }
       />
-      <AbasConfiguracoes ativa="cadastros" />
-      <SubabasCadastros ativa="contrapartes" />
+      <AbasComercial ativa="contrapartes" />
 
       <div className="mt-5 space-y-4">
         {consulta.estado === 'carregando' && <EstadoCarregando />}

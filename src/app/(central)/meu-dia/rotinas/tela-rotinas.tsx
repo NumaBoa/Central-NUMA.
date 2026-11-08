@@ -25,7 +25,6 @@ import { mensagemDoErro } from '@/dados/erros';
 import type { Atividade } from '@/dados/tipos/atividade';
 import { useConsulta } from '@/dados/use-consulta';
 import { contextosDaAtividade, MINHAS, ROTULOS_PRIORIDADE_ATIVIDADE, ROTULOS_TIPO_ATIVIDADE } from '@/dominio/atividades';
-import { rotuloDaFase } from '@/dominio/fases';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import {
   carregarRotinas,
@@ -55,7 +54,6 @@ const TIPOS_DA_SITUACAO: Readonly<Record<LinhaDaRotina['situacao'], TipoSituacao
 const ICONES_DA_SITUACAO = { ativa: undefined, pausada: Pause, encerrada: Archive };
 
 function SituacaoDaRotina({ rotina }: { rotina: LinhaDaRotina }) {
-  if (rotina.aguardaFase && rotina.situacao === 'ativa') return <EtiquetaSituacao tipo="neutro">Começa na {rotuloDaFase(rotina.aguardaFase)}</EtiquetaSituacao>;
   return (
     <EtiquetaSituacao tipo={TIPOS_DA_SITUACAO[rotina.situacao]} icone={ICONES_DA_SITUACAO[rotina.situacao]}>
       {ROTULOS_SITUACAO_ROTINA[rotina.situacao]}

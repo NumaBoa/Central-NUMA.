@@ -16,15 +16,14 @@ export function AbasConfiguracoes({ ativa }: { ativa: 'geral' | 'cadastros' | 'd
   );
 }
 
-/** Segundo nível de "Cadastros base": cada cadastro novo entra aqui quando for construído. */
+/**
+ * Segundo nível de "Cadastros base". Decisão de Kimberly em 07/11/2026: o que já tem lugar num módulo sai daqui
+ * (marcas → Produtos; contrapartes → Comercial; categorias e contas → Financeiro), e o endereço antigo redireciona.
+ */
 const CADASTROS = [
   { id: 'pessoas', rotulo: 'Pessoas', href: '/configuracoes/cadastros/pessoas' },
   { id: 'areas', rotulo: 'Áreas', href: '/configuracoes/cadastros/areas' },
-  { id: 'marcas', rotulo: 'Marcas e produtos', href: '/configuracoes/cadastros/marcas' },
   { id: 'entidades', rotulo: 'Entidades', href: '/configuracoes/cadastros/entidades' },
-  { id: 'contrapartes', rotulo: 'Contrapartes', href: '/configuracoes/cadastros/contrapartes' },
-  { id: 'categorias', rotulo: 'Categorias', href: '/configuracoes/cadastros/categorias' },
-  { id: 'contas', rotulo: 'Contas', href: '/configuracoes/cadastros/contas' },
   { id: 'calendario', rotulo: 'Calendário', href: '/configuracoes/cadastros/calendario' },
   { id: 'etiquetas', rotulo: 'Etiquetas', href: '/configuracoes/cadastros/etiquetas' },
 ] as const;

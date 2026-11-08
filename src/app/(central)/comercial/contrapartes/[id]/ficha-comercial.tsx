@@ -49,7 +49,7 @@ export function FichaComercialDaContraparte() {
         etiquetas={contraparte.papeis.map((papel) => <EtiquetaLivre key={papel}>{ROTULOS_PAPEL_CONTRAPARTE[papel]}</EtiquetaLivre>)}
         acoes={
           <>
-            <Button asChild variante="secundario"><LinkCentral href={`/configuracoes/cadastros/contrapartes/${contraparte.id}`}><Pencil aria-hidden />Cadastro</LinkCentral></Button>
+            <Button asChild variante="secundario"><LinkCentral href={`/comercial/contrapartes/${contraparte.id}/cadastro`}><Pencil aria-hidden />Cadastro</LinkCentral></Button>
             <Button asChild variante="secundario"><LinkCentral href={`/contratos/assinatura/novo?contraparte=${contraparte.id}`}><FileSignature aria-hidden />Novo contrato de assinatura</LinkCentral></Button>
             <Button onClick={() => setNova(true)}><Plus aria-hidden />Nova oportunidade</Button>
           </>

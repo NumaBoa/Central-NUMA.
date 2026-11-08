@@ -201,7 +201,7 @@ function Resumo({ ferramenta, dados, financeiro }: { ferramenta: LinhaDaFerramen
         <dl className="mt-4">
           <Dado rotulo="Fornecedor">
             {fornecedor && (
-              <LinkCentral href={`/configuracoes/cadastros/contrapartes/${fornecedor.id}`} className="inline-flex min-h-11 items-center underline md:min-h-0">
+              <LinkCentral href={`/comercial/contrapartes/${fornecedor.id}/cadastro`} className="inline-flex min-h-11 items-center underline md:min-h-0">
                 {nomeDaContraparte(fornecedor)}
               </LinkCentral>
             )}

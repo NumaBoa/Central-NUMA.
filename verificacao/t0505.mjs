@@ -114,7 +114,7 @@ await passo('T05.05: novo aporte sem conta da Numa', async () => {
   await clicarBotao('Novo aporte em dinheiro');
   await dialogoAberto();
   await c.espera(200);
-  ok('avisa e leva ao cadastro', (await texto('.dialogo')).includes('Ainda não há conta da Numa') && (await c.avaliar(`Boolean(document.querySelector('.dialogo a[href="/configuracoes/cadastros/contas"]'))`)));
+  ok('avisa e leva ao cadastro', (await texto('.dialogo')).includes('Ainda não há conta da Numa') && (await c.avaliar(`Boolean(document.querySelector('.dialogo a[href="/financeiro/contas/cadastro"]'))`)));
   ok('conta pessoal não aparece', !(await opcoes('aporte-conta')).some((o) => o.includes('Cartão pessoal')));
   await c.foto('b-aporte-sem-conta');
   await clicarNoDialogo('Voltar');
@@ -308,7 +308,7 @@ await passo('T05.07: contas e saldos', async () => {
   ok('conta pessoal de sócia não tem saldo', pessoal.includes('Sem saldo controlado') && pessoal.includes('Conta pessoal de sócia'), pessoal);
   ok('encerrada aparece, marcada, por último', (await cartaoDa('Antiga')).includes('Encerrada') && (await c.avaliar(`[...document.querySelectorAll('ul[aria-label="Contas"] li')].at(-1).textContent.startsWith('Antiga')`)));
   ok('sem movimentação, diz isso', (await cartaoDa('Antiga')).includes('Nenhuma movimentação ainda'));
-  ok('leva ao cadastro das contas', principal.includes('Cadastrar conta') && (await c.avaliar(`Boolean(document.querySelector('main a[href="/configuracoes/cadastros/contas"]'))`)));
+  ok('leva ao cadastro das contas', principal.includes('Cadastrar conta') && (await c.avaliar(`Boolean(document.querySelector('main a[href="/financeiro/contas/cadastro"]'))`)));
   await c.foto('g-contas', { inteira: true });
   await c.avaliar(`document.querySelector('ul[aria-label="Contas"] a[href="/financeiro/contas/${ID_BANCO}"]').click()`);
   await c.ate(`location.pathname==='/financeiro/contas/${ID_BANCO}'&&document.querySelector('main h1')?.textContent.includes('Banco Numa')`);

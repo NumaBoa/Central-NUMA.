@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
-import { Archive, ArchiveRestore, ArrowLeft, Building2, Ellipsis, Pencil, Plus, Power, PowerOff, UserRound } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, Building2, Ellipsis, Pencil, Plus, Power, PowerOff, UserRound, Handshake } from 'lucide-react';
 import { AbaAtividades } from '@/componentes/atividades/aba-atividades';
 import { AbaFerramentas } from '@/componentes/ferramentas/aba-ferramentas';
 import { AbaLancamentos } from '@/componentes/financeiro/aba-lancamentos';
@@ -30,7 +30,7 @@ import { nomeDoPais, PAIS_BRASIL } from '@/dominio/paises';
 import { carregarPessoas, formatarTelefone, ROTULOS_PAPEL } from '@/dominio/pessoas';
 import { FormularioPessoa } from '../../pessoas/formulario-pessoa';
 import { FormularioContraparte } from '../formulario-contraparte';
-import { CAMINHO_DE_CONTRAPARTES, PapeisDaContraparte, SituacaoDaContraparte } from '../tela-contrapartes';
+import { CAMINHO_DE_CONTRAPARTES, PapeisDaContraparte, SituacaoDaContraparte } from '@/componentes/contrapartes/etiquetas-contraparte';
 
 /** Toque de 44px no celular (CA-18.05), sem aumentar o texto. */
 const CLASSE_LINK = 'inline-flex min-h-11 items-center underline md:min-h-0';
@@ -199,6 +199,12 @@ export function FichaContraparte() {
               <Button variante="terciario" onClick={() => setConfirmando('arquivar')}>
                 <Archive aria-hidden />
                 Arquivar
+              </Button>
+              <Button variante="terciario" asChild>
+                <LinkCentral href={`/comercial/contrapartes/${id}`}>
+                  <Handshake aria-hidden />
+                  Visão comercial
+                </LinkCentral>
               </Button>
             </>
           )

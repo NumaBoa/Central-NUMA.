@@ -1,16 +1,16 @@
 // Verificação da T02.05 (Entidades) e da T02.06 (Contrapartes) no sistema real.
 import { iniciar, ID_BRUNA, ID_CAMILA, ID_KIMBERLY, ID_RAFAEL } from './apoio.mjs';
 
-const CONTRAPARTES = '/configuracoes/cadastros/contrapartes';
+const CONTRAPARTES = '/comercial/contrapartes';
 const ENTIDADES = '/configuracoes/cadastros/entidades';
 const PESSOAS = '/configuracoes/cadastros/pessoas';
-const MARCAS = '/configuracoes/cadastros/marcas';
+const MARCAS = '/produtos/marcas';
 const ID_SOUZA = 'e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b01';
 const ID_ESTUDIO = 'e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b02';
 const ID_NUVEM = 'e6a4c5b8-bf73-4e54-8a45-4d5e6f7a8b03';
 const ID_PLANEJADA = 'd5f3b4a7-ae62-4d43-9f34-3c4d5e6f7a01';
 const ID_PRODUTO_KIPI = 'c4e2a3f6-9d51-4c32-8e23-2b3c4d5e6f03';
-const FICHA_KIPI = `${MARCAS}/produtos/${ID_PRODUTO_KIPI}`;
+const FICHA_KIPI = `/produtos/${ID_PRODUTO_KIPI}/cadastro`;
 const CNPJ = '11.222.333/0001-81';
 const CNPJ_LETRAS = '12.ABC.345/01DE-35';
 const CPF = '529.982.247-25';
@@ -24,7 +24,7 @@ const quantasLinhas = (n) => c.ate(`document.querySelectorAll('main table tbody 
 const irContrapartes = async () => { await ir(CONTRAPARTES); await linhasProntas(); };
 const irEntidades = async () => { await ir(ENTIDADES); await linhasProntas(); };
 const irPessoas = async () => { await ir(PESSOAS); await linhasProntas(); };
-const irFicha = async (id, nome) => { await ir(`${CONTRAPARTES}/${id}`); await c.ate(`document.querySelector('main h1')?.textContent===${JSON.stringify(nome)}`); };
+const irFicha = async (id, nome) => { await ir(`${CONTRAPARTES}/${id}/cadastro`); await c.ate(`document.querySelector('main h1')?.textContent===${JSON.stringify(nome)}`); };
 const salvarPainel = () => c.avaliar(`document.querySelector('.janela button[type=submit]').click()`);
 const novaContraparte = async () => { await c.clicar('texto=Nova contraparte'); await painelAberto(); await c.espera(450); };
 const novaEntidade = async () => { await c.clicar('texto=Nova entidade'); await painelAberto(); await c.espera(450); };
@@ -53,12 +53,12 @@ await passo('segundo nível de Cadastros base', async () => {
   await ir(CONTRAPARTES);
   await pularAbertura();
   await linhasProntas();
-  const sub = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Cadastros base"] a')].map(a=>a.textContent+(a.getAttribute('aria-current')?'*':''))`);
-  ok('os cadastros, na ordem', sub.join('|') === 'Pessoas|Áreas|Marcas e produtos|Entidades|Contrapartes*|Categorias|Contas|Calendário|Etiquetas', sub.join('|'));
+  ok('a lista fica em Comercial › Contrapartes (decisão de 07/11/2026)', await c.avaliar(`Boolean(document.querySelector('nav a[href="/comercial/contrapartes"][aria-current]'))`));
   ok('o título da aba diz a tela', (await c.avaliar(`document.title`)).startsWith('Contrapartes'));
-  await c.clicar(`nav[aria-label="Cadastros base"] a[href="${ENTIDADES}"]`);
+  await ir(ENTIDADES);
   await c.ate(`document.querySelector('main h1')?.textContent==='Entidades'`);
-  ok('dá para ir a Entidades', (await c.avaliar(`document.querySelector('nav[aria-label="Cadastros base"] a[aria-current]').textContent`)) === 'Entidades');
+  const sub = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Cadastros base"] a')].map(a=>a.textContent+(a.getAttribute('aria-current')?'*':''))`);
+  ok('os cadastros que ficam em Configurações, na ordem', sub.join('|') === 'Pessoas|Áreas|Entidades*|Calendário|Etiquetas', sub.join('|'));
 });
 
 await passo('lista de contrapartes', async () => {
@@ -66,7 +66,7 @@ await passo('lista de contrapartes', async () => {
   const m = await texto('main');
   ok('título e total', (await texto('main h1')) === 'Contrapartes' && m.includes('3 contrapartes'));
   const cab = await c.avaliar(`[...document.querySelectorAll('main thead th')].map(t=>t.textContent)`);
-  ok('colunas da especificação', cab.join('|') === 'Nome|Tipo de pessoa|Documento|Papéis|Responsável|Situação', cab.join('|'));
+  ok('colunas da especificação', cab.join('|') === 'Nome|Tipo de pessoa|Documento|Papéis|Responsável|Situação|Contratados|Interesse|Etapa mais avançada', cab.join('|'));
   const l = await linhas();
   ok('em ordem pelo nome que aparece, com a razão social embaixo', l.join('|') === 'Estúdio Verde Hospedagem Ltda|Nuvem Clara Inc.|Souza ContabilidadeSouza Contabilidade Ltda', l.join('|'));
   ok('nenhum documento inventado', await c.avaliar(`[...document.querySelectorAll('main table tbody tr')].every(t=>t.children[2].textContent==='—')`));
@@ -247,7 +247,7 @@ await passo('cadastrar e duplicidade', async () => {
   await c.ate(`document.querySelector('.janela').textContent.includes('Abrir a ficha de Lumi')`);
   ok('CNPJ repetido bloqueia e oferece a ficha (CA-02.05)', (await erroDe('contraparte-documento')).includes('Já existe: Lumi.'), await erroDe('contraparte-documento'));
   const href = await c.avaliar(`[...document.querySelectorAll('.janela a')].find(a=>a.textContent.includes('Abrir a ficha de Lumi')).getAttribute('href')`);
-  ok('o link abre a ficha certa', href === `${CONTRAPARTES}/${lumi.id}`, href);
+  ok('o link abre a ficha certa', href === `${CONTRAPARTES}/${lumi.id}/cadastro`, href);
   ok('não cria nada', (await tabela('contraparte')).length === 4);
   await c.foto('e-repetido');
 
@@ -505,8 +505,8 @@ await passo('vínculo em Pessoas', async () => {
 
   await ir(`${PESSOAS}/${ID_RAFAEL}`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Rafael Souza'`);
-  ok('a ficha da pessoa leva à contraparte', await c.avaliar(`Boolean(document.querySelector('main a[href="${CONTRAPARTES}/${ID_SOUZA}"]'))`));
-  await c.avaliar(`document.querySelector('main a[href="${CONTRAPARTES}/${ID_SOUZA}"]').click()`);
+  ok('a ficha da pessoa leva à contraparte', await c.avaliar(`Boolean(document.querySelector('main a[href="${CONTRAPARTES}/${ID_SOUZA}/cadastro"]'))`));
+  await c.avaliar(`document.querySelector('main a[href="${CONTRAPARTES}/${ID_SOUZA}/cadastro"]').click()`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Souza Contabilidade'`);
   ok('e o link funciona', true);
 
@@ -738,7 +738,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await irContrapartes();
   ok('as contrapartes entram', (await tabela('contraparte')).length === 3);
   ok('a entidade planejada entra', (await tabela('entidade')).length === 1 && (await tabela('entidade'))[0].id === ID_PLANEJADA);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
   const r = (await tabela('pessoa')).find((x) => x.id === ID_RAFAEL);
   ok('o que existia continua como estava', r.funcao === 'Dado que precisa continuar' && r.contraparte_id === null, JSON.stringify(r));
   await restaurarExemplos();
@@ -762,12 +762,12 @@ await passo('dados danificados', async () => {
   await ir(CONTRAPARTES);
   await c.ate(`document.querySelector('main').textContent.includes('Não deu para ler as contrapartes.')`);
   ok('a lista explica e aponta a saída', (await texto('main')).includes('aba Dados'));
-  await ir(`${CONTRAPARTES}/${ID_SOUZA}`);
+  await ir(`${CONTRAPARTES}/${ID_SOUZA}/cadastro`);
   await c.ate(`document.querySelector('main').textContent.includes('Não deu para ler esta contraparte.')`);
   ok('a ficha explica', true);
-  await ir(`${CONTRAPARTES}/nao-existe`);
+  await ir(`${CONTRAPARTES}/nao-existe/cadastro`);
   await restaurarExemplos();
-  await ir(`${CONTRAPARTES}/nao-existe`);
+  await ir(`${CONTRAPARTES}/nao-existe/cadastro`);
   await c.ate(`document.querySelector('main').textContent.includes('Essa contraparte não existe mais.')`);
   ok('endereço de uma ficha que não existe', true);
   await c.avaliar(`localStorage.setItem('numa-central:v1:entidade','{danificado')`);
@@ -821,10 +821,7 @@ await passo('celular', async () => {
   await irContrapartes();
   await c.espera(200);
   ok('lista vira cartões', await c.avaliar(`document.querySelector('main ul[aria-label="Contrapartes"]').getBoundingClientRect().height>0&&document.querySelector('main table').getBoundingClientRect().height===0`));
-  const n = await c.avaliar(`(()=>{const nav=document.querySelector('nav[aria-label="Cadastros base"]');const a=nav.querySelector('a[aria-current]').getBoundingClientRect();const fila=nav.querySelector('ul')??nav;return {rola:fila.scrollWidth>fila.clientWidth,ativaDentro:a.left>=0&&a.right<=360,pagina:document.documentElement.scrollWidth<=innerWidth}})()`);
-  ok('o segundo nível rola só na fileira, com a ativa visível', n.rola && n.ativaDentro && n.pagina, JSON.stringify(n));
-  const p = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Cadastros base"] a')].map(a=>Math.round(a.getBoundingClientRect().height)).join()`);
-  ok('pílulas de 44px', p === '44,44,44,44,44,44,44,44,44', p);
+  ok('as abas do módulo cabem, com a ativa visível e sem rolagem da página', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main nav a[aria-current]')].find(x=>x.getBoundingClientRect().width>0);const r=a?.getBoundingClientRect();return Boolean(r)&&r.left>=0&&r.right<=innerWidth+1&&document.documentElement.scrollWidth<=innerWidth})()`));
   ok('os filtros de papel rolam só na fileira', await c.avaliar(`(()=>{const f=document.querySelector('main button[aria-pressed]').parentElement;return f.scrollWidth>f.clientWidth&&document.documentElement.scrollWidth<=innerWidth})()`));
   await c.foto('k-lista');
   await c.clicar('texto=Filtros');

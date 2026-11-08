@@ -42,11 +42,11 @@ describe('T13.03: busca global', () => {
     expect(grupo?.itens[0]).toMatchObject({ codigo: 'ATV-2026-0003', titulo: 'Corrigir o erro no login do Kipi', detalhe: 'Tarefa · Em andamento · Kipi' });
     expect(grupo?.itens[0]?.href).toMatch(/^\/meu-dia\?atividade=/);
     const [contraparte] = await buscarNaCentral('souza contabilidade');
-    expect(contraparte?.itens[0]).toMatchObject({ titulo: 'Souza Contabilidade', detalhe: 'Souza Contabilidade Ltda', href: `/configuracoes/cadastros/contrapartes/${ID_CONTRAPARTE_CONTABILIDADE}` });
+    expect(contraparte?.itens[0]).toMatchObject({ titulo: 'Souza Contabilidade', detalhe: 'Souza Contabilidade Ltda', href: `/comercial/contrapartes/${ID_CONTRAPARTE_CONTABILIDADE}/cadastro` });
     const pessoa = (await buscarNaCentral('bruna')).find((item) => item.rotulo === 'Pessoas');
     expect(pessoa?.itens[0]).toMatchObject({ titulo: 'Bruna Alves', detalhe: 'Freelancer de design', href: `/configuracoes/cadastros/pessoas/${ID_BRUNA}` });
     const produto = (await buscarNaCentral('kipi')).find((item) => item.rotulo === 'Produtos');
-    expect(produto?.itens[0]).toMatchObject({ titulo: 'Kipi', href: `/configuracoes/cadastros/marcas/produtos/${ID_PRODUTO_KIPI}` });
+    expect(produto?.itens[0]).toMatchObject({ titulo: 'Kipi', href: `/produtos/${ID_PRODUTO_KIPI}` });
   });
 
   it('código exato vem primeiro, para o Enter ir direto (T13.03)', async () => {

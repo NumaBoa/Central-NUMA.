@@ -2,7 +2,7 @@
 
 Para as frentes do menu e Meu dia (M03), do Financeiro (M05), de Produtos (M07), de Legal (M09), do Comercial (M10) e para quem juntar as branches.
 
-Ramo `frente/m08`, no worktree `central-numa-m08`, criado a partir do `main` em `498005e`. Depois, o `main` (até `2b573d3`) foi juntado **a este ramo**, para resolver aqui os conflitos certos. Nada foi juntado ao `main`.
+Ramo `frente/m08`, no worktree `central-numa-m08`, criado a partir do `main` em `498005e`. Depois, o `main` (até `230a5df`) foi juntado **a este ramo**, em duas vezes,, para resolver aqui os conflitos certos. Nada foi juntado ao `main`.
 
 ## 1. Rotas para a frente do menu
 
@@ -78,7 +78,7 @@ Todos com acréscimos pequenos, sem reescrever o que existia:
 
 | Arquivo | O que mudou | Commit |
 |---|---|---|
-| `src/dados/tabelas.ts` | `...TABELAS_M08` e `VERSAO_DADOS = 20` (18 e 19 são da T07.10 e da T05.08, no `main`) | Dados e junção |
+| `src/dados/tabelas.ts` | `...TABELAS_M08` e `VERSAO_DADOS = 24` (18 a 23 são do `main`: T07.10, T05.08, T05.12, saída da fase, T11.10 e T05.10) | Dados e junção |
 | `src/dados/repositorios.ts` | `& RepositoriosM08` e `...repositoriosM08` | Dados |
 | `src/dados/carga.ts` | `acrescentarTabelasM08` na migração, `tabelasIniciaisM08` na carga e `VALORES_INICIAIS_M08` | Dados |
 | `src/dominio/dados.ts` | Partes de registros do M08 fora da contagem de cadastros | Dados |
@@ -91,11 +91,11 @@ Todos com acréscimos pequenos, sem reescrever o que existia:
 | `src/componentes/padroes/janela-formulario.tsx` | Prop opcional `aoEscolherErro`. Sem ela, nada muda | F0b |
 | `src/dominio/busca.ts` | Grupos do M08 | Integrações |
 | `verificacao/entrega2.mjs` | Totais da carga: 177 registros e 77 de exemplo | Integrações |
-| `verificacao/*.mjs` | Totais da carga (`Registros177`, `77 de exemplo`) e `versao_dados` 20. Na `f0a`, cinco alertas na primeira rodada: três da F0a e dois de direitos de uso do M08 | Integrações e junção |
+| `verificacao/*.mjs` | Totais da carga (`Registros177`, `77 de exemplo`) e `versao_dados` 24. Na `f0a`, cinco alertas na primeira rodada: três da F0a e dois de direitos de uso do M08 | Integrações e junção |
 
 **Conflitos certos ao juntar:**
 
-- **`VERSAO_DADOS`:** já resolvido contra o `main` de `2b573d3`: o M08 é a 20. Se outra frente (o M06, por exemplo) entrar antes, o M08 passa para o número seguinte e as suítes trocam junto. A migração do M08 não depende do número: `acrescentarTabelasM08` só cria as tabelas que faltam.
+- **`VERSAO_DADOS`:** já resolvido contra o `main` de `230a5df`: o M08 é a 24. Se outra frente (o M06, por exemplo) entrar antes, o M08 passa para o número seguinte e as suítes trocam junto. A migração do M08 não depende do número: `acrescentarTabelasM08` só cria as tabelas que faltam.
 - **Totais de `entrega2.mjs`:** qualquer frente que acrescente exemplos muda 177 e 77. O M08 soma 26 registros de exemplo: 8 arquivos, 2 campanhas, 6 peças, 2 listas e 8 inscritos.
 
 ## 6. Diferenças em relação à especificação

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { FASES } from '@/dominio/navegacao';
 import { ID_CAMILA } from '../exemplos/base';
 import { FUSO_PADRAO, FUSOS } from '../fuso';
 import { esquemaControle } from './controle';
@@ -7,8 +6,8 @@ import { esquemaControle } from './controle';
 const dias = z.int().nonnegative();
 
 /**
- * Chaves de `configuracao` (16 §4.1) usadas na F0a e o valor aceito em cada uma. As chaves das
- * outras fases entram junto com as telas delas (RT-23).
+ * Chaves de `configuracao` (16 §4.1) e o valor aceito em cada uma. A `fase_ativa` saiu em 08/11/2026
+ * (decisão de Kimberly: a Central não tem fase); linhas antigas com ela são removidas na migração 21.
  */
 export const ESQUEMAS_DAS_CHAVES = {
   organizacao_nome: z.string().trim().min(1),
@@ -21,7 +20,6 @@ export const ESQUEMAS_DAS_CHAVES = {
     .regex(/^[A-Z]{2}$/)
     .nullable(),
   municipio_padrao: z.string().min(1).nullable(),
-  fase_ativa: z.enum(FASES),
   alerta_vencimento_dias: dias,
   alerta_renovacao_ferramenta_dias: dias,
   alerta_fim_teste_dias: dias,
@@ -50,7 +48,6 @@ export const VALORES_PADRAO: ValoresConfiguracao = {
   moeda_padrao: 'BRL',
   uf_padrao: 'RJ',
   municipio_padrao: 'Rio de Janeiro',
-  fase_ativa: 'f0a',
   alerta_vencimento_dias: 3,
   alerta_renovacao_ferramenta_dias: 15,
   alerta_fim_teste_dias: 3,
@@ -72,7 +69,6 @@ export const CATALOGO_CONFIGURACAO: Record<ChaveConfiguracao, { rotulo: string; 
   moeda_padrao: { rotulo: 'Moeda padrão', descricao: 'Moeda sugerida nos novos registros.' },
   uf_padrao: { rotulo: 'Estado dos feriados', descricao: 'Estado padrão do calendário de feriados (D16).' },
   municipio_padrao: { rotulo: 'Município dos feriados', descricao: 'Município padrão do calendário de feriados (D16).' },
-  fase_ativa: { rotulo: 'Fase ativa', descricao: 'Fase em que a Numa está (RT-23).' },
   alerta_vencimento_dias: { rotulo: 'Vencimentos financeiros', descricao: 'Antecedência, em dias, do alerta de vencimento.' },
   alerta_renovacao_ferramenta_dias: { rotulo: 'Renovação de ferramentas', descricao: 'Antecedência, em dias, do alerta de renovação.' },
   alerta_fim_teste_dias: { rotulo: 'Fim de períodos de teste', descricao: 'Antecedência, em dias, do alerta de fim de teste.' },

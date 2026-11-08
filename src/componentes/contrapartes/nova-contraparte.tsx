@@ -7,7 +7,7 @@ import { aviso } from '@/componentes/padroes/aviso';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarContrapartes } from '@/dominio/contrapartes';
 
-const CAMINHO_DE_CONTRAPARTES = '/configuracoes/cadastros/contrapartes';
+const CAMINHO_DE_CONTRAPARTES = '/comercial/contrapartes';
 
 const ContextoNovaContraparte = createContext<{ abrirNovaContraparte: () => void } | null>(null);
 
@@ -15,7 +15,7 @@ function FormularioGlobal({ aberto, aoFechar }: { aberto: boolean; aoFechar: () 
   const roteador = useRouter();
   const consulta = useConsulta(carregarContrapartes);
   if (!consulta.dados) return null;
-  return <FormularioContraparte aberto={aberto} aoFechar={aoFechar} pessoas={consulta.dados.pessoas} aoCadastrar={(contraparte) => aviso('Contraparte cadastrada.', { acao: { rotulo: 'Abrir', aoClicar: () => roteador.push(`${CAMINHO_DE_CONTRAPARTES}/${contraparte.id}`) } })} />;
+  return <FormularioContraparte aberto={aberto} aoFechar={aoFechar} pessoas={consulta.dados.pessoas} aoCadastrar={(contraparte) => aviso('Contraparte cadastrada.', { acao: { rotulo: 'Abrir', aoClicar: () => roteador.push(`${CAMINHO_DE_CONTRAPARTES}/${contraparte.id}/cadastro`) } })} />;
 }
 
 /** "+ Novo" abre de qualquer tela, sem sair dela (02 §4). O formulário só é montado na primeira vez. */

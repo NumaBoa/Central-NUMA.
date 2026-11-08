@@ -43,7 +43,7 @@ export function FichaProduto() {
   const [arquivando, setArquivando] = useState(false);
 
   const voltarPara = (marcaId?: string) => (
-    <LinkCentral href={`/configuracoes/cadastros/marcas${marcaId ? `?marca=${marcaId}` : ''}`} className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-pill pr-3 text-[13px] font-medium text-ink-soft hover:text-ink md:min-h-9 [&_svg]:size-4">
+    <LinkCentral href={`/produtos/marcas${marcaId ? `?marca=${marcaId}` : ''}`} className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-pill pr-3 text-[13px] font-medium text-ink-soft hover:text-ink md:min-h-9 [&_svg]:size-4">
       <ArrowLeft aria-hidden />
       Marcas e produtos
     </LinkCentral>

@@ -28,7 +28,7 @@ import {
   type FiltrosContas,
 } from '@/dominio/contas';
 import { formatarDiaISO, formatarDinheiro, formatarNumero } from '@/lib/formatacao';
-import { AbasConfiguracoes, SubabasCadastros } from '../../abas';
+import { AbasFinanceiro } from '@/componentes/financeiro/abas-financeiro';
 import { FormularioConta } from './formulario-conta';
 
 function SituacaoDaConta({ situacao }: { situacao: ContaFinanceira['situacao'] }) {
@@ -120,8 +120,8 @@ export function TelaContas() {
   return (
     <>
       <CabecalhoPagina
-        migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Contas']}
-        kicker="Configurações"
+        migalhas={['Central Numa', 'Financeiro', 'Contas e saldos', 'Cadastro das contas']}
+        kicker="Financeiro"
         titulo="Contas financeiras"
         resumo={contas ? plural(ativas) : undefined}
         acoes={
@@ -131,8 +131,7 @@ export function TelaContas() {
           </Button>
         }
       />
-      <AbasConfiguracoes ativa="cadastros" />
-      <SubabasCadastros ativa="contas" />
+      <AbasFinanceiro ativa="contas" className="" />
 
       <div className="mt-5 space-y-4">
         {consulta.estado === 'carregando' && <EstadoCarregando />}

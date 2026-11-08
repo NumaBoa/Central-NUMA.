@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
+import { garantirCompetenciaAberta } from './competencias';
 import { idDaPessoaAtual } from '@/dados/sessao';
 import { emTransacao } from '@/dados/transacao';
 import type { ContaFinanceira } from '@/dados/tipos/financeiro';
@@ -273,6 +274,8 @@ async function gravarTitulo(id: string, formulario: FormularioTitulo): Promise<T
     const titulo = await repositorios.titulo.obter(id);
     if (!titulo) throw new ErroDeRegra('Este título não existe mais.');
     if (titulo.situacao === 'cancelado' || titulo.situacao === 'quitado') throw new ErroDeRegra('Título quitado ou cancelado não se edita.');
+    await garantirCompetenciaAberta(titulo.competencia);
+    await garantirCompetenciaAberta(formulario.competencia);
     const valor = lerValor(formulario.valor) as number;
     const baixas = await repositorios.baixa.listar({ onde: { titulo_id: id } });
     const pago = arredondar(titulo.valor - saldoDoTitulo(titulo, baixas));

@@ -143,7 +143,7 @@ export function FormularioContraparte({ aberto, aoFechar, contraparte, pessoas, 
                 erro={errors.documento?.message}
                 ajuda={
                   documentoRepetido && errors.documento ? (
-                    <a href={`/configuracoes/cadastros/contrapartes/${documentoRepetido.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-dk underline">
+                    <a href={`/comercial/contrapartes/${documentoRepetido.id}/cadastro`} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-dk underline">
                       Abrir a ficha de {nomeDaContraparte(documentoRepetido)}
                     </a>
                   ) : tipo === 'estrangeira' ? (

@@ -632,7 +632,7 @@ await passo('painel: checklist, vínculos e arquivos', async () => {
   await h.irParaAba('Vínculos e arquivos');
   await escolher('painel-vinculo', `contraparte:${ID_SOUZA}`);
   await c.ate(`document.querySelector('.janela').textContent.includes('Contraparte: Souza Contabilidade')`);
-  ok('vincular', await c.avaliar(`Boolean(document.querySelector('.janela a[href="/configuracoes/cadastros/contrapartes/${ID_SOUZA}"]'))`));
+  ok('vincular', await c.avaliar(`Boolean(document.querySelector('.janela a[href="/comercial/contrapartes/${ID_SOUZA}/cadastro"]'))`));
   await escolher('painel-vinculo', `contraparte:${ID_SOUZA}`);
   await c.ate(`document.getElementById('painel-vinculo-erro')?.textContent==='Este vínculo já existe.'`);
   ok('não repete', true);
@@ -826,7 +826,7 @@ await passo('painel: alerta e lembrete', async () => {
 });
 
 await passo('fichas: aba Atividades (RN-03.20)', async () => {
-  await ir(`/configuracoes/cadastros/contrapartes/${ID_SOUZA}`);
+  await ir(`/comercial/contrapartes/${ID_SOUZA}/cadastro`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Souza Contabilidade'`);
   ok('contraparte: as abas', (await c.avaliar(`[...document.querySelectorAll('main [role=tab]')].map(t=>t.textContent).join('|')`)) === 'Resumo|Contatos (1)|Ferramentas fornecidas|Lançamentos|Atividades|Histórico');
   await c.clicar('main [role=tab]:nth-child(5)');
@@ -840,7 +840,7 @@ await passo('fichas: aba Atividades (RN-03.20)', async () => {
   ok('é o mesmo registro: abre no Meu dia', true);
   await c.espera(400);
   await fecharPainelLateral();
-  await ir(`/configuracoes/cadastros/marcas/produtos/${ID_KIPI}`);
+  await ir(`/produtos/${ID_KIPI}/cadastro`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Kipi'`);
   await c.clicar('main [role=tab]:nth-child(3)');
   await c.ate(`document.querySelector('main [role=tabpanel][data-state=active]').textContent.includes('Corrigir o erro no login do Kipi')`);
@@ -857,7 +857,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{for(const t of ['checklist_item','comentario','vinculo','anexo_link'])localStorage.removeItem('numa-central:v1:'+t);const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=7;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMeuDia();
   ok('o apoio entra', (await tabela('checklist_item')).length === 4 && (await tabela('comentario')).length === 3 && (await tabela('vinculo')).length === 1 && (await tabela('anexo_link')).length === 1);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
   await restaurarExemplos();
   ok('os registros não mudam: o apoio faz parte da atividade', (await texto('main')).includes('Registros177') && (await texto('main')).includes('77 de exemplo'));
 });

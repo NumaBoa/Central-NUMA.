@@ -30,8 +30,6 @@ type ValorCentral = {
   /** Os produtos ativos + as duas visões da Numa (CA-02.03). */
   contextos: readonly Contexto[];
   escolherContexto: (id: string) => void;
-  /** De T02.01 (RT-23). Enquanto os dados carregam, ou se estiverem danificados, a fase inicial. */
-  faseAtiva: Fase;
   /** A etiqueta discreta fica no cabeçalho enquanto existirem (02 §0.3). */
   temDadosDeExemplo: boolean;
   alternarMenu: () => void;
@@ -88,7 +86,6 @@ export function CentralProvider({ children }: { children: ReactNode }) {
 
   const listaDePessoas = pessoas.dados;
   const temExemplos = exemplos.dados ?? false;
-  const faseAtiva = configuracoes.dados?.fase_ativa ?? VALORES_PADRAO.fase_ativa;
   const contextos = consultaContextos.dados ?? CONTEXTOS_SEM_DADOS;
   const valor = useMemo<ValorCentral>(() => {
     const paraSeletor = (pessoa: { id: string; nome_completo: string }): PessoaDoSeletor => ({ id: pessoa.id, nome: pessoa.nome_completo });
@@ -100,11 +97,10 @@ export function CentralProvider({ children }: { children: ReactNode }) {
       contexto: acharContexto(contextos, meta.contexto_id),
       contextos,
       escolherContexto: (id) => gravarMeta({ contexto_id: id }),
-      faseAtiva,
       temDadosDeExemplo: temExemplos,
       alternarMenu,
     };
-  }, [listaDePessoas, temExemplos, faseAtiva, contextos, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
+  }, [listaDePessoas, temExemplos, contextos, meta.pessoa_atual_id, meta.contexto_id, alternarMenu]);
 
   return <ContextoCentral value={valor}>{children}</ContextoCentral>;
 }

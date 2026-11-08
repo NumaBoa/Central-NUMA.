@@ -20,8 +20,8 @@ export const TEXTO_DO_COMENTARIO_REMOVIDO = 'Comentário removido';
 
 /** Registros que dá para vincular hoje. Cada módulo novo acrescenta o seu (ferramenta, ativo, título…). */
 export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; href: (id: string) => string }>> = {
-  contraparte: { rotulo: 'Contraparte', href: (id) => `/configuracoes/cadastros/contrapartes/${id}` },
-  produto: { rotulo: 'Produto', href: (id) => `/configuracoes/cadastros/marcas/produtos/${id}` },
+  contraparte: { rotulo: 'Contraparte', href: (id) => `/comercial/contrapartes/${id}/cadastro` },
+  produto: { rotulo: 'Produto', href: (id) => `/produtos/${id}` },
   ferramenta: { rotulo: 'Ferramenta', href: (id) => `/ferramentas/${id}` },
   ativo_digital: { rotulo: 'Ativo digital', href: (id) => `/ferramentas/ativos/${id}` },
   titulo: { rotulo: 'Lançamento', href: (id) => `/financeiro/${id}` },

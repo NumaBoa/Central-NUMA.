@@ -23,14 +23,12 @@ import { FUSOS, ROTULOS_FUSO } from '@/dados/fuso';
 import { municipiosDaUf } from '@/dados/referencia/municipios';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarTelaGeral, esquemaFormularioGeral, formularioDosValores, lerConfiguracoes, pessoasParaBackup, responsavelDisponivel, salvarFormularioGeral, type DadosDaTelaGeral, type FormularioGeral } from '@/dominio/configuracoes';
-import { INFO_FASES, rotuloDaFase } from '@/dominio/fases';
 import { LEMBRETE_LINK_DRIVE } from '@/dominio/link-drive';
 import { cn } from '@/lib/utils';
-import { RegrasFinanceiras, SecaoCambio } from './secao-cambio';
-import { SecaoFase } from './secao-fase';
+import { RegrasFinanceiras } from './secao-cambio';
 
 type CampoDoFormulario = keyof FormularioGeral;
-type IdDaSecao = 'organizacao' | 'fase' | 'alertas' | 'financeiro' | 'legal' | 'backup';
+type IdDaSecao = 'organizacao' | 'alertas' | 'financeiro' | 'legal' | 'backup';
 type SecaoGeral = {
   id: IdDaSecao;
   rotulo: string;
@@ -39,7 +37,7 @@ type SecaoGeral = {
   descricao: string;
   /** O que vale para a seção inteira, ao lado das ações. */
   nota: string;
-  /** Na ordem da tela: é a ordem do resumo de erros. Fase e câmbio gravam por conta própria, ao confirmar. */
+  /** Na ordem da tela: é a ordem do resumo de erros. A seção Financeiro só mostra regras fixas. */
   campos: readonly CampoDoFormulario[];
 };
 
@@ -55,7 +53,6 @@ const SECAO: Record<IdDaSecao, SecaoGeral> = {
     nota: OBRIGATORIOS,
     campos: ['organizacao_nome', 'organizacao_email', 'organizacao_logo_url', 'fuso', 'moeda_padrao', 'uf_padrao', 'municipio_padrao'],
   },
-  fase: { id: 'fase', rotulo: 'Fase da Numa', icone: Layers, descricao: 'Um passo de cada vez, com espaço para crescer.', nota: 'A fase muda ao confirmar, sem usar “Salvar alterações”.', campos: [] },
   alertas: {
     id: 'alertas',
     rotulo: 'Alertas',
@@ -64,12 +61,12 @@ const SECAO: Record<IdDaSecao, SecaoGeral> = {
     nota: OBRIGATORIOS,
     campos: ['alerta_vencimento_dias', 'alerta_renovacao_ferramenta_dias', 'alerta_fim_teste_dias', 'alerta_dominio_dias'],
   },
-  financeiro: { id: 'financeiro', rotulo: 'Financeiro', icone: CreditCard, descricao: 'Combinados claros. Contas bem cuidadas.', nota: 'O câmbio é gravado ao adicionar ou remover, sem usar “Salvar alterações”.', campos: [] },
+  financeiro: { id: 'financeiro', rotulo: 'Financeiro', icone: CreditCard, descricao: 'Combinados claros. Contas bem cuidadas.', nota: 'Regras fixas do financeiro.', campos: [] },
   legal: { id: 'legal', rotulo: 'Legal e comercial', icone: Scale, descricao: 'O que a publicação e as propostas precisam saber.', nota: 'Esta seção grava com o próprio botão, sem usar “Salvar alterações”.', campos: [] },
   backup: { id: 'backup', rotulo: 'Backup', icone: Database, descricao: 'Quem cuida da cópia semanal da Central.', nota: OBRIGATORIOS, campos: ['responsavel_backup_id'] },
 };
 
-const SECOES: readonly SecaoGeral[] = [SECAO.organizacao, SECAO.fase, SECAO.alertas, SECAO.financeiro, SECAO.legal, SECAO.backup];
+const SECOES: readonly SecaoGeral[] = [SECAO.organizacao, SECAO.alertas, SECAO.financeiro, SECAO.legal, SECAO.backup];
 
 const ID_DO_CAMPO: Record<CampoDoFormulario, string> = {
   organizacao_nome: 'nome',
@@ -110,19 +107,6 @@ function secaoDoCampo(campo: CampoDoFormulario): SecaoGeral {
 function secaoDoEndereco(): IdDaSecao {
   const pedida = window.location.hash.slice(1);
   return SECOES.find((secao) => secao.id === pedida)?.id ?? 'organizacao';
-}
-
-/** Selo no cabeçalho: não aparece até a fase real ser lida, para nada piscar. */
-export function SeloDaFase() {
-  const { dados } = useConsulta(lerConfiguracoes);
-  if (!dados) return null;
-  const fase = dados.fase_ativa;
-  return (
-    <div className="inline-flex min-h-10 items-center gap-2 rounded-pill border border-line bg-paper px-3.5 text-[13px] font-medium whitespace-nowrap text-ink">
-      <Layers className="size-4 shrink-0 text-ink-soft" aria-hidden />
-      {rotuloDaFase(fase)} · {INFO_FASES[fase].nome}
-    </div>
-  );
 }
 
 function Esqueleto() {
@@ -229,7 +213,7 @@ function CampoDias({ id, rotulo, texto, erro, registro }: { id: string; rotulo: 
 }
 
 function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
-  const { configuracoes, pessoas, cambios, mudancaDeFase, municipios } = dados;
+  const { configuracoes, pessoas, municipios } = dados;
   const valores = useMemo(() => formularioDosValores(configuracoes, pessoas), [configuracoes, pessoas]);
   const opcoesDePessoa = useMemo(() => pessoasParaBackup(pessoas), [pessoas]);
 
@@ -338,7 +322,7 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
   // Salvar e descartar valem para todas as seções: quando há alteração fora desta, a barra diz onde.
   const alteracaoEmOutraSecao = secoesAlteradas.some((secao) => secao.id !== secaoAberta);
   const estado = alteracaoEmOutraSecao ? `Alterações não salvas em ${POR_EXTENSO.format(secoesAlteradas.map((secao) => secao.rotulo))}` : 'Alterações não salvas';
-  // Fase e câmbio gravam ao confirmar: sem nada pendente em outra seção, ali não há o que salvar.
+  // Seção só de leitura (Financeiro): sem nada pendente em outra seção, ali não há o que salvar.
   const mostrarAcoes = secaoAtual.campos.length > 0 || isDirty;
 
   return (
@@ -453,10 +437,6 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
             </p>
           </PainelDaSecao>
 
-          <PainelDaSecao secao={SECAO.fase}>
-            <SecaoFase fase={configuracoes.fase_ativa} ultimaMudanca={mudancaDeFase} />
-          </PainelDaSecao>
-
           <PainelDaSecao secao={SECAO.alertas}>
             <div className="max-w-[640px]">
               <CampoDias id={ID_DO_CAMPO.alerta_vencimento_dias} rotulo="Vencimentos financeiros" texto="Antes de uma conta vencer." erro={errors.alerta_vencimento_dias?.message} registro={register('alerta_vencimento_dias')} />
@@ -468,7 +448,13 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
 
           <PainelDaSecao secao={SECAO.financeiro}>
             <RegrasFinanceiras />
-            <SecaoCambio cambios={cambios} />
+            <p className="pt-3 text-[13px] text-ink-soft" data-cambio-mudou>
+              O câmbio de referência fica em{' '}
+              <LinkCentral href="/financeiro/contas#cambio" className="inline-flex min-h-11 items-center font-medium text-ink underline underline-offset-2 md:min-h-0">
+                Financeiro › Contas e saldos
+              </LinkCentral>
+              .
+            </p>
           </PainelDaSecao>
 
           <PainelDaSecao secao={SECAO.legal}>

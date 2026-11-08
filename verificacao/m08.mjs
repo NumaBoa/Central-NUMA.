@@ -459,7 +459,7 @@ await passo('persistência: recarregar mantém tudo; backups do M08 entram na ex
   const p = await pagina();
   ok('continua o que foi criado', p.includes('Contrato da suíte') && p.includes('Apresentação com dados FIN'));
   const meta = await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`);
-  ok('versão dos dados 20', meta === 20, meta);
+  ok('versão dos dados 24', meta === 24, meta);
   await ir('/configuracoes/dados');
   await c.ate(`document.querySelector('main').textContent.includes('de exemplo')`);
   ok('o painel de dados abre com as tabelas novas', !(await c.avaliar(`document.querySelector('main').textContent.includes('danificad')`)));

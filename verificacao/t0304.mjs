@@ -101,7 +101,9 @@ await passo('rotinas do dia ao abrir', async () => {
   ok('toda segunda, até 30 dias à frente', backup.length >= 4 && backup.every((a) => semana(a.prazo) === 1 && a.prazo >= d && a.prazo <= somar(d, 30)), backup.map((a) => a.prazo).join(' '));
   ok('toda sexta', despesas.length >= 4 && despesas.every((a) => semana(a.prazo) === 5), despesas.map((a) => a.prazo).join(' '));
   ok('numeradas em ordem', backup.every((a, i) => a.ocorrencia_numero === i + 1));
-  const total = backup.length + despesas.length + (await atividadesDaRotina(ID_EXEMPLO)).filter((a) => a.situacao !== 'concluida').length;
+  // Sem fase da Numa (08/11/2026), as rotinas de KPIs e de revisão jurídica também geram.
+  const semFase = (await atividadesDaRotina('f7c1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e04')).length + (await atividadesDaRotina('f7c1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e06')).length;
+  const total = backup.length + despesas.length + semFase + (await atividadesDaRotina(ID_EXEMPLO)).filter((a) => a.situacao !== 'concluida').length;
   const avisoNaTela = await c.avaliar(`[...document.querySelectorAll('[data-sonner-toast]')].map(t=>t.textContent).find(t=>t.includes('Rotinas do dia'))`);
   const alertasNovos = (await tabela('atividade')).filter((a) => a.tipo === 'alerta' && a.chave_idempotencia).length;
   const dosAlertas = alertasNovos ? `${alertasNovos} ${alertasNovos === 1 ? 'alerta novo' : 'alertas novos'} e ` : '';
@@ -277,7 +279,7 @@ await passo('rotinas: a lista', async () => {
   const abertas = (await atividadesDaRotina(ID_BACKUP)).length;
   ok('as abertas contam', await c.avaliar(`(${linhaDeTabela('Exportar backup')}).querySelectorAll('td')[4].textContent===${js(String(abertas))}`));
   const kpi = await c.avaliar(`(${linhaDeTabela('Atualizar KPIs')}).textContent`);
-  ok('rotina de outra fase diz quando começa', kpi.includes('Dia 5 de cada mês') && kpi.includes('Começa na Fase 0b'), kpi);
+  ok('sem fase da Numa: a rotina de KPIs é ativa, com a próxima data', kpi.includes('Dia 5 de cada mês') && kpi.includes('Ativa') && !kpi.includes('Começa na'), kpi);
   ok('a cada 3 meses', (await c.avaliar(`(${linhaDeTabela('Revisão de acessos')}).textContent`)).includes('A cada 3 meses, no dia 1'));
   ok('anual', (await c.avaliar(`(${linhaDeTabela('Revisão jurídica')}).textContent`)).includes('Todo ano, em 1 de janeiro'));
   await c.foto('d-lista');
@@ -717,7 +719,7 @@ await passo('dados: versão anterior, limpar e restaurar', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:recorrencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=8;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irRotinas();
   ok('versão 8 recebe as rotinas', (await tabela('recorrencia')).length === 7);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
   await restaurar();
   await irMeuDia();
   await c.espera(500);

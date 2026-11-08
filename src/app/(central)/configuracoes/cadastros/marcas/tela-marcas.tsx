@@ -19,12 +19,13 @@ import { arquivarMarca, carregarMarcas, restaurarMarca } from '@/dominio/marcas'
 import { responsavelDisponivel, restaurarProduto, ROTULOS_ESTAGIO, ROTULOS_TIPO_PRODUTO } from '@/dominio/produtos';
 import { formatarNumero } from '@/lib/formatacao';
 import { cn } from '@/lib/utils';
-import { AbasConfiguracoes, SubabasCadastros } from '../../abas';
+import { AbasProdutos } from '@/componentes/produtos/aparencia';
 import { ChipDaMarca, SituacaoDaMarca, SituacaoDoProduto } from './aparencia';
 import { FormularioMarca } from './formulario-marca';
 import { FormularioProduto } from './formulario-produto';
 
-export const CAMINHO_DE_PRODUTOS = '/configuracoes/cadastros/marcas/produtos';
+/** O cadastro básico do produto fica dentro do módulo Produtos (decisão de Kimberly em 07/11/2026). */
+export const caminhoDoCadastroDoProduto = (id: string) => `/produtos/${id}/cadastro`;
 
 function plural(quantidade: number, singular: string, varios: string): string {
   return `${formatarNumero(quantidade)} ${quantidade === 1 ? singular : varios}`;
@@ -100,14 +101,14 @@ export function TelaMarcas() {
     { id: 'situacao', titulo: 'Situação', essencial: true, celula: (produto) => <SituacaoDoProduto situacao={produto.situacao} /> },
   ];
 
-  const abrirProduto = (produto: Produto) => roteador.push(`${CAMINHO_DE_PRODUTOS}/${produto.id}`);
+  const abrirProduto = (produto: Produto) => roteador.push(caminhoDoCadastroDoProduto(produto.id));
   const quantosArquivados = marcasArquivadas.length + produtosArquivados.length;
 
   return (
     <>
       <CabecalhoPagina
-        migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Marcas e produtos']}
-        kicker="Configurações"
+        migalhas={['Central Numa', 'Produtos', 'Marcas']}
+        kicker="Produtos"
         titulo="Marcas e produtos"
         resumo={dados ? `${plural(marcas.length, 'marca', 'marcas')} · ${plural(produtos.length, 'produto', 'produtos')}` : undefined}
         acoes={
@@ -117,8 +118,7 @@ export function TelaMarcas() {
           </Button>
         }
       />
-      <AbasConfiguracoes ativa="cadastros" />
-      <SubabasCadastros ativa="marcas" />
+      <AbasProdutos ativa="marcas" className="" />
 
       <div className="mt-5 space-y-4">
         {consulta.estado === 'carregando' && <EstadoCarregando />}

@@ -438,31 +438,10 @@ await passo('áreas na ficha da pessoa', async () => {
   await painelFechado();
 });
 
-await passo('RT-14 na T02.01: motivo e fonte', async () => {
-  await ir('/configuracoes');
-  await c.ate(`document.getElementById('nome')&&document.getElementById('responsavel')`);
-  await c.clicar('[role=tab][id$="-trigger-fase"]');
-  await c.clicar('texto=Avançar para a Fase 0b');
-  await dialogoAberto();
-  await c.espera(420);
-  await clicarNoDialogo('Avançar para a Fase 0b');
-  await esperarAviso('Agora a Numa está na Fase 0b.');
-  await dialogoFechado();
-  await c.clicar('texto=Voltar para a Fase 0a');
-  await dialogoAberto();
-  await c.espera(420);
-  await c.avaliar(`document.querySelector('.dialogo textarea').focus()`);
-  await c.digitar('senha: 123456');
-  await clicarNoDialogo('Voltar para a Fase 0a');
-  await c.ate(`document.querySelector('.dialogo').textContent.includes('parece uma senha')`);
-  ok('motivo que parece segredo avisa e segura', (await texto('#fase')).includes('Fase 0b'));
-  await c.foto('h-motivo');
-  await clicarNoDialogo('Voltar para a Fase 0a');
-  await esperarAviso('A Numa voltou para a Fase 0a.');
-  await dialogoFechado();
-  ok('confirmar de novo segue', (await texto('#fase')).includes('Fase 0a'));
-  await c.clicar('[role=tab][id$="-trigger-financeiro"]');
-  await c.clicar('#financeiro button');
+await passo('RT-14 no câmbio: fonte', async () => {
+  await ir('/financeiro/contas');
+  await c.ate(`document.querySelector('#cambio button')`);
+  await c.clicar('#cambio button');
   await dialogoAberto();
   await c.espera(420);
   await preencher(await idPorRotulo('Cotação'), '5,42');
@@ -514,7 +493,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:area');localStorage.removeItem('numa-central:v1:pessoa_area');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=2;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irAreas();
   ok('as áreas entram sem apagar nada', (await c.avaliar(`document.querySelectorAll('main table tbody tr').length`)) === 7 && (await tabela('pessoa')).length === 4);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 24);
 });
 
 await passo('dados danificados', async () => {

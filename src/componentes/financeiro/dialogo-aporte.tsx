@@ -59,7 +59,7 @@ export function DialogoDeAporte({ socias, contas, aoFechar }: { socias: readonly
             {disponiveis.length === 0 && (
               <Faixa tipo="atencao">
                 Ainda não há conta da Numa em reais.{' '}
-                <LinkCentral href="/configuracoes/cadastros/contas" className="inline-flex min-h-11 items-center underline md:min-h-0">
+                <LinkCentral href="/financeiro/contas/cadastro" className="inline-flex min-h-11 items-center underline md:min-h-0">
                   Cadastrar a conta
                 </LinkCentral>
               </Faixa>
