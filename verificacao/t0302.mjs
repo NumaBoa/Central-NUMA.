@@ -857,7 +857,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{for(const t of ['checklist_item','comentario','vinculo','anexo_link'])localStorage.removeItem('numa-central:v1:'+t);const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=7;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMeuDia();
   ok('o apoio entra', (await tabela('checklist_item')).length === 4 && (await tabela('comentario')).length === 3 && (await tabela('vinculo')).length === 1 && (await tabela('anexo_link')).length === 1);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 22);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 23);
   await restaurarExemplos();
   ok('os registros não mudam: o apoio faz parte da atividade', (await texto('main')).includes('Registros151') && (await texto('main')).includes('51 de exemplo'));
 });

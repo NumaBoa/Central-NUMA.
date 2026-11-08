@@ -284,7 +284,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   // migração
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:notificacao');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=9;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await c.recarregar();
-  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===22`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===23`);
   ok('versão anterior recebe a tabela', await c.avaliar(`localStorage.getItem('numa-central:v1:notificacao')!==null`));
   await irDados();
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Restaurar exemplos').click()`);

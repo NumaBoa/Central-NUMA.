@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
+import { garantirCompetenciaAberta } from './competencias';
 import { idDaPessoaAtual } from '@/dados/sessao';
 import { emTransacao } from '@/dados/transacao';
 import type { AssinaturaFerramenta, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
@@ -212,6 +213,7 @@ export async function registrarPagamento(tituloId: string, dados: DadosDoPagamen
     if (!titulo) throw new ErroDeRegra('Este título não existe mais.');
     if (titulo.situacao === 'cancelado') throw new ErroDeRegra('Este título está cancelado.');
     if (dados.data > hoje) throw new ErroDeRegra('A data do pagamento não pode ser futura.');
+    await garantirCompetenciaAberta(dados.data, 'baixa');
     const conta = await repositorios.conta_financeira.obter(dados.contaId);
     if (!conta) throw new ErroDeRegra('Escolha a conta usada.');
     if (dados.valorMoeda <= 0) throw new ErroDeRegra('Informe o valor pago.');
@@ -419,6 +421,8 @@ function pagamentoDoFormulario(formulario: FormularioDespesa, valor: number): Da
 export async function criarDespesa(formulario: FormularioDespesa, responsavelId: string, hoje: string = hojeISO()): Promise<Titulo> {
   const valor = lerValor(formulario.valor);
   if (valor === null || valor <= 0) throw new ErroDeRegra('Informe o valor, como 0,00.');
+  await garantirCompetenciaAberta(formulario.competencia);
+  if (formulario.pago && formulario.data_pagamento) await garantirCompetenciaAberta(formulario.data_pagamento, 'baixa');
   return emTransacao(async () => {
     const vencimento = formulario.pago ? formulario.vencimento || formulario.data_pagamento : formulario.vencimento;
     const titulo = await repositorios.titulo.criar({

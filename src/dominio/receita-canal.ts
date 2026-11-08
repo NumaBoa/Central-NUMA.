@@ -9,6 +9,7 @@ import { ErroDeRegra } from '@/dados/erros';
 import type { CanalVenda } from '@/dados/tipos/precificacao';
 import type { ReceitaCanal } from '@/dados/tipos/receita-canal';
 import { lerValor } from './dinheiro';
+import { garantirCompetenciaAberta } from './competencias';
 import { gravarRateio } from './titulos';
 
 export type FormularioReceita = {
@@ -93,6 +94,7 @@ export async function salvarReceita(formulario: FormularioReceita, responsavelId
   const fonte = formulario.fonte_url.trim();
   if (fonte && !/^https?:\/\/\S+$/i.test(fonte)) throw new ErroDeRegra('Fonte: informe o link completo, começando por https://.');
   const competencia = `${formulario.competencia}-01`;
+  await garantirCompetenciaAberta(competencia);
   const dados = {
     produto_id: formulario.produto_id,
     canal_id: formulario.canal_id,

@@ -1,8 +1,8 @@
-import { ArrowLeftRight, FolderTree, Gauge, Landmark, PieChart, Receipt, Users, Wallet } from 'lucide-react';
+import { ArrowLeftRight, FileSpreadsheet, FolderTree, Gauge, Landmark, Lock, PieChart, Receipt, Users, Wallet } from 'lucide-react';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 
 /** As seções do Financeiro já construídas (F0a, F0b e, desde 08/11/2026, a Receita por canal da F1). */
-export function AbasFinanceiro({ ativa, className = '!mt-0' }: { ativa: 'lancamentos' | 'socias' | 'transferencias' | 'contas' | 'orcamento' | 'custos' | 'receitas' | 'categorias'; className?: string }) {
+export function AbasFinanceiro({ ativa, className = '!mt-0' }: { ativa: 'lancamentos' | 'socias' | 'transferencias' | 'contas' | 'orcamento' | 'custos' | 'receitas' | 'categorias' | 'fechamento' | 'contador'; className?: string }) {
   return (
     <AbasPagina
       rotulo="Seções do financeiro"
@@ -15,6 +15,8 @@ export function AbasFinanceiro({ ativa, className = '!mt-0' }: { ativa: 'lancame
         { rotulo: 'Orçamento', icone: Gauge, href: '/financeiro/orcamento', ativa: ativa === 'orcamento' },
         { rotulo: 'Resultado por produto', icone: PieChart, href: '/financeiro/custos', ativa: ativa === 'custos' },
         { rotulo: 'Receita por canal', icone: Wallet, href: '/financeiro/receitas', ativa: ativa === 'receitas' },
+        { rotulo: 'Fechamento', icone: Lock, href: '/financeiro/fechamento', ativa: ativa === 'fechamento' },
+        { rotulo: 'Contador', icone: FileSpreadsheet, href: '/financeiro/contador', ativa: ativa === 'contador' },
         { rotulo: 'Categorias', icone: FolderTree, href: '/financeiro/categorias', ativa: ativa === 'categorias' },
       ]}
     />
