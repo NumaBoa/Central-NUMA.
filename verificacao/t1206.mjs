@@ -49,7 +49,7 @@ for (const largura of [1440, 768, 360]) {
 await c.tamanho(1440, 900);
 
 await passo('menu: Operação liberada, com as áreas ainda não construídas "Em breve"', async () => {
-  ok('Operação no menu leva às horas', await c.avaliar(`[...document.querySelectorAll('nav a')].some(a=>a.getAttribute('href')==='/operacao/horas'&&a.textContent.includes('Operação'))`));
+  ok('Operação no menu leva ao módulo', await c.avaliar(`[...document.querySelectorAll('nav a')].some(a=>a.getAttribute('href')==='/operacao'&&a.textContent.includes('Operação'))`));
   const abas = await texto('nav[aria-label="Áreas da Operação"]');
   ok('as abas do módulo estão lá', ['Implantações', 'Suporte', 'Regras de SLA', 'Incidentes', 'Horas', 'Notas de liberação', 'Estimado × realizado'].every((nome) => abas.includes(nome)), abas);
   ok('nada depende de fase', !(await texto()).includes('Fase'));

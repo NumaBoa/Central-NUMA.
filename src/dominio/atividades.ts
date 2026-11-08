@@ -13,6 +13,7 @@ import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { tintaDaCor } from './cores';
 import { normalizarTexto } from './duplicidade';
 import { ACOES_DE_ALERTA_F1, ROTULOS_ORIGEM_ALERTA_F1 } from './integracoes/meu-dia-f1';
+import { ACOES_DE_ALERTA_M12, ROTULOS_ORIGEM_ALERTA_M12 } from './integracoes/meu-dia-m12';
 
 type Situacao = Atividade['situacao'];
 
@@ -33,6 +34,7 @@ export const ACOES_DE_ALERTA: Readonly<Record<string, { rotulo: string; caminho:
   decidir_teste: { rotulo: 'Decidir: assinar ou cancelar', caminho: (id) => `/ferramentas/${id}` },
   renovar_dominio: { rotulo: 'Renovar', caminho: (id) => `/ferramentas/ativos/${id}` },
   ...ACOES_DE_ALERTA_F1,
+  ...ACOES_DE_ALERTA_M12,
 };
 
 /** O botão do alerta: o rótulo e o caminho até a origem. */
@@ -42,7 +44,7 @@ export function acaoDoAlerta(atividade: Pick<Atividade, 'alerta_acao' | 'origem_
 }
 
 /** Origens da F0a: as das outras fases entram junto com as telas delas (RT-23). */
-export const ROTULOS_ORIGEM_ALERTA: Readonly<Record<string, string>> = { titulo: 'Financeiro', ferramenta: 'Ferramentas', ativo: 'Ativos digitais', backup: 'Backup', ...ROTULOS_ORIGEM_ALERTA_F1 };
+export const ROTULOS_ORIGEM_ALERTA: Readonly<Record<string, string>> = { titulo: 'Financeiro', ferramenta: 'Ferramentas', ativo: 'Ativos digitais', backup: 'Backup', ...ROTULOS_ORIGEM_ALERTA_F1, ...ROTULOS_ORIGEM_ALERTA_M12 };
 
 export const MAXIMO_NO_TITULO = 140;
 
