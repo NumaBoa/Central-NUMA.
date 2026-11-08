@@ -165,14 +165,14 @@ const camposDoArquivo = {
   contem_fin: z.boolean(),
 };
 
-type CamposComuns = { classe: ClasseDeInformacao; pasta_restrita_confirmada: boolean; contem_fin: boolean; contem_precos: '' | 'sim' | 'nao'; precos_data: string };
+type CamposComuns = { tipo: TipoDeArquivo; classe: ClasseDeInformacao; pasta_restrita_confirmada: boolean; contem_fin: boolean; contem_precos: '' | 'sim' | 'nao'; precos_data: string };
 
 function conferirRegrasComuns(dados: CamposComuns, falha: (campo: string, mensagem: string) => void) {
   // RN-08.03.
   if (classeRestrita(dados.classe) && !dados.pasta_restrita_confirmada) falha('pasta_restrita_confirmada', 'Confirme que a pasta no Drive está restrita.');
   // T08.08.
-  if (dados.contem_fin && dados.classe === 'pub') falha('classe', 'Material com dados financeiros não pode ser PUB. Escolha INT, FIN ou DOC.');
-  if (dados.contem_precos === 'sim' && !dados.precos_data) falha('precos_data', 'Informe a data dos preços.');
+  if (dados.tipo === 'apresentacao' && dados.contem_fin && dados.classe === 'pub') falha('classe', 'Material com dados financeiros não pode ser PUB. Escolha INT, FIN ou DOC.');
+  if (dados.tipo === 'apresentacao' && dados.contem_precos === 'sim' && !dados.precos_data) falha('precos_data', 'Informe a data dos preços.');
 }
 
 export const esquemaFormularioArquivo = z
@@ -255,7 +255,7 @@ function dadosDoArquivo(formulario: EdicaoArquivo) {
     data_uso: apresentacao ? nulo(formulario.data_uso) : null,
     contem_precos: apresentacao && formulario.contem_precos ? formulario.contem_precos === 'sim' : null,
     precos_data: apresentacao && formulario.contem_precos === 'sim' ? nulo(formulario.precos_data) : null,
-    contem_fin: formulario.contem_fin,
+    contem_fin: apresentacao && formulario.contem_fin,
   };
 }
 

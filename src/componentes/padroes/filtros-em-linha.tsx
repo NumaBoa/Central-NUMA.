@@ -45,6 +45,10 @@ type FiltrosEmLinhaProps<F extends { busca: string }> = {
   soNaFolha?: (filtros: F, mudar: Mudar<F>) => ReactNode;
   ativos: readonly FiltroAtivo[];
   aoRemoverAtivo: (id: string) => void;
+  /** O nome do botão, como "Mais filtros". O padrão continua sendo "Filtros". */
+  rotuloAvancados?: string;
+  /** Quanto o botão ocupa com esse nome, para saber o que cabe na linha. */
+  larguraAvancados?: number;
 };
 
 const BUSCA_MINIMA = 160;
@@ -144,13 +148,13 @@ function FolhaDeFiltros<F>({ filtros, aoAplicar, aoLimpar, conteudo, botao }: { 
  * Filtros do M03, numa linha só: busca, seletores, "Filtros" e o que vier à direita. Sem espaço, o seletor
  * menos usado passa para dentro de "Filtros". No celular, sobram a busca e "Filtros"; o resto vai para a folha.
  */
-export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, aoLimpar, rotuloBusca, seletores, avancados, quantosAvancados, direita, larguraDireita = 0, soNaFolha, ativos, aoRemoverAtivo }: FiltrosEmLinhaProps<F>) {
+export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, aoLimpar, rotuloBusca, seletores, avancados, quantosAvancados, direita, larguraDireita = 0, soNaFolha, ativos, aoRemoverAtivo, rotuloAvancados = 'Filtros', larguraAvancados = LARGURA_DO_BOTAO_FILTROS }: FiltrosEmLinhaProps<F>) {
   const celular = useEhCelular();
   const { elemento, largura } = useLarguraDoElemento();
   const emUso = seletores.filter((seletor) => seletor.visivel?.(filtros) ?? true);
 
   // Do mais usado para o menos usado: o primeiro que não couber leva junto os que vêm depois.
-  let ocupado = BUSCA_MINIMA + ESPACO + LARGURA_DO_BOTAO_FILTROS + (larguraDireita ? ESPACO + larguraDireita : 0);
+  let ocupado = BUSCA_MINIMA + ESPACO + larguraAvancados + (larguraDireita ? ESPACO + larguraDireita : 0);
   let cabe = !celular;
   const naLinha: SeletorEmLinha<F>[] = [];
   const dentro: SeletorEmLinha<F>[] = [];
@@ -177,7 +181,7 @@ export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, 
   const botao = (
     <Button variante="secundario" className="shrink-0">
       <SlidersHorizontal aria-hidden />
-      {quantos ? `Filtros (${quantos})` : 'Filtros'}
+      {quantos ? `${rotuloAvancados} (${quantos})` : rotuloAvancados}
     </Button>
   );
 
@@ -195,7 +199,7 @@ export function FiltrosEmLinha<F extends { busca: string }>({ filtros, aoMudar, 
           <FolhaDeFiltros filtros={filtros} aoAplicar={(rascunho) => aoMudar(rascunho)} aoLimpar={aoLimpar} conteudo={conteudoDosFiltros} botao={botao} />
         ) : (
           <MenuSobreposto
-            titulo="Filtros"
+            titulo={rotuloAvancados}
             largura={360}
             gatilho={botao}
             acaoCabecalho={
