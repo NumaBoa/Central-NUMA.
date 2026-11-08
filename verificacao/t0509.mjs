@@ -17,11 +17,11 @@ await pularAbertura();
 await c.ate(`document.querySelector('main table')`);
 
 await passo('T05.09: por produto', async () => {
-  ok('a aba Custos por produto aparece no Financeiro', await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Seções do financeiro"] a[href="/financeiro/custos"][aria-current]'))`));
+  ok('a aba Resultado por produto aparece no Financeiro', await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Seções do financeiro"] a[href="/financeiro/custos"][aria-current]'))`));
   const nomes = await linhas();
   ok('uma linha por produto e a Numa institucional por último', nomes.at(-1) === 'Numa institucional' && nomes.length >= 2, js(nomes));
   const cabecalho = await texto('main table thead');
-  ok('diretos, compartilhados, total e custo médio', ['Diretos', 'Compartilhados (rateados)', 'Custo total', 'Custo médio mensal'].every((t) => cabecalho.includes(t)), cabecalho);
+  ok('diretos, compartilhados, total, receita, resultado e custo médio', ['Diretos', 'Compartilhados (rateados)', 'Custo total', 'Receita líquida', 'Resultado', 'Custo médio mensal'].every((t) => cabecalho.includes(t)), cabecalho);
   const m = await texto('main');
   ok('as notas obrigatórias', m.includes('Rateios não são saídas adicionais de caixa') && m.includes('são estimados pelo câmbio de referência'));
   ok('a base diz período, contexto e investimento', (await texto('[data-base-dos-custos]')).includes('Numa consolidada') && (await texto('[data-base-dos-custos]')).includes('com investimento'));

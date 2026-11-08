@@ -165,7 +165,29 @@ export async function salvarReceita(formulario: FormularioReceita, responsavelId
 }
 
 export type LinhaDaReceita = ReceitaCanal & { produto: string; canal: string; recebido: boolean };
-export type TelaDaReceita = { linhas: LinhaDaReceita[]; porMes: { competencia: string; liquida: number; bruta: number; moeda: string }[]; produtos: { id: string; nome: string }[]; canais: CanalVenda[] };
+/** Série mensal de assinantes: soma dos canais visíveis. Mês sem nenhum número informado não entra; campo sem número fica `null`, nunca zero. */
+export type AssinantesDoMes = { competencia: string; ativos: number | null; novos: number | null; cancelados: number | null };
+export type TelaDaReceita = { linhas: LinhaDaReceita[]; porMes: { competencia: string; liquida: number; bruta: number; moeda: string }[]; assinantesPorMes: AssinantesDoMes[]; produtos: { id: string; nome: string }[]; canais: CanalVenda[] };
+
+export function assinantesPorMes(linhas: readonly Pick<ReceitaCanal, 'competencia' | 'assinantes_ativos' | 'novos' | 'cancelados'>[]): AssinantesDoMes[] {
+  const soma = (doMes: typeof linhas, campo: 'assinantes_ativos' | 'novos' | 'cancelados') => {
+    const informados = doMes.map((linha) => linha[campo]).filter((valor): valor is number => valor !== null);
+    return informados.length ? informados.reduce((total, valor) => total + valor, 0) : null;
+  };
+  return [...new Set(linhas.map((linha) => linha.competencia))]
+    .sort()
+    .map((competencia) => {
+      const doMes = linhas.filter((linha) => linha.competencia === competencia);
+      return { competencia, ativos: soma(doMes, 'assinantes_ativos'), novos: soma(doMes, 'novos'), cancelados: soma(doMes, 'cancelados') };
+    })
+    .filter((mes) => mes.ativos !== null || mes.novos !== null || mes.cancelados !== null);
+}
+
+/** T11.13: o último mês lançado de um produto num canal (o que a relação de adesão mostra). Sem lançamento, `null`. */
+export function ultimaReceitaDoCanal<T extends Pick<ReceitaCanal, 'produto_id' | 'canal_id' | 'competencia'>>(receitas: readonly T[], produtoId: string, canalId: string | null): T | null {
+  if (!canalId) return null;
+  return receitas.filter((item) => item.produto_id === produtoId && item.canal_id === canalId).sort((a, b) => b.competencia.localeCompare(a.competencia))[0] ?? null;
+}
 
 /** A lista e os totais por mês (só em reais somam; outras moedas aparecem separadas na lista). */
 export async function carregarReceitas(contextoGlobalId: string): Promise<TelaDaReceita> {
@@ -180,5 +202,5 @@ export async function carregarReceitas(contextoGlobalId: string): Promise<TelaDa
     const doMes = linhas.filter((linha) => linha.moeda === 'BRL' && linha.competencia === competencia);
     return { competencia, liquida: redondo(doMes.reduce((soma, linha) => soma + linha.receita_liquida, 0)), bruta: redondo(doMes.reduce((soma, linha) => soma + linha.receita_bruta, 0)), moeda: 'BRL' };
   });
-  return { linhas, porMes, produtos, canais };
+  return { linhas, porMes, assinantesPorMes: assinantesPorMes(linhas), produtos, canais };
 }

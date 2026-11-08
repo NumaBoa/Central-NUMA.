@@ -26,17 +26,19 @@ import { useConsulta } from '@/dados/use-consulta';
 import { criarRelacaoAdesao, encerrarRelacaoAdesao, gerarTermosDeAssinatura } from '@/dominio/contrato-saas';
 import { MENSAGEM_CATALOGO_AUSENTE, precoVigente, type CanalDoCatalogo, type OfertaDoCatalogo } from '@/dominio/integracoes/catalogo-comercial';
 import { catalogoComercial } from '@/dominio/integracoes/conexoes';
+import { rotuloDoMes } from '@/dominio/lancamentos';
 import { ROTULOS_TIPO_DOCUMENTO_LEGAL } from '@/dominio/legal';
+import { ultimaReceitaDoCanal } from '@/dominio/receita-canal';
 import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
 
 async function carregar() {
   const catalogo = catalogoComercial();
-  const [relacoes, produtos, documentos, versoes, contratos, versoesContrato, canais] = await Promise.all([repositorios.relacao_adesao.listar(), repositorios.produto.listar(), repositorios.documento_legal.listar(), repositorios.documento_legal_versao.listar(), repositorios.contrato.listar(), repositorios.contrato_versao.listar(), catalogo.canais()]);
+  const [relacoes, produtos, documentos, versoes, contratos, versoesContrato, canais, receitas] = await Promise.all([repositorios.relacao_adesao.listar(), repositorios.produto.listar(), repositorios.documento_legal.listar(), repositorios.documento_legal_versao.listar(), repositorios.contrato.listar(), repositorios.contrato_versao.listar(), catalogo.canais(), repositorios.receita_canal.listar()]);
   const ofertas: OfertaDoCatalogo[] = [];
   for (const produto of produtos) ofertas.push(...(await catalogo.ofertasDoProduto(produto.id)));
   const precos = Object.fromEntries(await Promise.all(ofertas.map(async (oferta) => [oferta.id, await catalogo.precosDaOferta(oferta.id)] as const)));
-  return { relacoes, produtos, documentos, versoes, canais, ofertas, precos, excecoes: contratos.filter((contrato) => contrato.familia === 'adesao_condicao_especial').map((contrato) => ({ contrato, produto: versoesContrato.find((versao) => versao.contrato_id === contrato.id)?.dados_saas?.produto_id ?? null })) };
+  return { relacoes, produtos, documentos, versoes, canais, ofertas, precos, receitas, excecoes: contratos.filter((contrato) => contrato.familia === 'adesao_condicao_especial').map((contrato) => ({ contrato, produto: versoesContrato.find((versao) => versao.contrato_id === contrato.id)?.dados_saas?.produto_id ?? null })) };
 }
 type Dados = Awaited<ReturnType<typeof carregar>>;
 
@@ -63,7 +65,7 @@ function NovaRelacao({ dados, aoFechar }: { dados: Dados; aoFechar: () => void }
   );
 }
 
-/** T11.13: relações agregadas. Assinantes e receita vêm da receita por canal (T05.12), que ainda não existe. */
+/** T11.13: relações agregadas. Assinantes e receita vêm do último mês lançado na receita por canal (T05.12). */
 export function TelaAdesoes() {
   const roteador = useRouter();
   const consulta = useConsulta(carregar);
@@ -84,7 +86,20 @@ export function TelaAdesoes() {
     { id: 'canal', titulo: 'Canal', celula: (linha) => dados?.canais.find((canal) => canal.id === linha.canal_id)?.nome ?? 'Fora do catálogo' },
     { id: 'termos', titulo: 'Termos vigentes', celula: (linha) => versaoDosTermos(linha.documento_legal_id) },
     { id: 'preco', titulo: 'Preço vigente', celula: (linha) => { const preco = precoVigente(dados?.precos[linha.oferta_id] ?? [], { canalId: linha.canal_id, periodicidade: null, naData: hojeISO() }); return preco?.valor !== null && preco?.valor !== undefined ? formatarDinheiro(preco.valor, preco.moeda) : 'Não definido'; } },
-    { id: 'assinantes', titulo: 'Assinantes e receita', celula: () => <span className="text-ink-soft">Depende de T05.12</span> },
+    {
+      id: 'assinantes',
+      titulo: 'Assinantes e receita',
+      celula: (linha) => {
+        const ultima = ultimaReceitaDoCanal(dados?.receitas ?? [], linha.produto_id, linha.canal_id);
+        if (!ultima) return <span className="text-ink-soft">Nenhum mês lançado</span>;
+        return (
+          <span data-assinantes-da-relacao>
+            {ultima.assinantes_ativos === null ? 'Assinantes não informados' : `${ultima.assinantes_ativos} ativos`} · {formatarDinheiro(ultima.receita_liquida, ultima.moeda)}
+            <span className="block text-xs text-ink-soft">{rotuloDoMes(ultima.competencia.slice(0, 7))}</span>
+          </span>
+        );
+      },
+    },
     { id: 'situacao', titulo: 'Situação', essencial: true, celula: (linha) => <EtiquetaSituacao tipo={linha.situacao === 'ativa' ? 'sucesso' : 'neutro'}>{linha.situacao === 'ativa' ? 'Ativa' : `Encerrada em ${formatarDiaISO(linha.encerrada_em as string)}`}</EtiquetaSituacao> },
   ];
   return (
@@ -99,7 +114,13 @@ export function TelaAdesoes() {
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro aoTentarDeNovo={consulta.recarregar} />}
         <AvisoCatalogoDeExemplo />
-        <Faixa>Assinantes ativos e receita líquida por mês vêm da receita por canal (M05, T05.12), que ainda não foi construída. Até lá, a relação registra oferta, termos, canal e preço.</Faixa>
+        <Faixa>
+          Assinantes ativos e receita líquida vêm do último mês lançado em{' '}
+          <LinkCentral href="/financeiro/receitas" className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-0">
+            Financeiro › Receita por canal
+          </LinkCentral>
+          , pelo produto e canal da relação.
+        </Faixa>
         {dados && (
           <div className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-paper p-4">
             <Campo id="termos-produto" rotulo="Gerar os Termos de Assinatura públicos" ajuda="Sem contraparte, com aceite eletrônico. Vão para Documentos legais em rascunho, para validação e publicação.">

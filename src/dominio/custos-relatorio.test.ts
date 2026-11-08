@@ -4,7 +4,7 @@ import type { CategoriaFinanceira } from '@/dados/tipos/financeiro';
 import type { Baixa, Titulo, TituloRateio } from '@/dados/tipos/titulo';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import type { FontesDeCusto } from './custos-produto';
-import { custosPorCategoria, custosPorFerramenta, custosPorProduto, mesesDoPeriodo, partesDeCusto, periodoPadrao, totalConsolidado, type FiltrosDeCusto } from './custos-relatorio';
+import { custosPorCategoria, custosPorFerramenta, custosPorProduto, mesesDoPeriodo, partesDeCusto, partesDeReceita, periodoPadrao, resultado, totalConsolidado, type FiltrosDeCusto } from './custos-relatorio';
 
 const PRODUTOS = [
   { id: ID_PRODUTO_KIPI, nome: 'Kipi' },
@@ -60,6 +60,16 @@ describe('T05.09: custos e resultado por produto', () => {
   it('moeda sem câmbio deixa o total em aberto, nunca zero', () => {
     const fontes = { ...FONTES, titulos: [titulo('t9', { moeda: 'USD' })], rateios: [rateio('t9', ID_PRODUTO_KIPI, 100, 20)] };
     expect(totalConsolidado(partesDeCusto(fontes, FILTROS), ID_CONSOLIDADA)).toEqual({ valor: null, estimado: true });
+  });
+
+  it('F1: a receita líquida vem dos títulos a receber, pelo rateio; resultado = receita − custo', () => {
+    const fontes = { ...FONTES, titulos: [...FONTES.titulos, titulo('r1', { natureza: 'receber' }), titulo('r2', { natureza: 'receber', situacao: 'cancelado' })], rateios: [...FONTES.rateios, rateio('r1', ID_PRODUTO_KIPI, 100, 850), rateio('r2', ID_PRODUTO_KIPI, 100, 999)] };
+    const receitas = partesDeReceita(fontes, FILTROS);
+    expect(receitas.map((parte) => parte.tituloId)).toEqual(['r1']);
+    expect(partesDeCusto(fontes, FILTROS).some((parte) => parte.tituloId === 'r1')).toBe(false);
+    const kipi = custosPorProduto(partesDeCusto(fontes, { ...FILTROS, incluirInvestimento: false }), PRODUTOS, ID_CONSOLIDADA, new Map(), receitas).find((linha) => linha.contextoId === ID_PRODUTO_KIPI)!;
+    expect([kipi.total.valor, kipi.receita.valor, kipi.resultado.valor]).toEqual([250, 850, 600]);
+    expect(resultado({ valor: null, estimado: true }, { valor: 10, estimado: false })).toEqual({ valor: null, estimado: true });
   });
 
   it('período padrão: 3 meses completos e o atual', () => {

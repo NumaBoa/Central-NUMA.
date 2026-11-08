@@ -5,7 +5,7 @@ import { ID_KIMBERLY, ID_PRODUTO_KIPI } from '@/dados/exemplos/base';
 import { esquecerMetaEmMemoria } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import { esquemaFormularioCanal, FORMULARIO_CANAL_VAZIO, salvarCanal } from './precificacao';
-import { carregarReceitas, FORMULARIO_RECEITA_VAZIO, salvarReceita, taxaSugerida, vencimentoDoRepasse, type FormularioReceita } from './receita-canal';
+import { assinantesPorMes, ultimaReceitaDoCanal, carregarReceitas, FORMULARIO_RECEITA_VAZIO, salvarReceita, taxaSugerida, vencimentoDoRepasse, type FormularioReceita } from './receita-canal';
 
 describe('T05.12: receita por canal (RN-05.20 e RN-05.21)', () => {
   let canalId = '';
@@ -64,5 +64,20 @@ describe('T05.12: receita por canal (RN-05.20 e RN-05.21)', () => {
     expect(tela.linhas.map((linha) => linha.competencia)).toEqual(['2026-10-01', '2026-09-01']);
     expect(tela.porMes).toEqual([{ competencia: '2026-10-01', liquida: 850, bruta: 1000, moeda: 'BRL' }]);
     expect((await carregarReceitas('outro-produto')).linhas).toEqual([]);
+  });
+
+  it('a relação de adesão mostra o último mês do produto no canal', () => {
+    const receitas = [{ produto_id: 'p', canal_id: 'c', competencia: '2026-09-01' }, { produto_id: 'p', canal_id: 'c', competencia: '2026-10-01' }, { produto_id: 'p', canal_id: 'outro', competencia: '2026-11-01' }];
+    expect(ultimaReceitaDoCanal(receitas, 'p', 'c')?.competencia).toBe('2026-10-01');
+    expect(ultimaReceitaDoCanal(receitas, 'p', null)).toBeNull();
+    expect(ultimaReceitaDoCanal(receitas, 'x', 'c')).toBeNull();
+  });
+
+  it('a série de assinantes soma os canais do mês e não inventa zero', () => {
+    const linha = (competencia: string, ativos: number | null, novos: number | null = null) => ({ competencia, assinantes_ativos: ativos, novos, cancelados: null });
+    expect(assinantesPorMes([linha('2026-10-01', 40, 5), linha('2026-10-01', 2), linha('2026-09-01', null), linha('2026-08-01', 30)])).toEqual([
+      { competencia: '2026-08-01', ativos: 30, novos: null, cancelados: null },
+      { competencia: '2026-10-01', ativos: 42, novos: 5, cancelados: null },
+    ]);
   });
 });

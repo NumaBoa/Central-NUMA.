@@ -1,6 +1,6 @@
 'use client';
 
-/** T05.09 Custos e resultado por produto (F0b). Receita líquida e resultado gerencial entram com a F1. */
+/** T05.09 Resultado por produto: custos com rateio (F0b) e, desde 08/11/2026, receita líquida e resultado gerencial (F1). */
 import { useState, type ReactNode } from 'react';
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
@@ -35,10 +35,10 @@ const NATUREZAS = [
 ] as const;
 
 /** Falta de câmbio aparece escrita, nunca como zero; o estimado diz que é estimado. */
-function Valor({ soma, forte = false }: { soma: Soma; forte?: boolean }) {
+function Valor({ soma, forte = false, sinal = false }: { soma: Soma; forte?: boolean; sinal?: boolean }) {
   if (soma.valor === null) return <span className="text-warn">Falta câmbio</span>;
   return (
-    <span className={cn('whitespace-nowrap tabular-nums', forte && 'font-semibold')}>
+    <span className={cn('whitespace-nowrap tabular-nums', forte && 'font-semibold', sinal && soma.valor < 0 && 'text-warn')} data-valor={soma.valor}>
       {formatarDinheiro(soma.valor, 'BRL')}
       {soma.estimado && <span className="text-xs text-ink-soft"> (estimado)</span>}
     </span>
@@ -112,7 +112,7 @@ export function TelaCustos() {
   if (consulta.estado === 'erro' || !consulta.dados) {
     return (
       <>
-        <h1 className="mb-5">Custos por produto</h1>
+        <h1 className="mb-5">Resultado por produto</h1>
         <EstadoErro titulo="Não deu para ler os custos." texto="Os dados deste navegador podem estar danificados. Importe um backup ou restaure os exemplos em Configurações › Dados." aoTentarDeNovo={consulta.recarregar} />
       </>
     );
@@ -122,7 +122,7 @@ export function TelaCustos() {
 
   return (
     <div className="space-y-5">
-      <CabecalhoPagina kicker="Financeiro" titulo="Custos por produto" resumo="Quanto cada produto custa, com os rateios. Receita e resultado entram na F1." />
+      <CabecalhoPagina kicker="Financeiro" titulo="Resultado por produto" resumo="Quanto cada produto custa e quanto rende, com os rateios." />
       <AbasFinanceiro ativa="custos" />
 
       <div className="grid grid-cols-2 items-end gap-3 md:flex md:flex-wrap" role="group" aria-label="Filtros dos custos">
@@ -166,11 +166,11 @@ export function TelaCustos() {
       </div>
 
       <p className="text-[13px] text-ink-soft" data-base-dos-custos>
-        {periodo} · {contexto.nome} · {filtros.incluirInvestimento ? 'com investimento' : 'sem investimento'}. Total no período: <Valor soma={tela.total} forte />
+        {periodo} · {contexto.nome} · {filtros.incluirInvestimento ? 'com investimento' : 'sem investimento'}. Custo no período: <Valor soma={tela.total} forte /> · Receita líquida: <Valor soma={tela.receita} forte /> · Resultado: <Valor soma={tela.resultado} forte sinal />
       </p>
 
       {visao === 'produto' && (
-        <Quadro rotulo="Custos por produto">
+        <Quadro rotulo="Resultado por produto">
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className={TH}>
@@ -184,6 +184,12 @@ export function TelaCustos() {
               </th>
               <th scope="col" className={cn(TH, 'text-right')}>
                 Custo total
+              </th>
+              <th scope="col" className={cn(TH, 'text-right')}>
+                Receita líquida
+              </th>
+              <th scope="col" className={cn(TH, 'text-right')}>
+                Resultado
               </th>
               <th scope="col" className={cn(TH, 'text-right')}>
                 Custo médio mensal
@@ -204,6 +210,12 @@ export function TelaCustos() {
                 </td>
                 <td className={cn(TD, 'text-right')}>
                   <Valor soma={linha.total} forte />
+                </td>
+                <td className={cn(TD, 'text-right')} data-receita>
+                  <Valor soma={linha.receita} />
+                </td>
+                <td className={cn(TD, 'text-right')} data-resultado>
+                  <Valor soma={linha.resultado} forte sinal />
                 </td>
                 <td className={cn(TD, 'text-right text-[13px]')}>
                   {!linha.media ? (
@@ -270,6 +282,7 @@ export function TelaCustos() {
         <p>Rateios não são saídas adicionais de caixa: no total, cada despesa conta uma vez.</p>
         <p>Valores em moeda estrangeira em aberto são estimados pelo câmbio de referência.</p>
         <p>Reembolsos às sócias não entram: o custo já está na despesa original.</p>
+        <p>Receita líquida: os títulos a receber da competência (receita por canal e os demais), pelo rateio. Natureza e investimento filtram só o custo.</p>
       </div>
     </div>
   );

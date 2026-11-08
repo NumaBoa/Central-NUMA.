@@ -183,6 +183,39 @@ export function TelaReceitas() {
         </section>
       )}
 
+      {tela.assinantesPorMes.length > 0 && (
+        <section aria-label="Assinantes por mês" className="overflow-x-auto rounded-lg border border-line bg-paper p-4" data-assinantes-por-mes>
+          <h2 className="mb-3 text-sm font-semibold">Assinantes por mês</h2>
+          <table className="w-full border-collapse text-left text-[13px]">
+            <caption className="sr-only">Assinantes ativos no fim do mês, novos e cancelados, somando os canais</caption>
+            <thead>
+              <tr className="border-b border-line text-xs text-ink-soft">
+                {['Mês', 'Ativos', 'Novos', 'Cancelados'].map((titulo) => (
+                  <th key={titulo} scope="col" className={titulo === 'Mês' ? 'py-1.5 pr-3 font-semibold' : 'px-3 py-1.5 text-right font-semibold'}>
+                    {titulo}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tela.assinantesPorMes.map((mes) => (
+                <tr key={mes.competencia} className="border-b border-line last:border-0">
+                  <th scope="row" className="py-1.5 pr-3 font-medium whitespace-nowrap">
+                    {rotuloDoMes(mes.competencia.slice(0, 7))}
+                  </th>
+                  {[mes.ativos, mes.novos, mes.cancelados].map((valor, indice) => (
+                    <td key={indice} className="px-3 py-1.5 text-right tabular-nums">
+                      {valor === null ? <span className="text-ink-soft">—</span> : valor}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-ink-soft">Soma dos canais lançados no mês. Canal sem o número informado não entra na soma.</p>
+        </section>
+      )}
+
       {tela.linhas.length ? (
         <div className="overflow-x-auto rounded-lg border border-line bg-paper">
           <table className="w-full border-collapse text-left text-sm">

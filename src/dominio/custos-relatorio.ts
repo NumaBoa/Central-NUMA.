@@ -3,6 +3,8 @@
  * (RN-07.11, AR-04): despesa a pagar, sem reembolso (RN-05.07), sem cancelado nem suspenso; moeda estrangeira paga
  * pelo valor efetivo, em aberto pelo câmbio de referência (estimado), e sem câmbio "falta câmbio", nunca zero.
  * RN-05.09: por produto, valor × percentual do rateio; no consolidado, cada despesa conta uma vez (CA-05.06).
+ * Desde 08/11/2026 (F1), "Resultado por produto": a receita líquida são os títulos a receber da competência
+ * (a receita por canal da T05.12 e os demais), pelo mesmo rateio e a mesma regra de câmbio; resultado = receita − custo.
  */
 import { repositorios } from '@/dados/repositorios';
 import type { CategoriaFinanceira } from '@/dados/tipos/financeiro';
@@ -77,16 +79,39 @@ export function partesDeCusto(fontes: FontesDeCusto, filtros: FiltrosDeCusto): P
 
 const doContexto = (partes: readonly ParteDeCusto[], contextoId: string) => (contextoId === ID_CONSOLIDADA ? partes : partes.filter((parte) => (parte.produtoId ?? ID_INSTITUCIONAL) === contextoId));
 
-export type LinhaPorProduto = { contextoId: string; nome: string; direto: Soma; compartilhado: Soma; total: Soma; media: CustoMedio | null };
+export type LinhaPorProduto = { contextoId: string; nome: string; direto: Soma; compartilhado: Soma; total: Soma; receita: Soma; resultado: Soma; media: CustoMedio | null };
 
-/** Visão "Por produto": diretos + compartilhados rateados = total. A Numa institucional vem por último. */
-export function custosPorProduto(partes: readonly ParteDeCusto[], produtos: readonly { id: string; nome: string }[], contextoId: string, medias: ReadonlyMap<string, CustoMedio>): LinhaPorProduto[] {
+/**
+ * A receita líquida rateada da competência: títulos a receber, sem cancelado nem suspenso. Natureza e investimento
+ * são filtros de custo e não se aplicam à receita.
+ */
+export function partesDeReceita(fontes: FontesDeCusto, filtros: Pick<FiltrosDeCusto, 'de' | 'ate'>): ParteDeCusto[] {
+  const porTitulo = new Map<string, TituloRateio[]>();
+  for (const rateio of fontes.rateios) porTitulo.set(rateio.titulo_id, [...(porTitulo.get(rateio.titulo_id) ?? []), rateio]);
+  return fontes.titulos.flatMap((titulo) => {
+    if (titulo.arquivado_em || titulo.natureza !== 'receber' || titulo.situacao === 'cancelado' || titulo.suspenso) return [];
+    const mes = titulo.competencia.slice(0, 7);
+    if (mes < filtros.de || mes > filtros.ate) return [];
+    const rateios = porTitulo.get(titulo.id) ?? [];
+    return rateios.map((rateio) => ({ tituloId: titulo.id, produtoId: rateio.produto_id, competencia: mes, categoriaId: titulo.categoria_id, natureza: null, ...valorDaParte(titulo, rateio, fontes), compartilhado: rateios.length > 1, ferramentaId: null }));
+  });
+}
+
+/** Receita − custo; sem câmbio em qualquer lado, o resultado fica em aberto. */
+export function resultado(receita: Soma, custo: Soma): Soma {
+  return { valor: receita.valor === null || custo.valor === null ? null : redondo(receita.valor - custo.valor), estimado: receita.estimado || custo.estimado };
+}
+
+/** Visão "Por produto": diretos + compartilhados rateados = total, a receita líquida e o resultado. A Numa institucional vem por último. */
+export function custosPorProduto(partes: readonly ParteDeCusto[], produtos: readonly { id: string; nome: string }[], contextoId: string, medias: ReadonlyMap<string, CustoMedio>, receitas: readonly ParteDeCusto[] = []): LinhaPorProduto[] {
   const contextos = [...[...produtos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((produto) => ({ contextoId: produto.id, nome: produto.nome })), { contextoId: ID_INSTITUCIONAL, nome: 'Numa institucional' }];
   return contextos
     .filter((contexto) => contextoId === ID_CONSOLIDADA || contexto.contextoId === contextoId)
     .map((contexto) => {
       const deste = doContexto(partes, contexto.contextoId);
-      return { ...contexto, direto: somar(deste.filter((parte) => !parte.compartilhado)), compartilhado: somar(deste.filter((parte) => parte.compartilhado)), total: somar(deste), media: medias.get(contexto.contextoId) ?? null };
+      const total = somar(deste);
+      const receita = somar(doContexto(receitas, contexto.contextoId));
+      return { ...contexto, direto: somar(deste.filter((parte) => !parte.compartilhado)), compartilhado: somar(deste.filter((parte) => parte.compartilhado)), total, receita, resultado: resultado(receita, total), media: medias.get(contexto.contextoId) ?? null };
     });
 }
 
@@ -156,6 +181,8 @@ export type TelaDeCustos = {
   meses: string[];
   porProduto: LinhaPorProduto[];
   total: Soma;
+  receita: Soma;
+  resultado: Soma;
   porCategoria: LinhaPorCategoria[];
   porFerramenta: LinhaPorFerramenta[];
   institucional: LinhaPorCategoria[];
@@ -164,13 +191,18 @@ export type TelaDeCustos = {
 export async function carregarCustos(filtros: FiltrosDeCusto, contextoId: string, hoje: string): Promise<TelaDeCustos> {
   const [fontes, produtos, ferramentas] = await Promise.all([lerFontes(), repositorios.produto.listar(), repositorios.ferramenta.listar({ incluirArquivados: true })]);
   const partes = partesDeCusto(fontes, filtros);
+  const receitas = partesDeReceita(fontes, filtros);
+  const total = totalConsolidado(partes, contextoId);
+  const receita = totalConsolidado(receitas, contextoId);
   const meses = mesesDoPeriodo(filtros.de, filtros.ate);
   // O custo médio (RN-07.11) é o mesmo do simulador: 3 meses completos, sem investimento, independente do filtro.
   const medias = new Map(produtos.map((produto) => [produto.id, calcularCustoMedio(produto.id, fontes, hoje)]));
   return {
     meses,
-    porProduto: custosPorProduto(partes, produtos, contextoId, medias),
-    total: totalConsolidado(partes, contextoId),
+    porProduto: custosPorProduto(partes, produtos, contextoId, medias, receitas),
+    total,
+    receita,
+    resultado: resultado(receita, total),
     porCategoria: custosPorCategoria(partes, fontes.categorias, contextoId, meses),
     porFerramenta: custosPorFerramenta(partes, ferramentas, produtos, contextoId),
     institucional: custosPorCategoria(partes.filter((parte) => parte.produtoId === null), fontes.categorias, ID_CONSOLIDADA, meses),

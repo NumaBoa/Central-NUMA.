@@ -67,9 +67,30 @@ await passo('T05.12: lançar o mês gera o título a receber, aberto', async () 
   const m = await pagina();
   ok('a lista mostra a linha e o título a receber', m.includes('Kipi · Loja de teste') && m.includes('A receber') && m.includes('42 ativos'));
   ok('a soma do mês em reais', m.includes('Receita líquida por mês (R$)'));
+  ok('a série de assinantes do mês', (await texto('[data-assinantes-por-mes]')).includes('42'));
+});
+
+await passo('a receita chega ao Resultado por produto, à projeção de caixa e às adesões', async () => {
+  await ir('/financeiro/custos');
+  await c.ate(`document.querySelector('main table [data-receita]')`);
+  ok('a aba se chama Resultado por produto', (await texto('main h1')) === 'Resultado por produto');
+  const kipi = await c.avaliar(`(()=>{const l=[...document.querySelectorAll('main table tbody tr')].find(t=>t.querySelector('th')?.textContent.trim()==='Kipi');return l&&{receita:Number(l.querySelector('[data-receita] [data-valor]')?.dataset.valor),resultado:l.querySelector('[data-resultado]')?.textContent.trim()}})()`);
+  ok('Kipi: receita líquida de 850 e resultado calculado', kipi && kipi.receita === 850 && /R\$|Falta câmbio/.test(kipi.resultado ?? ''), js(kipi));
+  await ir('/financeiro/contas');
+  await c.ate(`document.querySelector('[data-projecao-de-caixa]')`);
+  const horizontes = await c.avaliar(`[...document.querySelectorAll('[data-horizonte]')].map(h=>h.dataset.horizonte)`);
+  ok('projeção de 30, 60 e 90 dias', js(horizontes) === js(['30', '60', '90']), js(horizontes));
+  const receber = await c.avaliar(`Number(document.querySelector('[data-horizonte="30"] dd:nth-of-type(2) [data-valor]')?.dataset.valor)`);
+  ok('o título do canal entra no a receber', receber >= 850, String(receber));
+  await conferirTela('t0512-projecao', 1440);
+  await ir('/contratos/adesoes');
+  await c.ate(`document.querySelector('main h1')?.textContent==='Adesão padrão'`);
+  ok('adesões já não dizem "Depende de T05.12"', !(await pagina()).includes('Depende de T05.12'));
 });
 
 await passo('T05.12: um lançamento por produto × canal × competência', async () => {
+  await ir('/financeiro/receitas');
+  await c.ate(`document.querySelector('main table')`);
   await clicarBotao('Lançar receita');
   await painelAberto();
   await c.espera(320);

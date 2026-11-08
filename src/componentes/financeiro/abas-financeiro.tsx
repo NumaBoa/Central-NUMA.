@@ -13,7 +13,7 @@ export function AbasFinanceiro({ ativa }: { ativa: 'lancamentos' | 'socias' | 't
         { rotulo: 'Transferências', icone: ArrowLeftRight, href: '/financeiro/transferencias', ativa: ativa === 'transferencias' },
         { rotulo: 'Contas e saldos', icone: Landmark, href: '/financeiro/contas', ativa: ativa === 'contas' },
         { rotulo: 'Orçamento', icone: Gauge, href: '/financeiro/orcamento', ativa: ativa === 'orcamento' },
-        { rotulo: 'Custos por produto', icone: PieChart, href: '/financeiro/custos', ativa: ativa === 'custos' },
+        { rotulo: 'Resultado por produto', icone: PieChart, href: '/financeiro/custos', ativa: ativa === 'custos' },
         { rotulo: 'Receita por canal', icone: Wallet, href: '/financeiro/receitas', ativa: ativa === 'receitas' },
       ]}
     />
