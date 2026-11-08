@@ -1,5 +1,5 @@
 // Verificação do M06 (T06.01 a T06.09) no sistema real: painel, sócias, acordos e vigência, ativos a transferir, marcas,
-// constituição com a ativação da entidade, entidade, obrigações (F1) e reuniões e decisões. Larguras: 1440, 1024, 768 e 360.
+// constituição com a ativação da entidade, entidade, obrigações e reuniões e decisões. Larguras: 1440, 1024, 768 e 360.
 import { ID_CAMILA, ID_KIMBERLY, iniciar } from './apoio.mjs';
 
 const h = await iniciar({ nome: 'm06', porta: 9406 });
@@ -42,10 +42,6 @@ const comoPessoa = async (id) => {
   await alterarMeta(`m.pessoa_atual_id=${js(id)}`);
   await c.recarregar();
 };
-const mudarFase = async (fase) => {
-  await c.avaliar(`(()=>{const k='numa-central:v1:configuracao';const t=JSON.parse(localStorage.getItem(k));const l=t.find(x=>x.chave==='fase_ativa');l.valor=${js(fase)};localStorage.setItem(k,JSON.stringify(t))})()`);
-  await c.recarregar();
-};
 const esperarTexto = async (parte, onde = 'main') => {
   const condicao = `(document.querySelector(${js(onde)})?.textContent??'').replace(/\\s+/g,' ').includes(${js(parte)})`;
   try {
@@ -72,7 +68,7 @@ await passo('T06.01: painel da empresa, com a fase ainda não ativa', async () =
   ok('entidade planejada, sem CNPJ, regime ou contador inventados', p.includes('Planejada') && p.includes('CNPJNão definido') && p.includes('RegimeNão definido') && p.includes('ContadorNão escolhido'));
   ok('constituição em 0 de 17', p.includes('0 de 17 itens concluídos'));
   ok('aviso das marcas provisórias (CA-06.04)', p.includes('Verificar disponibilidade antes de investir em identidade'));
-  ok('decisões e obrigações nos estados vazios', p.includes('Nenhuma decisão registrada.') && p.includes('Nenhuma obrigação ativa: as ocorrências começam com a Fase 1.'));
+  ok('decisões e obrigações nos estados vazios', p.includes('Nenhuma decisão registrada.') && p.includes('Nenhuma obrigação ativa. O cadastro é definido com o contador.'));
   ok('a aba Obrigações tem link em qualquer fase', await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Seções da empresa"] a')].some(a=>a.textContent.includes('Obrigações'))`));
   ok('investimento vindo do Financeiro', p.includes('Investimento das sócias') && p.includes('Ver no Financeiro'));
   await clicarBotao('Ver jornada completa');
@@ -437,10 +433,10 @@ await passo('T06.07: a entidade, sem um segundo cadastro', async () => {
   ok('nenhuma conta da PJ ainda', (await pagina()).includes('Nenhuma conta em nome desta entidade.'));
 });
 
-await passo('T06.08: obrigações respeitam a F1; alerta, título e cumprimento sem duplicar', async () => {
+await passo('T06.08: obrigações sem fase da Numa; alerta, título e cumprimento sem duplicar', async () => {
   await ir('/empresa/obrigacoes');
   await esperarTexto('Nenhuma obrigação cadastrada.');
-  ok('a F1 decide as ocorrências, e nada é presumido', (await pagina()).includes('As obrigações geram ocorrências a partir da Fase 1') && (await pagina()).includes('Nenhuma obrigação fiscal é presumida'));
+  ok('sem fase da Numa, e nada é presumido', !(await pagina()).includes('Fase 1') && (await pagina()).includes('Nenhuma obrigação fiscal é presumida'));
   await clicarBotao('Nova obrigação');
   await painelAberto();
   await preencher('obrigacao-nome', 'Obrigação de verificação');
@@ -450,16 +446,11 @@ await passo('T06.08: obrigações respeitam a F1; alerta, título e cumprimento 
   await c.ate(`document.getElementById('obrigacao-categoria_id')`);
   await c.avaliar(`(()=>{const s=document.getElementById('obrigacao-categoria_id');const o=[...s.options].find(o=>o.value);Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,o.value);s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
   await preencher('obrigacao-valor_estimado', '150,00');
-  await escolher('obrigacao-situacao', 'ativa');
-  await naJanela('Salvar');
-  await c.espera(250);
-  ok('antes da F1, Ativa não salva', (await erroDe('obrigacao-situacao')).includes('a partir da Fase 1'));
   await escolher('obrigacao-situacao', 'rascunho');
   await naJanela('Salvar');
   await esperarAviso('Obrigação cadastrada.');
   await painelFechado();
   ok('rascunho não gera ocorrência', (await tabela('obrigacao_corporativa_ocorrencia')).length === 0);
-  await mudarFase('f1');
   const obrigacao = (await tabela('obrigacao_corporativa'))[0];
   await ir(`/empresa/obrigacoes/${obrigacao.id}`);
   await esperarTexto('Ocorrências');
@@ -472,7 +463,7 @@ await passo('T06.08: obrigações respeitam a F1; alerta, título e cumprimento 
   await esperarTexto('Em aberto');
   const ocorrencias = await tabela('obrigacao_corporativa_ocorrencia');
   const titulos = (await tabela('titulo')).filter((linha) => linha.origem === 'obrigacao_corporativa');
-  ok('ativa na F1: uma ocorrência, um alerta, um título previsto', ocorrencias.length === 1 && titulos.length === 1 && titulos[0].situacao === 'previsto' && (await tabela('atividade')).filter((linha) => linha.origem_tipo === 'obrigacao_ocorrencia').length === 1);
+  ok('ativa: uma ocorrência, um alerta, um título previsto', ocorrencias.length === 1 && titulos.length === 1 && titulos[0].situacao === 'previsto' && (await tabela('atividade')).filter((linha) => linha.origem_tipo === 'obrigacao_ocorrencia').length === 1);
   await ir('/configuracoes/dados');
   await c.ate(`${botao('Rodar rotinas agora')}`);
   await clicarBotao('Rodar rotinas agora');
@@ -491,7 +482,6 @@ await passo('T06.08: obrigações respeitam a F1; alerta, título e cumprimento 
   await painelFechado();
   const alerta = (await tabela('atividade')).find((linha) => linha.origem_tipo === 'obrigacao_ocorrencia');
   ok('o alerta se resolve; o título continua previsto (sem pagamento presumido)', alerta.situacao === 'concluida' && (await tabela('titulo')).find((linha) => linha.origem === 'obrigacao_corporativa').situacao === 'previsto');
-  await mudarFase('f0a');
 });
 
 await passo('T06.09: reunião, ações no Meu dia e decisão inline (RN-06.14, CA-06.07)', async () => {
