@@ -12,6 +12,7 @@ import { ROTULOS_SITUACAO_TITULO } from './titulos';
 import { normalizarTexto } from './duplicidade';
 import { ROTULOS_SITUACAO_FERRAMENTA } from './ferramentas';
 import { ROTULOS_TIPO } from './pessoas';
+import { candidatosDoM08 } from './integracoes/busca-m08';
 
 export const MINIMO_PARA_BUSCAR = 2;
 const POR_GRUPO = 5;
@@ -51,6 +52,7 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
   const termo = normalizarTexto(busca).trim();
   if (termo.length < MINIMO_PARA_BUSCAR) return [];
   const [meuDia, contrapartes, pessoas, produtos, marcas, ferramentas, ativos, titulos] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.ferramenta.listar(), repositorios.ativo_digital.listar(), repositorios.titulo.listar()]);
+  const doM08 = await candidatosDoM08();
 
   const grupos = [
     montarGrupo(
@@ -154,6 +156,7 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
       })),
       termo,
     ),
+    ...doM08.map(({ tipo, rotulo, candidatos }) => montarGrupo(tipo, rotulo, candidatos, termo)),
   ].filter((grupo): grupo is GrupoDaBusca => grupo !== null);
 
   const temCodigoExato = (grupo: GrupoDaBusca) => grupo.itens.some((item) => item.codigo && normalizarTexto(item.codigo) === termo);

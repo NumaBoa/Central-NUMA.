@@ -11,6 +11,7 @@ import { idDaPessoaAtual, pessoaAtual } from '@/dados/sessao';
 import { NOMES_TABELAS, TABELAS, VERSAO_DADOS, type Tabela } from '@/dados/tabelas';
 import { TABELAS_F1_FORA_DA_CONTAGEM } from '@/dados/tabelas-f1';
 import { TABELAS_M08_FORA_DA_CONTAGEM } from '@/dados/tabelas-m08';
+import { limparReferenciasM08 } from './integracoes/limpeza-m08';
 import type { PessoaArea } from '@/dados/tipos/area';
 import type { Entidade, EntidadeRepresentante } from '@/dados/tipos/contraparte';
 import type { EventoAuditoria } from '@/dados/tipos/auditoria';
@@ -339,6 +340,7 @@ export async function limparExemplos(): Promise<number> {
   novasLinhas.comentario = (novasLinhas.comentario as Comentario[]).filter((comentario) => !idsRemovidos.has(comentario.registro_id));
   novasLinhas.anexo_link = (novasLinhas.anexo_link as AnexoLink[]).filter((anexo) => !idsRemovidos.has(anexo.registro_id));
   novasLinhas.vinculo = (novasLinhas.vinculo as Vinculo[]).filter((vinculo) => !idsRemovidos.has(vinculo.origem_id) && !idsRemovidos.has(vinculo.destino_id));
+  limparReferenciasM08(novasLinhas, idsRemovidos, quemResponde);
   // Conta de exemplo com movimento de verdade fica, e deixa de ser exemplo: baixa, transferência e aporte não existem sem a conta.
   const contasComBaixaReal = new Set<string | null>([
     ...(novasLinhas.baixa as Baixa[]).map((baixa) => baixa.conta_financeira_id),

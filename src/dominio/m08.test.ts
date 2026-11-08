@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { chaveDaTabela, criarArmazenamentoEmMemoria, gravarTabelas, lerTabela, usarDriverDeTeste, type Driver } from '@/dados/armazenamento';
 import { garantirCarga, tabelasIniciais } from '@/dados/carga';
 import { ID_IDENTIDADE_NUMA } from '@/dados/carga-m08';
-import { ID_KIMBERLY, ID_MARCA_KIPI, ID_MARCA_NUMA, ID_PRODUTO_KIPI, ID_PRODUTO_ZUPI } from '@/dados/exemplos/base';
+import { ID_BRUNA, ID_KIMBERLY, ID_MARCA_KIPI, ID_MARCA_NUMA, ID_PRODUTO_KIPI, ID_PRODUTO_ZUPI } from '@/dados/exemplos/base';
 import { listarHistorico } from '@/dados/historico';
 import { esquecerMetaEmMemoria, gravarMeta, lerMeta } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
@@ -44,6 +44,9 @@ import { carregarCampanhas, CRITERIO_DE_ORIGEM, criarCampanha, esquemaFormulario
 import { podeVerClasse } from './classes';
 import { cancelarPeca, criarPeca, diaNoCalendario, esquemaFormularioPeca, filtrarPecas, FILTROS_CONTEUDO_INICIAIS, formularioDaPeca, formularioPecaVazio, moverPeca, mudarMes, salvarPeca, semanasDoMes, type FormularioPeca } from './conteudo';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
+import { buscarNaCentral } from './busca';
+import { limparExemplos } from './dados';
+import { provedorDoDrive } from './integracoes/drive';
 import { historicoDoRegistro } from './historico';
 import { arquivosDaMarca, avaliarContraste, carregarIdentidades, formularioDaIdentidade, redesDaMarca, salvarIdentidade, TIPOS_DE_LOGO } from './identidade-marcas';
 import {
@@ -194,6 +197,50 @@ describe('M08 Biblioteca, marcas e marketing', () => {
       const { id: _id, codigo: _codigo, ...resto } = (await repositorios.arquivo.obter(antigo.id))!;
       await repositorios.arquivo.criar({ ...resto, titulo: 'Outro com o mesmo arquivo' });
       await expect(restaurarArquivo(antigo.id)).rejects.toThrow(/Não dá para restaurar/);
+    });
+  });
+
+  describe('limpar exemplos', () => {
+    it('leva o que dependia dos exemplos, sem deixar dado pessoal órfão, e mantém o que é de verdade', async () => {
+      garantirCarga();
+      const real = await criarArquivo(arquivo(1));
+      const dados = await carregarListas();
+      const [listaDeExemplo] = dados.listas;
+      const [campanhaDeExemplo] = dados.campanhas;
+      const inscritoReal = await adicionarInscrito(listaDeExemplo!.id, { ...FORMULARIO_INSCRITO_VAZIO, email: 'real@teste.com' });
+      const pecaReal = await criarPeca(peca({ campanha_id: campanhaDeExemplo!.id, responsavel_id: ID_BRUNA }));
+      await vincularArquivo(real.id, 'campanha', campanhaDeExemplo!.id);
+      await limparExemplos();
+      expect((await repositorios.arquivo.listar()).map((item) => item.id)).toEqual([real.id]);
+      expect(await repositorios.arquivo_versao.listar({ onde: { arquivo_id: real.id } })).toHaveLength(1);
+      expect(await repositorios.lista_espera.listar()).toEqual([]);
+      expect(await repositorios.inscrito.obter(inscritoReal.id)).toBeNull();
+      expect(await repositorios.consentimento_texto.listar()).toEqual([]);
+      expect(await repositorios.arquivo_vinculo.listar({ onde: { arquivo_id: real.id } })).toEqual([]);
+      const salva = await repositorios.peca_conteudo.obter(pecaReal.id);
+      expect(salva?.campanha_id).toBeNull();
+      expect(salva?.responsavel_id).not.toBe(ID_BRUNA);
+      expect((await repositorios.marca_identidade.listar()).length).toBe(1);
+    });
+  });
+
+  describe('Drive', () => {
+    it('sem integração, não há nome nem miniatura, e nada finge que há', async () => {
+      const drive = provedorDoDrive();
+      expect(drive.estado).toBe('ausente');
+      expect(await drive.nomeDoArquivo('x')).toBeNull();
+      expect(await drive.miniatura('x')).toBeNull();
+    });
+  });
+
+  describe('busca global', () => {
+    it('acha arquivo, campanha, peça e lista; e-mail de inscrito não aparece', async () => {
+      const rotulos = async (termo: string) => (await buscarNaCentral(termo)).map((grupo) => grupo.rotulo);
+      expect(await rotulos('manual de marca')).toContain('Biblioteca');
+      expect(await rotulos('lançamento kipi')).toContain('Campanhas');
+      expect(await rotulos('bastidores')).toContain('Conteúdo');
+      expect(await rotulos('zupi: novidades')).toContain('Listas de espera');
+      expect(await rotulos('marina@exemplo.com.br')).toEqual([]);
     });
   });
 
