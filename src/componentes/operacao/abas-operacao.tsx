@@ -12,7 +12,7 @@ const AREAS: readonly { id: AreaOperacao; rotulo: string; icone: typeof Rocket; 
   { id: 'sla', rotulo: 'Regras de SLA', icone: Gauge, href: '/operacao/sla' },
   { id: 'incidentes', rotulo: 'Incidentes', icone: ShieldAlert, href: '/operacao/incidentes' },
   { id: 'horas', rotulo: 'Horas', icone: Clock, href: '/operacao/horas' },
-  { id: 'notas', rotulo: 'Notas de liberação', icone: Megaphone },
+  { id: 'notas', rotulo: 'Notas de liberação', icone: Megaphone, href: '/operacao/notas' },
   { id: 'estimado', rotulo: 'Estimado × realizado', icone: BarChart3 },
 ];
 
