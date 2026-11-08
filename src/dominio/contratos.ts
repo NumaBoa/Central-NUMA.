@@ -750,8 +750,8 @@ export async function previaDaProgramacao(contratoId: string, hoje: string = hoj
       aguardando.push({ descricao: item.descricao, motivo: 'Sem valor definido: nada é gerado.' });
       continue;
     }
-    const empurrar = (periodoInicio: string, periodoFim: string, vencimento: string, valor: number) => {
-      const chave = chaveDoTitulo(contratoId, versao.id, item.id, periodoInicio);
+    const empurrar = (periodoInicio: string, periodoFim: string, vencimento: string, valor: number, sufixo = '') => {
+      const chave = chaveDoTitulo(contratoId, versao.id, item.id, `${periodoInicio}${sufixo}`);
       linhas.push({ chave, itemId: item.id, descricao: item.descricao, periodo_inicio: periodoInicio, periodo_fim: periodoFim, competencia: `${periodoInicio.slice(0, 7)}-01`, vencimento, valor, natureza, jaGerado: chaves.has(chave), aviso: avisoDeVencimento(vencimento, feriados), produtoId: item.produto_id, recorrente: item.recorrente });
     };
     if (item.recorrente && item.periodicidade && PERIODO_EM_MESES[item.periodicidade]) {
@@ -777,6 +777,9 @@ export async function previaDaProgramacao(contratoId: string, hoje: string = hoj
     // Único: as parcelas das condições, ou uma só no início.
     const parcelas = versao.condicoes.parcelas.length ? versao.condicoes.parcelas : [{ percentual: 100, gatilho: 'evento' as const, data: null, evento: null }];
     let somado = 0;
+    // Duas parcelas no mesmo dia (ex.: 50% na assinatura e 50% no aceite, no mesmo dia) não podem ter a mesma chave. A
+    // primeira de cada data mantém a chave de sempre, para não duplicar o que já foi gerado; as seguintes levam a parcela.
+    const datasUsadas = new Set<string>();
     parcelas.forEach((parcela, indice) => {
       const valor = indice === parcelas.length - 1 ? arredondar(item.valor_total! - somado) : arredondar((item.valor_total! * parcela.percentual) / 100);
       somado = arredondar(somado + valor);
@@ -785,7 +788,8 @@ export async function previaDaProgramacao(contratoId: string, hoje: string = hoj
         aguardando.push({ descricao: `${item.descricao} (${parcela.percentual}%)`, motivo: `Pendente: aguardando ${parcela.evento ?? 'o início da vigência'}.` });
         return;
       }
-      empurrar(data, data, data, valor);
+      empurrar(data, data, data, valor, datasUsadas.has(data) ? `#parcela-${indice + 1}` : '');
+      datasUsadas.add(data);
     });
   }
   return { linhas, aguardando, janelaAte };

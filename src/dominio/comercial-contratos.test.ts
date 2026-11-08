@@ -1,3 +1,4 @@
+import type { CondicoesContrato } from '@/dados/tipos/contrato';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { criarArmazenamentoEmMemoria, usarDriverDeTeste } from '@/dados/armazenamento';
 import { CATEGORIAS_INICIAIS, ID_CAMILA, ID_KIMBERLY, ID_PRODUTO_KIPI } from '@/dados/exemplos/base';
@@ -199,11 +200,11 @@ describe('M10 e M11', () => {
   });
 
   describe('M11', () => {
-    async function contratoAssinado({ inicio = null as string | null } = {}) {
+    async function contratoAssinado({ inicio = null as string | null, parcelas = [] as CondicoesContrato['parcelas'] } = {}) {
       const { proposta } = await propostaAceita();
       const { contrato } = await converterPropostaEmContrato(proposta.id);
       const ficha = (await carregarContrato(contrato.id, HOJE))!;
-      await salvarVersao(ficha.atual.id, { modelo_versao_id: await modeloValidado('contrato'), vigencia_duracao_meses: 12, vigencia_inicio_evento: inicio ? 'data_fixa' : 'assinatura', vigencia_inicio: inicio, condicoes: { ...ficha.atual.condicoes, forma_pagamento: 'pix', dia_vencimento: 10, renovacao_tipo: 'mediante_aditivo', aviso_previo_dias: 30 } }, HOJE);
+      await salvarVersao(ficha.atual.id, { modelo_versao_id: await modeloValidado('contrato'), vigencia_duracao_meses: 12, vigencia_inicio_evento: inicio ? 'data_fixa' : 'assinatura', vigencia_inicio: inicio, condicoes: { ...ficha.atual.condicoes, forma_pagamento: 'pix', dia_vencimento: 10, renovacao_tipo: 'mediante_aditivo', aviso_previo_dias: 30, ...(parcelas.length ? { parcelas } : {}) } }, HOJE);
       await definirSignatarios(ficha.atual.id, 'numa', [ID_KIMBERLY]);
       const representante = await repositorios.pessoa.criar({ nome_completo: 'Ana do Café', nome_exibicao: null, tipo: 'externa', eh_socia: false, contraparte_id: contrato.contraparte_id, papeis_contato: [], funcao: null, email: null, telefone: null, cpf: null, observacoes: null, situacao: 'ativa' });
       await definirSignatarios(ficha.atual.id, 'contraparte', [representante.id]);
@@ -299,6 +300,18 @@ describe('M10 e M11', () => {
       const comFeriado = calcularPrazo(regra, [evento], [{ data: '2026-11-20' }]);
       expect(semFeriado.data).toBe('2026-12-14');
       expect(comFeriado.data).toBe('2026-12-15');
+    });
+
+    it('duas parcelas do mesmo item no mesmo dia geram dois títulos, e ativar de novo não duplica', async () => {
+      const ficha = await contratoAssinado({ parcelas: [{ percentual: 50, gatilho: 'evento', data: null, evento: 'Assinatura' }, { percentual: 50, gatilho: 'data', data: HOJE, evento: null }] });
+      const unicas = (await previaDaProgramacao(ficha.contrato.id, HOJE)).linhas.filter((linha) => !linha.recorrente);
+      expect(unicas.map((linha) => [linha.vencimento, linha.valor])).toEqual([[HOJE, 1000], [HOJE, 1000]]);
+      expect(new Set(unicas.map((linha) => linha.chave)).size).toBe(2);
+      expect(unicas[0]!.chave.endsWith(`:${HOJE}`)).toBe(true);
+      const categorias = { categoriaRecorrente: categoria('Assinaturas'), categoriaUnica: categoria('Implantação/setup') };
+      await ativarProgramacao(ficha.contrato.id, categorias, HOJE);
+      expect(await ativarProgramacao(ficha.contrato.id, categorias, HOJE)).toBe(0);
+      expect((await repositorios.titulo.listar({ onde: { origem: 'contrato', origem_id: ficha.contrato.id } })).filter((titulo) => titulo.vencimento === HOJE && titulo.valor === 1000)).toHaveLength(2);
     });
 
     it('CA-11.06: ativar a programação duas vezes não duplica', async () => {
