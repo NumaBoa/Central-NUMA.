@@ -22,6 +22,7 @@ import { esquemaOrcamento } from './tipos/orcamento';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 import { TABELAS_F1 } from './tabelas-f1';
+import { TABELAS_M12 } from './tabelas-m12';
 
 /**
  * Tabelas que existem nesta etapa. Cada tela acrescenta as suas (16 §0), e elas entram sozinhas em
@@ -81,6 +82,7 @@ export const TABELAS = {
   backup_registro: { rotulo: 'Backups registrados', esquema: esquemaBackupRegistro },
   auditoria: { rotulo: 'Histórico', esquema: esquemaEventoAuditoria },
   ...TABELAS_F1,
+  ...TABELAS_M12,
 } as const satisfies Record<string, { rotulo: string; esquema: z.ZodType }>;
 
 export type Tabela = keyof typeof TABELAS;
@@ -107,5 +109,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 17: M09, M10 e M11 acrescentam as tabelas de `tabelas-f1.ts` e o rascunho de `MOD-SAAS-LIC`.
  * 18: a oferta ganha os campos do contrato SaaS (19 §8) e entra `configuracao_contratual` (T07.10).
  * 19: entra `orcamento` (T05.08).
+ * 21: M12 acrescenta as tabelas de `tabelas-m12.ts` (a 20 é da T05.12, em outra frente).
  */
-export const VERSAO_DADOS = 19;
+export const VERSAO_DADOS = 21;

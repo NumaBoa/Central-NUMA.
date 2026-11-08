@@ -23,7 +23,7 @@ describe('estrutura do menu', () => {
   });
 
   it('não tem link para nenhuma tela ainda não construída', () => {
-    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'produtos', 'comercial', 'contratos', 'financeiro', 'ferramentas', 'legal', 'configuracoes']);
+    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'produtos', 'comercial', 'contratos', 'financeiro', 'operacao', 'ferramentas', 'legal', 'configuracoes']);
   });
 });
 

@@ -514,7 +514,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:area');localStorage.removeItem('numa-central:v1:pessoa_area');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=2;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irAreas();
   ok('as áreas entram sem apagar nada', (await c.avaliar(`document.querySelectorAll('main table tbody tr').length`)) === 7 && (await tabela('pessoa')).length === 4);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 19);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 21);
 });
 
 await passo('dados danificados', async () => {

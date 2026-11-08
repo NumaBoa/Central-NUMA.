@@ -430,7 +430,7 @@ await passo('fase: avançar', async () => {
   ok('registra quem avançou', f.includes('Kimberly Grebe avançou para a Fase 0b'), f.slice(-90));
   ok('o que estava sendo digitado continua lá', (await valor('nome')) === 'Pendente' && (await estadoDaBarra()) === 'Alterações não salvas em Organização e região');
   const emBreveDepois = await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`);
-  ok('na F0b, o menu não muda: o que foi construído já estava liberado (decisão de 07/11/2026)', emBreveAntes === 4 && emBreveDepois === 4 && (await c.avaliar(`Boolean(document.querySelector('[data-menu-lateral] a[href="/produtos"]'))`)), `${emBreveAntes}→${emBreveDepois}`);
+  ok('na F0b, o menu não muda: o que foi construído já estava liberado (decisão de 07/11/2026)', emBreveAntes === 3 && emBreveDepois === 3 && (await c.avaliar(`Boolean(document.querySelector('[data-menu-lateral] a[href="/produtos"]'))`)), `${emBreveAntes}→${emBreveDepois}`);
   ok('a fase já passada fica marcada', await c.avaliar(`document.querySelector('#fase ol li').className.includes('border-indigo')`));
   await c.clicar('texto=Descartar');
   await c.espera(100);
@@ -470,7 +470,7 @@ await passo('fase: última', async () => {
   await c.recarregar();
   await pronta();
   ok('na última fase, não há o que avançar', (await botao('Já está na última fase')) === true && (await botao('Voltar para a Fase 2')) === false);
-  ok('mesmo na F3, os módulos não construídos seguem "Em breve"', (await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`)) === 4);
+  ok('mesmo na F3, os módulos não construídos seguem "Em breve"', (await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`)) === 3);
   await c.avaliar(`(()=>{const k='numa-central:v1:configuracao';const l=JSON.parse(localStorage.getItem(k));l.find(x=>x.chave==='fase_ativa').valor='f0a';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
@@ -640,7 +640,7 @@ await passo('quem já tinha dados da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:configuracao');localStorage.removeItem('numa-central:v1:cambio_referencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=1;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m));const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l[2].funcao='Dado que precisa continuar';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
-  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 19);
+  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 21);
   ok('o que já existia continua', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:pessoa'))[2].funcao==='Dado que precisa continuar'`));
   const h = await historicoDados();
   ok('fica no histórico', h[0]?.includes('Sistema atualizou os dados para a nova versão da Central'), h[0]);
