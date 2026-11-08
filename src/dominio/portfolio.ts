@@ -16,7 +16,6 @@ import { errosDaDecisao, resolverDecisao, vincularDecisao, type EntradaDecisao }
 import { normalizarTexto } from './duplicidade';
 import { KPI_USUARIOS_ATIVOS, ultimoValorDoKpi } from './kpis';
 import type { Fase } from './navegacao';
-import { faseLiberada } from './navegacao';
 import { situacaoEfetivaDaOferta } from './precificacao';
 import { atividadesAbertasDoProduto, criarPlanoDeEncerramento, errosDoPlano, planoExistenteServe, type NovoPlanoDeEncerramento } from './produto-atividades';
 import { pessoasParaProduto, ROTULOS_ESTAGIO, usaFila } from './produtos';
@@ -25,7 +24,7 @@ export { ROTULOS_ESTAGIO };
 
 // ---------- Áreas da ficha (T07.02) ----------
 
-export type IdDaArea = 'visao' | 'estagio' | 'ofertas' | 'simulacoes' | 'indicadores' | 'objetivos' | 'custos' | 'ferramentas' | 'legal' | 'marca' | 'atividades' | 'historico' | 'clientes' | 'assinantes';
+export type IdDaArea = 'visao' | 'estagio' | 'ofertas' | 'simulacoes' | 'indicadores' | 'objetivos' | 'custos' | 'ferramentas' | 'legal' | 'contrato' | 'marca' | 'atividades' | 'historico' | 'clientes' | 'assinantes';
 
 export type AreaDaFicha = { id: IdDaArea; rotulo: string; grupo: 'principal' | 'mais'; fase: Fase; pronta: boolean };
 
@@ -43,6 +42,7 @@ export const AREAS_DA_FICHA: readonly AreaDaFicha[] = [
   { id: 'custos', rotulo: 'Custos', grupo: 'mais', fase: 'f0b', pronta: true },
   { id: 'ferramentas', rotulo: 'Ferramentas e ativos', grupo: 'mais', fase: 'f0b', pronta: true },
   { id: 'legal', rotulo: 'Legal e privacidade', grupo: 'mais', fase: 'f0b', pronta: true },
+  { id: 'contrato', rotulo: 'Contrato', grupo: 'mais', fase: 'f1', pronta: true },
   { id: 'marca', rotulo: 'Marca e arquivos', grupo: 'mais', fase: 'f0b', pronta: true },
   { id: 'atividades', rotulo: 'Atividades', grupo: 'mais', fase: 'f0b', pronta: true },
   { id: 'historico', rotulo: 'Histórico', grupo: 'mais', fase: 'f0b', pronta: true },
@@ -50,10 +50,9 @@ export const AREAS_DA_FICHA: readonly AreaDaFicha[] = [
   { id: 'assinantes', rotulo: 'Assinantes', grupo: 'mais', fase: 'f1', pronta: false },
 ];
 
-/** As telas do M07 abrem mesmo com a F0a ativa: o que depende da fase é o menu, e as áreas da F1 continuam fora. */
-export function areasDisponiveis(faseAtiva: Fase): AreaDaFicha[] {
-  const referencia: Fase = faseLiberada('f0b', faseAtiva) ? faseAtiva : 'f0b';
-  return AREAS_DA_FICHA.filter((area) => area.pronta && faseLiberada(area.fase, referencia));
+/** Decisão de 07/11/2026: toda área construída aparece, em qualquer fase. As que ainda não existem continuam fora. */
+export function areasDisponiveis(): AreaDaFicha[] {
+  return AREAS_DA_FICHA.filter((area) => area.pronta);
 }
 
 // ---------- Fila ----------

@@ -56,9 +56,79 @@ export const esquemaOferta = esquemaControle.extend({
   /** SLA é da F2 (M12). */
   sla_regra_id: texto,
   situacao: z.enum(['em_estudo', 'aprovada', 'inativa']),
+  // Campos de T07.04 para o contrato SaaS (19 §8). Vazio é pendência, nunca um padrão.
+  regras_uso: texto,
+  suporte_canal: texto,
+  suporte_horario: texto,
+  suporte_prazo_critico: texto,
+  suporte_prazo_normal: texto,
+  disponibilidade_meta: z.number().min(0).max(100).nullable(),
+  disponibilidade_compensacao: texto,
+  teste_dias: z.int().nonnegative().nullable(),
+  /** Ofertas de adicional vinculadas a este plano, do mesmo produto. */
+  adicionais_ids: z.array(z.string().min(1)),
 });
 
 export type Oferta = z.infer<typeof esquemaOferta>;
+
+export const SITUACOES_DA_CONFIGURACAO = ['rascunho', 'em_validacao', 'validada', 'substituida'] as const;
+export const MODALIDADES_DE_ACESSO = ['Navegador', 'Android', 'iOS'] as const;
+export const FORMATOS_DE_EXPORTACAO = ['CSV', 'XLSX', 'PDF', 'JSON'] as const;
+
+const inteiroOuVazio = z.int().nonnegative().nullable();
+
+/** T07.10 (19 §4): configuração contratual do produto, versionada (RN-11.30). Texto vazio é pendência. */
+export const esquemaConfiguracaoContratual = esquemaControle.extend({
+  produto_id: z.string().min(1),
+  versao: z.int().positive(),
+  situacao: z.enum(SITUACOES_DA_CONFIGURACAO),
+  nome_maiusculo: texto,
+  descricao_contratual: texto,
+  funcoes_de_apoio: texto,
+  modalidades: z.array(z.enum(MODALIDADES_DE_ACESSO)),
+  diferencas_modalidades: texto,
+  /** Oferta do tipo Gratuidade do mesmo produto. */
+  plano_apos_teste: texto,
+  url_termos: texto,
+  url_privacidade: texto,
+  url_ajuda: texto,
+  email_contato: texto,
+  prazo_reembolso_dias: inteiroOuVazio,
+  aviso_alteracao_dias: inteiroOuVazio,
+  aviso_renovacao_anual_dias: inteiroOuVazio,
+  aviso_manutencao_horas: inteiroOuVazio,
+  aviso_suboperador_dias: inteiroOuVazio,
+  prazo_encaminhar_titular_dias: inteiroOuVazio,
+  prazo_aviso_incidente_horas: inteiroOuVazio,
+  prazo_reativacao_horas: inteiroOuVazio,
+  aviso_resilicao_dias: inteiroOuVazio,
+  prazo_cura_dias: inteiroOuVazio,
+  aviso_cessao_dias: inteiroOuVazio,
+  prazo_exportacao_dias: inteiroOuVazio,
+  prazo_exclusao_dias: inteiroOuVazio,
+  prazo_expurgo_backup_dias: inteiroOuVazio,
+  formatos_exportacao: z.array(z.enum(FORMATOS_DE_EXPORTACAO)),
+  categorias_dados_operador: texto,
+  categorias_titulares: texto,
+  categorias_dados_controlador: texto,
+  provedor_infraestrutura: texto,
+  local_armazenamento: texto,
+  transferencia_internacional_texto: texto,
+  suboperadores: z.array(z.object({ nome: z.string().trim().min(1), finalidade: z.string().trim(), pais: z.string().trim() })),
+  medidas_seguranca: texto,
+  backup_frequencia: texto,
+  backup_retencao_dias: inteiroOuVazio,
+  procedimento_recuperacao: texto,
+  canal_privacidade: texto,
+  canal_incidentes: texto,
+  enviado_por: texto,
+  enviado_em: z.string().nullable(),
+  validado_por: texto,
+  validado_em: z.string().nullable(),
+  devolucao_motivo: texto,
+});
+
+export type ConfiguracaoContratualRegistro = z.infer<typeof esquemaConfiguracaoContratual>;
 
 /** `oferta_recurso` (16 §4.7): base do "Contratadas × Disponíveis" de M10 e M11. */
 export const esquemaOfertaRecurso = esquemaControle.extend({

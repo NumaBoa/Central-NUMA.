@@ -190,14 +190,28 @@ export const esquemaFormularioOferta = z
     periodicidade: z.string(),
     exclusoes: z.string().trim(),
     recursos: z.array(esquemaRecursoDoFormulario),
+    // Para o contrato SaaS (19 §8): tudo opcional aqui; o que faltar vira pendência na emissão final.
+    regras_uso: z.string().trim(),
+    suporte_canal: z.string().trim(),
+    suporte_horario: z.string().trim(),
+    suporte_prazo_critico: z.string().trim(),
+    suporte_prazo_normal: z.string().trim(),
+    disponibilidade_meta: z.string().trim(),
+    disponibilidade_compensacao: z.string().trim(),
+    teste_dias: z.string().trim(),
+    adicionais_ids: z.array(z.string()),
   })
   .superRefine((dados, contexto) => {
     if (dados.tipo === 'assinatura' && !dados.periodicidade) contexto.addIssue({ code: 'custom', path: ['periodicidade'], message: 'Assinatura precisa da periodicidade.' });
+    if (dados.teste_dias && !/^\d{1,3}$/.test(dados.teste_dias)) contexto.addIssue({ code: 'custom', path: ['teste_dias'], message: 'Informe o número de dias, de 0 a 999.' });
+    const meta = lerPercentual(dados.disponibilidade_meta);
+    if (meta === undefined) contexto.addIssue({ code: 'custom', path: ['disponibilidade_meta'], message: 'Informe um percentual de 0 a 100, como 99,5.' });
   });
+
 
 export type FormularioOferta = z.infer<typeof esquemaFormularioOferta>;
 
-export const FORMULARIO_OFERTA_VAZIO: FormularioOferta = { nome: '', tipo: 'assinatura', publico: 'b2c', descricao: '', formalizacao: 'adesao', periodicidade: 'mensal', exclusoes: '', recursos: [] };
+export const FORMULARIO_OFERTA_VAZIO: FormularioOferta = { nome: '', tipo: 'assinatura', publico: 'b2c', descricao: '', formalizacao: 'adesao', periodicidade: 'mensal', exclusoes: '', recursos: [], regras_uso: '', suporte_canal: '', suporte_horario: '', suporte_prazo_critico: '', suporte_prazo_normal: '', disponibilidade_meta: '', disponibilidade_compensacao: '', teste_dias: '', adicionais_ids: [] };
 
 export function formularioDaOferta(oferta: Oferta, recursos: readonly OfertaRecurso[]): FormularioOferta {
   return {
@@ -209,6 +223,29 @@ export function formularioDaOferta(oferta: Oferta, recursos: readonly OfertaRecu
     periodicidade: oferta.periodicidade ?? '',
     exclusoes: oferta.exclusoes ?? '',
     recursos: [...recursos].sort((a, b) => a.ordem - b.ordem).map((recurso) => ({ id: recurso.id, nome: recurso.nome, incluido: recurso.incluido, limite: recurso.limite ?? '', observacao: recurso.observacao ?? '' })),
+    regras_uso: oferta.regras_uso ?? '',
+    suporte_canal: oferta.suporte_canal ?? '',
+    suporte_horario: oferta.suporte_horario ?? '',
+    suporte_prazo_critico: oferta.suporte_prazo_critico ?? '',
+    suporte_prazo_normal: oferta.suporte_prazo_normal ?? '',
+    disponibilidade_meta: oferta.disponibilidade_meta === null ? '' : String(oferta.disponibilidade_meta).replace('.', ','),
+    disponibilidade_compensacao: oferta.disponibilidade_compensacao ?? '',
+    teste_dias: oferta.teste_dias === null ? '' : String(oferta.teste_dias),
+    adicionais_ids: [...oferta.adicionais_ids],
+  };
+}
+
+function camposDoContrato(formulario: FormularioOferta, adicionais: string[]) {
+  return {
+    regras_uso: formulario.regras_uso || null,
+    suporte_canal: formulario.suporte_canal || null,
+    suporte_horario: formulario.suporte_horario || null,
+    suporte_prazo_critico: formulario.suporte_prazo_critico || null,
+    suporte_prazo_normal: formulario.suporte_prazo_normal || null,
+    disponibilidade_meta: lerPercentual(formulario.disponibilidade_meta) ?? null,
+    disponibilidade_compensacao: formulario.disponibilidade_compensacao || null,
+    teste_dias: formulario.teste_dias ? Number(formulario.teste_dias) : null,
+    adicionais_ids: adicionais,
   };
 }
 
@@ -221,8 +258,11 @@ export async function salvarOferta(produtoId: string, formulario: FormularioOfer
   // Gratuidade vale zero, e as demais não: trocar depois de aprovar mudaria o sentido do preço aprovado.
   const trocaGratuidade = atual && (atual.tipo === 'gratuidade') !== (formulario.tipo === 'gratuidade');
   if (trocaGratuidade && precos.some((preco) => preco.situacao !== 'rascunho')) throw new ErroDeRegra('Esta oferta já tem preço aprovado: não dá para mudar de ou para Gratuidade. Crie outra oferta.');
+  // Adicional é outra oferta do mesmo produto, nunca a própria (19 §8).
+  const adicionais = [...new Set(formulario.adicionais_ids)];
+  if (adicionais.some((adicional) => adicional === id || !ofertas.some((oferta) => oferta.id === adicional))) throw new ErroDeRegra('Os adicionais precisam ser outras ofertas deste produto.');
 
-  const dados = { nome: formulario.nome, tipo: formulario.tipo, publico: formulario.publico, descricao: formulario.descricao || null, formalizacao: formulario.formalizacao, periodicidade: (formulario.periodicidade || null) as Oferta['periodicidade'], exclusoes: formulario.exclusoes || null };
+  const dados = { nome: formulario.nome, tipo: formulario.tipo, publico: formulario.publico, descricao: formulario.descricao || null, formalizacao: formulario.formalizacao, periodicidade: (formulario.periodicidade || null) as Oferta['periodicidade'], exclusoes: formulario.exclusoes || null, ...camposDoContrato(formulario, adicionais) };
   return emTransacao(async () => {
     const oferta = atual ? await repositorios.oferta.atualizar(atual.id, dados) : await repositorios.oferta.criar({ ...dados, produto_id: produtoId, sla_regra_id: null, situacao: 'em_estudo' });
     const existentes = await repositorios.oferta_recurso.listar({ onde: { oferta_id: oferta.id } });

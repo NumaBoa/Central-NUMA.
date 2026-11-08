@@ -608,7 +608,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await ir(MEU_DIA);
   await c.ate(`document.querySelectorAll('main article').length>0`);
   ok('as atividades entram', (await tabela('atividade')).length === 17);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
   ok('abre no quadro', await c.avaliar(`Boolean(document.querySelector('section[data-coluna]'))`));
   ok('o que existia continua como estava', (await tabela('pessoa')).find((x) => x.id === ID_CAMILA).funcao === 'Dado que precisa continuar');
   await restaurarExemplos();

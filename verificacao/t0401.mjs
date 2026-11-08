@@ -1147,7 +1147,7 @@ await passo('migração da versão anterior', async () => {
   await irLista();
   await c.ate(`document.querySelector('main table tbody tr')`);
   ok('quem vem da versão anterior recebe a tela pronta', (await nomes()).length === 6, js(await nomes()));
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
   ok('as categorias entram', (await tabela('categoria_ferramenta')).length === 15);
 });
 

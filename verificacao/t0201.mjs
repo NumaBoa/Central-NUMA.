@@ -640,7 +640,7 @@ await passo('quem já tinha dados da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:configuracao');localStorage.removeItem('numa-central:v1:cambio_referencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=1;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m));const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l[2].funcao='Dado que precisa continuar';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
-  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
   ok('o que já existia continua', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:pessoa'))[2].funcao==='Dado que precisa continuar'`));
   const h = await historicoDados();
   ok('fica no histórico', h[0]?.includes('Sistema atualizou os dados para a nova versão da Central'), h[0]);

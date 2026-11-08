@@ -297,7 +297,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:marca');localStorage.removeItem('numa-central:v1:produto');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=3;m.contexto_id='zupi';localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMarcas();
   ok('marcas e produtos entram', (await tabela('marca')).length === 6);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
   await c.ate(`document.querySelector('[aria-label^="Contexto"]').getAttribute('aria-label')==='Contexto: Zupi'`);
   ok('quem estava em um produto continua nele', true);
   await c.clicar('[aria-label^="Contexto"]');

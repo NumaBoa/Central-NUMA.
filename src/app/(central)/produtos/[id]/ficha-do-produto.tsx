@@ -11,7 +11,6 @@ import { Campo } from '@/componentes/campos/campo';
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { Pilulas } from '@/componentes/campos/pilulas';
 import { Selecao } from '@/componentes/campos/selecao';
-import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { aviso } from '@/componentes/padroes/aviso';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
@@ -37,6 +36,7 @@ import { pessoasParaProduto } from '@/dominio/produtos';
 import { hojeISO } from '@/lib/datas';
 import { cn } from '@/lib/utils';
 import { AbaEstagio, AbaVisaoGeral } from './abas-principais';
+import { AbaContrato } from './aba-contrato';
 import { AbaIndicadores, FormularioKpi } from './aba-indicadores';
 import { AbaOfertas } from './aba-ofertas';
 import { AbaSimulacoes } from './aba-simulacoes';
@@ -182,7 +182,6 @@ export function FichaDoProduto() {
   const { id } = useParams<{ id: string }>();
   const parametros = useSearchParams();
   const roteador = useRouter();
-  const { faseAtiva } = useCentral();
   const hoje = hojeISO();
   const consulta = useConsulta(() => carregarFicha(id, hoje), [id, hoje]);
   const [aba, setAba] = useState<IdDaArea>('visao');
@@ -191,7 +190,7 @@ export function FichaDoProduto() {
   const [novaOferta, setNovaOferta] = useState(false);
   const [registrandoKpi, setRegistrandoKpi] = useState(false);
 
-  const areas = useMemo(() => areasDisponiveis(faseAtiva), [faseAtiva]);
+  const areas = useMemo(() => areasDisponiveis(), []);
   const principais = areas.filter((area) => area.grupo === 'principal');
   const secundarias = areas.filter((area) => area.grupo === 'mais');
   const pedida = parametros.get('aba');
@@ -407,6 +406,9 @@ export function FichaDoProduto() {
         </TabsContent>
         <TabsContent value="legal" className="mt-4 text-sm">
           <AreaLegal temUsuariosReais={linha.tem_usuarios_reais} />
+        </TabsContent>
+        <TabsContent value="contrato" className="mt-4 text-sm">
+          <AbaContrato produtoId={linha.id} />
         </TabsContent>
         <TabsContent value="marca" className="mt-4 text-sm">
           <AreaMarca marca={linha.marca} />
