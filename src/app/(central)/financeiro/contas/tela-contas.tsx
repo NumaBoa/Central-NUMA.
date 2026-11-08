@@ -9,13 +9,14 @@ import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
 import { Button } from '@/componentes/ui/button';
 import { useConsulta } from '@/dados/use-consulta';
 import { nomeDoTitular, ROTULOS_TIPO_CONTA } from '@/dominio/contas';
+import { SecaoCambio } from '@/app/(central)/configuracoes/secao-cambio';
 import type { Soma } from '@/dominio/custos-relatorio';
 import { projecaoDeCaixa } from '@/dominio/projecao-caixa';
 import { carregarSaldos, contasDoPainel, saldoDaConta, ultimaMovimentacao } from '@/dominio/saldos';
 import { cn } from '@/lib/utils';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
 
-const CADASTRO = '/configuracoes/cadastros/contas';
+const CADASTRO = '/financeiro/contas/cadastro';
 
 /** Sem câmbio, a projeção fica escrita em aberto, nunca zero. */
 function ValorProjetado({ soma, className }: { soma: Soma; className?: string }) {
@@ -122,6 +123,13 @@ export function TelaContas() {
         </ul>
       )}
       {contas.length > 0 && <ProjecaoDeCaixa dados={dados} />}
+      <section id="cambio" aria-labelledby="cambio-titulo" className="scroll-mt-24 space-y-3 rounded-lg border border-line bg-paper p-4 md:px-5 md:py-[18px]">
+        <h2 id="cambio-titulo" className="text-base font-semibold">
+          Câmbio de referência
+        </h2>
+        <p className="text-[13px] text-ink-soft">Usado para estimar em reais o que está em moeda estrangeira. Atualizado no fechamento mensal (D25). Cada linha grava ao confirmar.</p>
+        <SecaoCambio cambios={dados.cambios} />
+      </section>
     </div>
   );
 }

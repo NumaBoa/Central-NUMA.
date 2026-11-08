@@ -13,7 +13,16 @@ const config: NextConfig = {
   // Aqui o redirecionamento acontece antes de qualquer renderização: dentro da página, ele
   // recarregaria tudo depois de a tela começar a abrir.
   async redirects() {
-    return [{ source: '/configuracoes/cadastros', destination: '/configuracoes/cadastros/pessoas', permanent: false }];
+    return [
+      { source: '/configuracoes/cadastros', destination: '/configuracoes/cadastros/pessoas', permanent: false },
+      // Decisão de Kimberly em 07/11/2026: o que já tem lugar num módulo saiu de Configurações.
+      { source: '/configuracoes/cadastros/contrapartes', destination: '/comercial/contrapartes', permanent: false },
+      { source: '/configuracoes/cadastros/contrapartes/:id', destination: '/comercial/contrapartes/:id/cadastro', permanent: false },
+      { source: '/configuracoes/cadastros/contas', destination: '/financeiro/contas/cadastro', permanent: false },
+      { source: '/configuracoes/cadastros/categorias', destination: '/financeiro/categorias', permanent: false },
+      { source: '/configuracoes/cadastros/marcas', destination: '/produtos/marcas', permanent: false },
+      { source: '/configuracoes/cadastros/marcas/produtos/:id', destination: '/produtos/:id/cadastro', permanent: false },
+    ];
   },
 };
 

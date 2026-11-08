@@ -114,7 +114,7 @@ export async function salvarReceita(formulario: FormularioReceita, responsavelId
   if (id && !atual) throw new ErroDeRegra('Este lançamento não existe mais.');
   // A categoria vem da carga inicial (Receitas › Assinaturas): sem ela, não se inventa outra.
   const categoria = categorias.find((item) => item.tipo === 'receita' && item.pai_id && item.nome === 'Assinaturas');
-  if (!categoria) throw new ErroDeRegra('Falta a categoria de receita “Assinaturas” em Configurações › Categorias.');
+  if (!categoria) throw new ErroDeRegra('Falta a categoria de receita “Assinaturas” em Financeiro › Categorias.');
 
   const descricao = `Receita ${canal.nome} · ${produto?.nome ?? 'Produto'} · ${formulario.competencia.slice(5, 7)}/${formulario.competencia.slice(0, 4)}`;
   const vencimento = vencimentoDoRepasse(formulario.competencia, canal.prazo_repasse_dias);

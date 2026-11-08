@@ -1,10 +1,9 @@
-import { Coins, Compass, FileSignature, Flag, Handshake, Layers, LayoutGrid, Megaphone, Settings, ShieldCheck, Sun, Wrench, type LucideIcon } from 'lucide-react';
+import { Coins, Compass, FileSignature, Flag, Handshake, Layers, Megaphone, Settings, ShieldCheck, Sun, Wrench, type LucideIcon } from 'lucide-react';
 import type { IconeModulo } from '@/dominio/navegacao';
 
 /** Ícones de módulo (18 §6). */
 export const ICONES_MODULO: Record<IconeModulo, LucideIcon> = {
   'meu-dia': Sun,
-  'visao-geral': LayoutGrid,
   empresa: Flag,
   produtos: Layers,
   comercial: Handshake,

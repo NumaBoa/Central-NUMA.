@@ -421,7 +421,7 @@ describe('T03.02 e T03.03', () => {
       await adicionarVinculo(id, 'produto', ID_PRODUTO_KIPI);
       await expect(adicionarVinculo(id, 'produto', ID_PRODUTO_KIPI)).rejects.toThrow('Este vínculo já existe.');
       const [vinculo] = await vinculosDaAtividade(id);
-      expect(vinculo).toMatchObject({ rotulo: 'Produto', nome: 'Kipi', href: `/configuracoes/cadastros/marcas/produtos/${ID_PRODUTO_KIPI}` });
+      expect(vinculo).toMatchObject({ rotulo: 'Produto', nome: 'Kipi', href: `/produtos/${ID_PRODUTO_KIPI}` });
       await removerVinculo(vinculo?.id as string);
       expect(await vinculosDaAtividade(id)).toEqual([]);
       const historico = await textos(id);

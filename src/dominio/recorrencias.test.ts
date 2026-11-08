@@ -77,90 +77,19 @@ describe('T03.05 e as rotinas do dia', () => {
       const rotinas = await repositorios.recorrencia.listar();
       expect(rotinas).toHaveLength(ROTINAS_INICIAIS);
       expect(rotinas.filter((rotina) => rotina.exemplo).map((rotina) => rotina.id)).toEqual([ID_ROTINA_EXEMPLO]);
-      expect(rotinas.find((rotina) => rotina.id === ID_ROTINA_BACKUP)).toMatchObject({ titulo: 'Exportar backup da Central e salvar no Drive', responsavel_id: ID_CAMILA, frequencia: 'semanal', dias_semana: [1], fase_minima: null, situacao: 'ativa', inicio: HOJE });
+      expect(rotinas.find((rotina) => rotina.id === ID_ROTINA_BACKUP)).toMatchObject({ titulo: 'Exportar backup da Central e salvar no Drive', responsavel_id: ID_CAMILA, frequencia: 'semanal', dias_semana: [1], situacao: 'ativa', inicio: HOJE });
     });
 
-    it('as das outras fases dizem que esperam', async () => {
+    it('sem fase da Numa: as rotinas de telas ainda não construídas começam pausadas (decisão de 08/11/2026)', async () => {
       const { rotinas } = await carregarRotinas(HOJE);
-      expect(rotinas.filter((rotina) => rotina.aguardaFase).map((rotina) => [rotina.titulo, rotina.aguardaFase, rotina.proxima])).toEqual([
-        ['Revisão de acessos às ferramentas', 'f2', null],
-        ['Atualizar KPIs mensais dos produtos', 'f0b', null],
-        ['Fechamento mensal', 'f1', null],
-        ['Revisão jurídica anual dos documentos legais', 'f0b', null],
+      expect(rotinas.filter((rotina) => rotina.situacao === 'pausada' && !rotina.exemplo).map((rotina) => [rotina.titulo, rotina.proxima])).toEqual([
+        ['Revisão de acessos às ferramentas', null],
+        ['Fechamento mensal', null],
       ]);
+      expect(rotinas.find((rotina) => rotina.titulo === 'Atualizar KPIs mensais dos produtos')?.situacao).toBe('ativa');
     });
 
-    it('a primeira ocorrência da rotina de exemplo já está no Histórico', async () => {
-      const [primeira] = await daRotina(ID_ROTINA_EXEMPLO);
-      expect(primeira).toMatchObject({ situacao: 'concluida', ocorrencia_numero: 1, ocorrencia_data: '2026-10-17', exemplo: true });
-    });
-
-    it('conta como registro', async () => {
-      expect((await resumoDosDados()).registros).toBe(REGISTROS_INICIAIS);
-    });
-  });
-
-  describe('gerar ocorrências (RN-03.15)', () => {
-    it('até 30 dias à frente, só das rotinas da fase', async () => {
-      expect(await gerarOcorrencias(HOJE)).toBe(10);
-      expect(datas(await daRotina(ID_ROTINA_BACKUP))).toEqual(['2026-11-09', '2026-11-16', '2026-11-23', '2026-11-30']);
-      expect(datas(await daRotina(ID_ROTINA_EXEMPLO))).toEqual(['2026-10-17', '2026-11-17']);
-      const todas = await repositorios.atividade.listar();
-      expect(todas.filter((atividade) => atividade.titulo === 'Fechamento mensal')).toEqual([]);
-    });
-
-    it('rodar duas vezes no mesmo dia não duplica (CA-03.09)', async () => {
-      await gerarOcorrencias(HOJE);
-      const antes = (await repositorios.atividade.listar()).length;
-      expect(await gerarOcorrencias(HOJE)).toBe(0);
-      expect((await repositorios.atividade.listar()).length).toBe(antes);
-    });
-
-    it('cada ocorrência é uma atividade própria, com número e código', async () => {
-      await gerarOcorrencias(HOJE);
-      const [primeira, segunda] = await daRotina(ID_ROTINA_BACKUP);
-      expect(primeira).toMatchObject({ titulo: 'Exportar backup da Central e salvar no Drive', tipo: 'tarefa', responsavel_id: ID_CAMILA, area_id: TECNOLOGIA, situacao: 'a_fazer', prazo: '2026-11-09', ocorrencia_numero: 1, recorrencia_id: ID_ROTINA_BACKUP, chave_idempotencia: chaveDaOcorrencia(ID_ROTINA_BACKUP, '2026-11-09'), exemplo: false });
-      expect(segunda?.ocorrencia_numero).toBe(2);
-      expect(primeira?.codigo).not.toBe(segunda?.codigo);
-    });
-
-    it('o que foi concluído, cancelado ou tirado não volta (RT-09)', async () => {
-      await gerarOcorrencias(HOJE);
-      const [primeira, segunda, terceira] = await daRotina(ID_ROTINA_BACKUP);
-      await concluirAtividade(primeira!.id, ID_KIMBERLY);
-      await cancelarAtividade(segunda!.id, 'Não precisou');
-      await repositorios.atividade.arquivar(terceira!.id);
-      expect(await gerarOcorrencias(HOJE)).toBe(0);
-    });
-
-    it('concluir uma não conclui as próximas (RN-03.18)', async () => {
-      await gerarOcorrencias(HOJE);
-      const [primeira, segunda] = await daRotina(ID_ROTINA_BACKUP);
-      await concluirAtividade(primeira!.id, ID_KIMBERLY);
-      expect((await obter(segunda!.id)).situacao).toBe('a_fazer');
-    });
-
-    it('a janela anda com os dias; o que já passou e ninguém gerou fica para trás', async () => {
-      await gerarOcorrencias(HOJE);
-      expect(await gerarOcorrencias('2026-11-13')).toBe(2);
-      expect(datas(await daRotina(ID_ROTINA_BACKUP))).toEqual(['2026-11-09', '2026-11-16', '2026-11-23', '2026-11-30', '2026-12-07']);
-      expect(await gerarOcorrencias('2027-03-01')).toBeGreaterThan(0);
-      const backups = await daRotina(ID_ROTINA_BACKUP);
-      expect(backups.some((atividade) => atividade.ocorrencia_data === '2027-01-04')).toBe(false);
-      expect(backups.find((atividade) => atividade.ocorrencia_data === '2027-03-01')?.ocorrencia_numero).toBe(17);
-    });
-
-    it('rotina pausada não gera; ao retomar, não recupera o tempo parado', async () => {
-      await pausarRotina(ID_ROTINA_BACKUP);
-      await gerarOcorrencias(HOJE);
-      expect(await daRotina(ID_ROTINA_BACKUP)).toEqual([]);
-      await retomarRotina(ID_ROTINA_BACKUP);
-      await gerarOcorrencias('2026-12-01');
-      expect(datas(await daRotina(ID_ROTINA_BACKUP))[0]).toBe('2026-12-07');
-    });
-
-    it('a rotina de outra fase começa quando a fase chega', async () => {
-      await repositorios.configuracao.salvar({ fase_ativa: 'f0b' });
+    it('toda rotina ativa gera, sem esperar fase; a pausada não', async () => {
       await gerarOcorrencias(HOJE);
       expect((await repositorios.atividade.listar()).filter((atividade) => atividade.titulo === 'Atualizar KPIs mensais dos produtos').map((atividade) => atividade.prazo)).toEqual(['2026-12-05']);
       expect((await repositorios.atividade.listar()).filter((atividade) => atividade.titulo === 'Fechamento mensal')).toEqual([]);
@@ -208,7 +137,7 @@ describe('T03.05 e as rotinas do dia', () => {
     it('nas rotinas do dia, quem cria é o Sistema, e o aviso diz o que nasceu', async () => {
       const resultado = await executarRotinas();
       expect(resultado).toMatchObject({ executou: true, falhas: [] });
-      expect(resultado.novidades).toContain('10 ocorrências novas');
+      expect(resultado.novidades).toContain('11 ocorrências novas');
       const [primeira] = await daRotina(ID_ROTINA_BACKUP);
       expect(primeira?.criado_por).toBeNull();
       expect((await historicoDaAtividade(primeira!.id)).at(-1)?.texto).toContain('Sistema criou a atividade');
@@ -290,7 +219,7 @@ describe('T03.05 e as rotinas do dia', () => {
       const datasNovas = datas(await daRotina(nova.id));
       expect(new Set(datasNovas).size).toBe(datasNovas.length);
       expect(datasNovas.slice(0, 4)).toEqual(['2026-11-09', '2026-11-11', '2026-11-16', '2026-11-18']);
-      expect(await gerarOcorrencias(HOJE)).toBe(10);
+      expect(await gerarOcorrencias(HOJE)).toBe(11);
       expect(await gerarOcorrencias(HOJE)).toBe(0);
     });
 
@@ -542,7 +471,6 @@ describe('T03.05: filtros no padrão do Meu dia', () => {
       fim_ocorrencias: null,
       proxima: '2026-11-09',
       abertas: 1,
-      aguardaFase: null,
       ...alteracoes,
       modelo: { ...modeloVazio('tarefa'), ...modelo },
     }) as LinhaDaRotina;

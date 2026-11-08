@@ -81,7 +81,7 @@ function FormularioDaFicha({ aberto, aoFechar, produto, pessoas, entidades }: { 
   });
 
   return (
-    <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={`Editar ${produto.nome}`} descricao="Nome, marca e código ficam em Configurações › Marcas e produtos. Estágio e fila mudam com decisão." alterado={isDirty} aoEnviar={(evento) => void enviar(evento)} rotuloSalvar="Salvar alterações" salvando={isSubmitting} erros={erros}>
+    <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={`Editar ${produto.nome}`} descricao="Nome, marca e código ficam no Cadastro básico do produto. Estágio e fila mudam com decisão." alterado={isDirty} aoEnviar={(evento) => void enviar(evento)} rotuloSalvar="Salvar alterações" salvando={isSubmitting} erros={erros}>
       {credencial.faixa}
       <div className="grid grid-cols-1 gap-[18px]">
         <Controller
@@ -323,7 +323,7 @@ export function FichaDoProduto() {
                     </button>
                   </li>
                   <li>
-                    <LinkCentral href={`/configuracoes/cadastros/marcas/produtos/${linha.id}`} className={CLASSE_LINHA_MENU}>
+                    <LinkCentral href={`/produtos/${linha.id}/cadastro`} className={CLASSE_LINHA_MENU}>
                       <Box aria-hidden />
                       Cadastro básico
                     </LinkCentral>

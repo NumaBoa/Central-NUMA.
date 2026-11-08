@@ -1,4 +1,4 @@
-/** Regras de T02.01 (04-M02): formulário em seções, fase ativa e o que a tela precisa carregar. */
+/** Regras de T02.01 (04-M02): formulário em seções e o que a tela precisa carregar. */
 import { alinharRotinaDoBackup } from './recorrencias';
 import { z } from 'zod';
 import { ErroDeDados } from '@/dados/erros';
@@ -8,10 +8,7 @@ import { repositorios } from '@/dados/repositorios';
 import type { ValoresConfiguracao } from '@/dados/tipos/configuracao';
 import type { Pessoa } from '@/dados/tipos/pessoa';
 import { listarCambios } from './cambio';
-import { faseAnterior, proximaFase } from './fases';
-import { ultimaMudancaDeFase } from './historico';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
-import type { Fase } from './navegacao';
 import { pessoasDoSeletor } from './pessoa-atual';
 
 export const lerConfiguracoes = (): Promise<ValoresConfiguracao> => repositorios.configuracao.ler();
@@ -96,34 +93,13 @@ export async function salvarFormularioGeral(formulario: FormularioGeral): Promis
   return alteradas.length;
 }
 
-// ---------- Fase ativa (RT-23) ----------
-
-/** Avançar exige só a confirmação da tela. Grava na hora, sem depender de "Salvar alterações". */
-export async function avancarFase(): Promise<Fase> {
-  const { fase_ativa: atual } = await lerConfiguracoes();
-  const proxima = proximaFase(atual);
-  if (!proxima) throw new ErroDeDados('validacao');
-  await repositorios.configuracao.salvar({ fase_ativa: proxima });
-  return proxima;
-}
-
-/** Retroceder exige motivo e não apaga dados (T02.01): só muda a fase. */
-export async function voltarFase(motivo: string): Promise<Fase> {
-  const limpo = motivo.trim();
-  if (!limpo) throw new ErroDeDados('validacao');
-  const { fase_ativa: atual } = await lerConfiguracoes();
-  const anterior = faseAnterior(atual);
-  if (!anterior) throw new ErroDeDados('validacao');
-  await repositorios.configuracao.salvar({ fase_ativa: anterior }, { motivo: limpo });
-  return anterior;
-}
 
 // ---------- Tela ----------
 
 /** Tudo o que a tela mostra, lido de uma vez: ou ela abre inteira, ou mostra o erro. */
 export async function carregarTelaGeral() {
-  const [configuracoes, pessoas, cambios, mudancaDeFase, municipios] = await Promise.all([lerConfiguracoes(), repositorios.pessoa.listar(), listarCambios(), ultimaMudancaDeFase(), carregarMunicipios()]);
-  return { configuracoes, pessoas, cambios, mudancaDeFase, municipios };
+  const [configuracoes, pessoas, cambios, municipios] = await Promise.all([lerConfiguracoes(), repositorios.pessoa.listar(), listarCambios(), carregarMunicipios()]);
+  return { configuracoes, pessoas, cambios, municipios };
 }
 
 export type DadosDaTelaGeral = Awaited<ReturnType<typeof carregarTelaGeral>>;

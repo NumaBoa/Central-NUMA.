@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  faseLiberada,
   IDS_BARRA_CELULAR,
   MODULO_CONFIGURACOES,
   MODULOS_EMPRESA,
@@ -13,9 +12,9 @@ import {
 const todos = [...MODULOS_TOPO, ...MODULOS_EMPRESA, MODULO_CONFIGURACOES];
 
 describe('estrutura do menu', () => {
-  it('traz os doze módulos da especificação, sem repetir', () => {
-    expect(todos).toHaveLength(12);
-    expect(new Set(todos.map((modulo) => modulo.id)).size).toBe(12);
+  it('traz os módulos da especificação, sem repetir (sem a Visão geral, decisão de 07/11/2026)', () => {
+    expect(todos).toHaveLength(11);
+    expect(new Set(todos.map((modulo) => modulo.id)).size).toBe(11);
   });
 
   it('coloca na barra do celular só módulos que existem no menu', () => {
@@ -24,15 +23,6 @@ describe('estrutura do menu', () => {
 
   it('não tem link para nenhuma tela ainda não construída', () => {
     expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'produtos', 'comercial', 'contratos', 'financeiro', 'ferramentas', 'legal', 'configuracoes']);
-  });
-});
-
-describe('faseLiberada', () => {
-  it('libera a fase ativa e as anteriores', () => {
-    expect(faseLiberada('f0a', 'f0a')).toBe(true);
-    expect(faseLiberada('f0a', 'f1')).toBe(true);
-    expect(faseLiberada('f0b', 'f0a')).toBe(false);
-    expect(faseLiberada('f3', 'f2')).toBe(false);
   });
 });
 
@@ -56,6 +46,8 @@ describe('moduloAtivo', () => {
     expect(moduloAtivo(MODULO_CONFIGURACOES, '/configuracoes/dados')).toBe(true);
     expect(moduloAtivo(MODULO_CONFIGURACOES, '/configuracoes-antigas')).toBe(false);
     expect(moduloAtivo(MODULOS_TOPO[0]!, '/meu-dia')).toBe(true);
-    expect(moduloAtivo(MODULOS_TOPO[1]!, '/visao-geral')).toBe(false);
+    expect(moduloAtivo(MODULOS_TOPO[0]!, '/meu-dia-antigo')).toBe(false);
+    // Decisão de Kimberly em 07/11/2026: sem Visão geral (T13.01); o painel fica nos módulos.
+    expect(MODULOS_TOPO.map((modulo) => modulo.id)).toEqual(['meu-dia']);
   });
 });

@@ -66,7 +66,7 @@ const textoDaAba = (id) => c.avaliar(`document.querySelector(${js(aba(id))})?.te
 const estadoDaBarra = () => c.avaliar(`document.querySelector('main form p[role=status]')?.textContent ?? ''`);
 const focado = () => c.avaliar(`document.activeElement?.id ?? ''`);
 const guardado = (chave) => c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:configuracao')).find(x=>x.chave===${js(chave)}).valor`);
-const SECOES = ['organizacao', 'fase', 'alertas', 'financeiro', 'legal', 'backup'];
+const SECOES = ['organizacao', 'alertas', 'financeiro', 'legal', 'backup'];
 
 await c.tamanho(1440, 900);
 
@@ -82,8 +82,7 @@ await passo('primeira abertura', async () => {
   ok('nenhuma aba "Em breve"', !(await texto('nav[aria-label="Seções de configurações"]')).includes('Em breve'));
   const m = await texto('main');
   ok('título e resumo', m.includes('Configurações gerais') && m.includes('Dados e preferências da Central Numa.'));
-  await c.ate(`document.querySelector('main').textContent.includes('Uso imediato')`);
-  ok('selo da fase no cabeçalho', (await texto('main')).includes('Fase 0a') && (await texto('main')).includes('Uso imediato'));
+  ok('sem selo de fase no cabeçalho (decisão de 08/11/2026)', !(await texto('main')).includes('Uso imediato'));
   ok('o título da aba diz a tela', (await c.avaliar(`document.title`)).startsWith('Configurações gerais'));
   await c.espera(300);
   await c.foto('a-1440-topo');
@@ -92,7 +91,7 @@ await passo('primeira abertura', async () => {
 
 await passo('navegação por seções', async () => {
   const abas = await c.avaliar(`[...document.querySelectorAll('[role=tablist] [role=tab]')].map(a=>a.textContent)`);
-  ok('as 6 seções, na ordem: Legal e comercial em qualquer fase (decisão de 07/11/2026)', abas.join('|') === 'Organização e região|Fase da Numa|Alertas|Financeiro|Legal e comercial|Backup', abas.join('|'));
+  ok('as 5 seções, na ordem: sem Fase da Numa (decisão de 08/11/2026)', abas.join('|') === 'Organização e região|Alertas|Financeiro|Legal e comercial|Backup', abas.join('|'));
   ok('começa em Organização e região', (await secaoAberta()) === 'organizacao');
   ok('o índice "Nesta página" saiu', !(await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Nesta página"]'))`)));
   const grupos = await c.avaliar(`[...document.querySelectorAll('#organizacao h3')].map(h=>h.textContent)`);
@@ -102,7 +101,7 @@ await passo('navegação por seções', async () => {
   const m = await c.avaliar(`(()=>{const k=document.querySelector('main').cloneNode(true);k.querySelector('#legal')?.remove();return k.textContent})()`);
   ok('fora de Legal e comercial, só o que é da F0a', !/Encarregado|Canal do titular|Validade padrão de propostas|revisão de acessos|Revisão jurídica|revisão jurídica/i.test(m));
   ok('sem aviso de demonstração do protótipo', !/Demonstração visual|nesta prévia|só nesta visualização/i.test(m));
-  for (const [id, titulo] of [['fase', 'Fase da Numa'], ['alertas', 'Alertas'], ['financeiro', 'Financeiro'], ['backup', 'Backup'], ['organizacao', 'Organização e região']]) {
+  for (const [id, titulo] of [['alertas', 'Alertas'], ['financeiro', 'Financeiro'], ['backup', 'Backup'], ['organizacao', 'Organização e região']]) {
     await irSecao(id);
     ok(`${titulo}: só ela à vista`, (await secaoAberta()) === id, await secaoAberta());
     ok(`${titulo}: título e aba marcada`, (await texto(`#${id} h2`)) === titulo && (await c.avaliar(`document.querySelector(${js(aba(id))}).getAttribute('aria-selected')`)) === 'true');
@@ -136,7 +135,7 @@ await passo('padrões da especificação', async () => {
   ok('responsável: Camila Lima', r === 'Camila Lima', r);
   const m = await texto('main');
   ok('regras fixas, sem controle', (m.match(/Regra fixa/g) || []).length === 2 && m.includes('Rateio sempre fecha em 100%') && m.includes('Comprovante obrigatório em todos os pagamentos'));
-  ok('câmbio começa vazio', m.includes('Nenhum câmbio informado.'));
+  ok('o câmbio aponta para Contas e saldos', m.includes('O câmbio de referência fica em'));
   ok('sem alterações: nenhum aviso e ações desligadas', (await estadoDaBarra()) === '' && (await botao('Descartar')) === true && (await botao('Salvar alterações')) === true);
   ok('obrigatórios explicados junto às ações', (await texto('main form')).includes('Campos com * são obrigatórios.'));
   ok('"Não informado" é só indicação visual', (await c.avaliar(`document.getElementById('email').placeholder`)) === 'Não informado' && (await c.avaliar(`document.getElementById('logo').placeholder`)) === 'Não informado');
@@ -359,8 +358,8 @@ await passo('trocar de seção com alterações', async () => {
   await preencher('vencimentos', '7');
   await c.espera(60);
   ok('e nas duas seções', (await estadoDaBarra()) === 'Alterações não salvas em Organização e região e Alertas', await estadoDaBarra());
-  await irSecao('fase');
-  ok('em Fase, com alteração pendente, as ações aparecem', (await botao('Salvar alterações')) === false && (await botao('Descartar')) === false);
+  await irSecao('financeiro');
+  ok('em Financeiro (só leitura), com alteração pendente, as ações aparecem', (await botao('Salvar alterações')) === false && (await botao('Descartar')) === false);
   await c.foto('c-alteracao-em-outra-secao');
   await irSecao('organizacao');
   ok('o que foi digitado continua lá', (await valor('nome')) === 'Digitado' && (await valor('vencimentos')) === '7');
@@ -390,97 +389,17 @@ await passo('trocar de seção com alterações', async () => {
   await voltarGeral();
 });
 
-await passo('fase: estado inicial', async () => {
-  await irSecao('fase');
-  const f = await texto('#fase');
-  ok('fase atual e pergunta', f.includes('Fase 0a · Uso imediato') && f.includes('O que temos, quanto custa e o que precisamos fazer?') && f.includes('Fase atual'));
-  const trilha = await c.avaliar(`[...document.querySelectorAll('#fase ol li')].map(l=>l.textContent)`);
-  ok('trilha das 5 fases', trilha.length === 5 && trilha[4].includes('Integrações'), trilha.join('|'));
-  ok('a fase atual está marcada', (await c.avaliar(`document.querySelector('#fase ol li[aria-current=step]').textContent`)).startsWith('0a'));
-  ok('não há fase anterior', (await botao('Ainda não há fase anterior')) === true);
-  ok('ainda não mudou de fase: sem registro', !f.includes('avançou') && !f.includes('voltou'));
-});
-
-await passo('fase: avançar', async () => {
-  await preencher('nome', 'Pendente');
-  await c.espera(60);
-  await c.clicar('texto=Avançar para a Fase 0b');
-  await dialogoAberto();
-  await c.espera(420);
-  const d = await texto('.dialogo');
-  ok('confirmação com a fase e a pergunta', d.includes('Avançar para a Fase 0b?') && d.includes('Casa em ordem: Somos sócias de quê'));
-  ok('lista as telas da fase', d.includes('Telas desta fase') && d.includes('Empresa: painel, sócias'));
-  ok('texto combinado sobre "Em breve"', d.includes('As que ainda não foram construídas continuam com “Em breve”.'));
-  ok('sem o texto antigo do protótipo', !d.includes('Telas que serão liberadas') && !d.includes('Nesta prévia'));
-  await c.foto('d-avancar');
-  await c.clicar('.dialogo button:first-of-type');
-  await c.espera(50);
-  await dialogoFechado();
-  ok('cancelar não muda nada', (await texto('#fase')).includes('Fase 0a · Uso imediato'));
-  const emBreveAntes = await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`);
-  await c.clicar('texto=Avançar para a Fase 0b');
-  await dialogoAberto();
-  await c.espera(420);
-  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Avançar para a Fase 0b').click()`);
-  await esperarAviso('Agora a Numa está na Fase 0b.');
-  await c.espera(200);
-  const f = await texto('#fase');
-  ok('muda na hora', f.includes('Fase 0b · Casa em ordem'));
-  ok('selo acompanha', (await texto('main')).includes('Casa em ordem'));
-  ok('registra quem avançou', f.includes('Kimberly Grebe avançou para a Fase 0b'), f.slice(-90));
-  ok('o que estava sendo digitado continua lá', (await valor('nome')) === 'Pendente' && (await estadoDaBarra()) === 'Alterações não salvas em Organização e região');
-  const emBreveDepois = await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`);
-  ok('na F0b, o menu não muda: o que foi construído já estava liberado (decisão de 07/11/2026)', emBreveAntes === 4 && emBreveDepois === 4 && (await c.avaliar(`Boolean(document.querySelector('[data-menu-lateral] a[href="/produtos"]'))`)), `${emBreveAntes}→${emBreveDepois}`);
-  ok('a fase já passada fica marcada', await c.avaliar(`document.querySelector('#fase ol li').className.includes('border-indigo')`));
-  await c.clicar('texto=Descartar');
-  await c.espera(100);
-  await c.recarregar();
-  await pronta();
-  ok('recarregar mantém a fase', (await texto('#fase')).includes('Fase 0b · Casa em ordem') && (await texto('#fase')).includes('avançou para a Fase 0b'));
-});
-
-await passo('fase: voltar', async () => {
-  await c.clicar('texto=Voltar para a Fase 0a');
-  await dialogoAberto();
-  await c.espera(420);
-  const d = await texto('.dialogo');
-  ok('texto combinado ao voltar', d.includes('Nenhum dado é apagado, e as telas continuam no menu. As rotinas desta fase deixam de rodar até a fase avançar de novo.'), d);
-  ok('lista as telas da fase', d.includes('Telas desta fase') && d.includes('Empresa: painel'));
-  ok('sem o texto antigo do protótipo', !d.includes('deixam de aparecer'));
-  await c.foto('d-voltar');
-  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Voltar para a Fase 0a').click()`);
-  await c.ate(`document.querySelector('.dialogo').textContent.includes('Informe o motivo para voltar de fase.')`);
-  ok('sem motivo, não volta', (await texto('#fase')).includes('Fase 0b'));
-  ok('o foco vai para o motivo', await c.avaliar(`document.activeElement.tagName==='TEXTAREA'`));
-  await c.digitar('Ainda faltam telas da 0a');
-  await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Voltar para a Fase 0a').click()`);
-  await esperarAviso('A Numa voltou para a Fase 0a. Nenhum dado foi apagado.');
-  await c.espera(200);
-  const f = await texto('#fase');
-  ok('voltou', f.includes('Fase 0a · Uso imediato'));
-  ok('registra o motivo', f.includes('Kimberly Grebe voltou para a Fase 0a. Motivo: Ainda faltam telas da 0a'), f.slice(-110));
-  ok('não apagou nada', (await valor('email')) === 'contato@numa.com.br');
-  const h = await historicoDados();
-  ok('fases no histórico', h.some((l) => l.includes('avançou para a Fase 0b')) && h.some((l) => l.includes('voltou para a Fase 0a. Motivo: Ainda faltam telas da 0a')));
-  await voltarGeral();
-});
-
-await passo('fase: última', async () => {
-  await c.avaliar(`(()=>{const k='numa-central:v1:configuracao';const l=JSON.parse(localStorage.getItem(k));l.find(x=>x.chave==='fase_ativa').valor='f3';localStorage.setItem(k,JSON.stringify(l))})()`);
-  await c.recarregar();
-  await pronta();
-  ok('na última fase, não há o que avançar', (await botao('Já está na última fase')) === true && (await botao('Voltar para a Fase 2')) === false);
-  ok('mesmo na F3, os módulos não construídos seguem "Em breve"', (await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`)) === 4);
-  await c.avaliar(`(()=>{const k='numa-central:v1:configuracao';const l=JSON.parse(localStorage.getItem(k));l.find(x=>x.chave==='fase_ativa').valor='f0a';localStorage.setItem(k,JSON.stringify(l))})()`);
-  await c.recarregar();
-  await pronta();
+await passo('sem Fase da Numa (decisão de 08/11/2026)', async () => {
+  ok('nenhuma seção nem selo de fase', !(await c.avaliar(`Boolean(document.getElementById('fase'))`)) && !(await texto('main')).includes('Fase da Numa') && !/Fase 0a|Fase 0b/.test(await texto('main')));
 });
 
 await passo('câmbio', async () => {
   await irSecao('financeiro');
   ok('regras fixas como informação, sem controle', (await c.avaliar(`[...document.querySelectorAll('#financeiro input,#financeiro select,#financeiro [role=switch]')].length`)) === 0);
-  ok('sem nada pendente, a seção não oferece salvar', !(await c.avaliar(`Boolean(document.querySelector('main button[type=submit]'))`)) && (await texto('main form')).includes('O câmbio é gravado ao adicionar ou remover'));
-  await c.clicar('#financeiro button');
+  ok('o câmbio mudou para Financeiro › Contas e saldos, com o link', await c.avaliar(`Boolean(document.querySelector('#financeiro a[href="/financeiro/contas#cambio"]'))`));
+  await irPara('/financeiro/contas');
+  await c.ate(`document.querySelector('#cambio button')`);
+  await c.clicar('#cambio button');
   await dialogoAberto();
   await c.espera(420);
   await c.foto('e-cambio');
@@ -506,18 +425,18 @@ await passo('câmbio', async () => {
   await esperarAviso('Câmbio de USD adicionado.');
   await dialogoFechado();
   ok('Enter adiciona, sem salvar a página', !(await ultimoAviso()).includes('Configurações salvas'));
-  await c.ate(`document.querySelector('#financeiro table tbody tr')`);
-  const linha = await c.avaliar(`[...document.querySelectorAll('#financeiro table tbody tr td')].map(t=>t.textContent).slice(0,4).join('|')`);
+  await c.ate(`document.querySelector('#cambio table tbody tr')`);
+  const linha = await c.avaliar(`[...document.querySelectorAll('#cambio table tbody tr td')].map(t=>t.textContent).slice(0,4).join('|')`);
   const hoje = await c.avaliar(`new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo'}).format(new Date())`);
   ok('a linha aparece formatada', linha === `USD|R$ 5,42|${hoje}|Banco Central`, linha);
-  ok('o vazio some', !(await texto('#financeiro')).includes('Nenhum câmbio informado.'));
+  ok('o vazio some', !(await texto('#cambio')).includes('Nenhum câmbio informado.'));
   ok('o foco volta ao botão', await c.avaliar(`document.activeElement.textContent.includes('Adicionar')`));
   await c.foto('e-linha');
   await c.recarregar();
-  await pronta();
-  ok('recarregar mantém o câmbio', await c.avaliar(`document.querySelector('#financeiro table tbody tr td').textContent==='USD'`));
+  await c.ate(`document.querySelector('#cambio table tbody tr')`);
+  ok('recarregar mantém o câmbio', await c.avaliar(`document.querySelector('#cambio table tbody tr td').textContent==='USD'`));
   // repetida
-  await c.clicar('#financeiro button');
+  await c.clicar('#cambio button');
   await dialogoAberto();
   await c.espera(420);
   ok('o formulário abre limpo', (await valor(await idPorRotulo('Cotação'))) === '');
@@ -525,7 +444,7 @@ await passo('câmbio', async () => {
   await preencher(await idPorRotulo('Data'), await c.avaliar(`new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date())`));
   await c.clicar('texto=Adicionar câmbio');
   await c.ate(`document.querySelector('.dialogo').textContent.includes('Já existe essa moeda nessa data.')`);
-  ok('mesma moeda na mesma data não entra', (await c.avaliar(`document.querySelectorAll('#financeiro table tbody tr').length`)) === 1);
+  ok('mesma moeda na mesma data não entra', (await c.avaliar(`document.querySelectorAll('#cambio table tbody tr').length`)) === 1);
   await c.ate(`document.activeElement.type==='date'`);
   ok('o foco vai para a data', true);
   await c.tecla('Escape');
@@ -533,7 +452,7 @@ await passo('câmbio', async () => {
   ok('Esc fecha o diálogo', true);
   // remover
   await c.espera(100);
-  await c.clicar('#financeiro table button[aria-label^="Remover USD"]');
+  await c.clicar('#cambio table button[aria-label^="Remover USD"]');
   await dialogoAberto();
   await c.espera(420);
   const conf = await texto('.dialogo');
@@ -541,7 +460,7 @@ await passo('câmbio', async () => {
   await c.foto('e-remover');
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Remover câmbio').click()`);
   await esperarAviso('removido.');
-  await c.ate(`document.querySelector('#financeiro').textContent.includes('Nenhum câmbio informado.')`);
+  await c.ate(`document.querySelector('#cambio').textContent.includes('Nenhum câmbio informado.')`);
   ok('sai da lista', true);
   await c.espera(500);
   ok('o foco não se perde', await c.avaliar(`document.activeElement?.textContent?.includes('Adicionar')`), await c.avaliar(`document.activeElement?.tagName`));
@@ -557,8 +476,9 @@ await passo('fuso', async () => {
   await c.espera(60);
   await salvar();
   await esperarAviso('Configurações salvas.');
-  await irSecao('financeiro');
-  await c.clicar('#financeiro button');
+  await irPara('/financeiro/contas');
+  await c.ate(`document.querySelector('#cambio button')`);
+  await c.clicar('#cambio button');
   await dialogoAberto();
   await c.espera(420);
   await c.clicar('.dialogo button.min-h-11:not([type=submit])');
@@ -632,15 +552,14 @@ await passo('restaurar exemplos', async () => {
   await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
   await voltarGeral();
   ok('tudo volta aos padrões', [await valor('nome'), await valor('email'), await valor('moeda'), await valor('vencimentos'), await valor('responsavel')].join('|') === 'Numa||BRL|3|1c8e2d63-4a7f-4b2c-8e3d-6f9b8d5a2b02');
-  ok('câmbio vazio de novo', (await texto('#financeiro')).includes('Nenhum câmbio informado.'));
-  ok('fase inicial', (await texto('#fase')).includes('Fase 0a') && !(await texto('#fase')).includes('avançou'));
+  ok('câmbio vazio de novo', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:cambio_referencia')||'[]').every(l=>l.arquivado_em)`));
 });
 
 await passo('quem já tinha dados da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:configuracao');localStorage.removeItem('numa-central:v1:cambio_referencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=1;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m));const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l[2].funcao='Dado que precisa continuar';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
-  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 21);
   ok('o que já existia continua', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:pessoa'))[2].funcao==='Dado que precisa continuar'`));
   const h = await historicoDados();
   ok('fica no histórico', h[0]?.includes('Sistema atualizou os dados para a nova versão da Central'), h[0]);
@@ -693,7 +612,7 @@ const alvos=[];document.querySelectorAll('a,button:not(:disabled),select:not(:di
 const c16=[];document.querySelectorAll('input:not([type=file]),select,textarea').forEach(e=>{if(vis(e)&&parseFloat(cs(e).fontSize)<16)c16.push((e.id||e.getAttribute('aria-label'))+':'+cs(e).fontSize)});r.camposAbaixo16=c16;return r})()`;
 
 const MEDIR_ACOES = `(()=>{const barra=document.querySelector('main form > div:last-child');const caixas=[...barra.querySelectorAll('p,button')].map(e=>e.getBoundingClientRect()).filter(r=>r.width>1&&r.height>1);let cruza=false;for(let i=0;i<caixas.length;i++)for(let j=i+1;j<caixas.length;j++){const a=caixas[i],b=caixas[j];if(a.left<b.right-0.5&&b.left<a.right-0.5&&a.top<b.bottom-0.5&&b.top<a.bottom-0.5)cruza=true}const base=barra.getBoundingClientRect();const nav=document.querySelector('nav[aria-label="Navegação do celular"]')?.getBoundingClientRect();return {cruza,dentro:caixas.every(c=>c.left>=base.left&&c.right<=base.right),acimaDaBarraInferior:!nav||nav.height===0||base.height===0||base.bottom<=nav.top+1,naTela:base.top>=0&&base.bottom<=innerHeight}})()`;
-const NAVEGACAO = `(()=>{const abas=[...document.querySelectorAll('[role=tablist] [role=tab]')].map(e=>e.getBoundingClientRect());const painel=document.querySelector('main form').getBoundingClientRect();const lista=document.querySelector('[role=tablist]').getBoundingClientRect();return {todas:abas.length===6&&abas.every(r=>r.width>0&&r.left>=0&&r.right<=innerWidth&&r.height>=44),aEsquerda:lista.right<=painel.left,acima:lista.bottom<=painel.top}})()`;
+const NAVEGACAO = `(()=>{const abas=[...document.querySelectorAll('[role=tablist] [role=tab]')].map(e=>e.getBoundingClientRect());const painel=document.querySelector('main form').getBoundingClientRect();const lista=document.querySelector('[role=tablist]').getBoundingClientRect();return {todas:abas.length===5&&abas.every(r=>r.width>0&&r.left>=0&&r.right<=innerWidth&&r.height>=44),aEsquerda:lista.right<=painel.left,acima:lista.bottom<=painel.top}})()`;
 const acoesEmOrdem = (b) => !b.cruza && b.dentro && b.acimaDaBarraInferior && b.naTela;
 
 for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
@@ -713,7 +632,7 @@ for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
         ok(`${secao}: campos de 16px em ${l}px`, m.camposAbaixo16.length === 0, m.camposAbaixo16.join(','));
       }
       const n = await c.avaliar(NAVEGACAO);
-      ok(`${secao}: as 6 opções à vista em ${l}px`, n.todas);
+      ok(`${secao}: as 5 opções à vista em ${l}px`, n.todas);
       ok(`${secao}: navegação ${l >= 1024 ? 'à esquerda' : 'acima'} em ${l}px`, l >= 1024 ? n.aEsquerda : n.acima);
       const b = await c.avaliar(MEDIR_ACOES);
       ok(`${secao}: ações sem sobreposição em ${l}px`, acoesEmOrdem(b), JSON.stringify(b));
@@ -767,9 +686,10 @@ await passo('celular', async () => {
   await c.espera(100);
   const barra = await c.avaliar(`(()=>{const b=document.querySelector('main button[type=submit]').getBoundingClientRect();const nav=document.querySelector('nav[aria-label="Navegação principal"]')?.getBoundingClientRect();return {base:Math.round(b.bottom),topoNav:nav?Math.round(nav.top):null,visivel:b.top>=0&&b.bottom<=innerHeight}})()`);
   ok('salvar fica à mão no celular', barra.visivel, JSON.stringify(barra));
-  // câmbio com linha, em cartão
-  await irSecao('financeiro');
-  await c.clicar('#financeiro button');
+  // câmbio com linha, em cartão (em Financeiro › Contas e saldos)
+  await irPara('/financeiro/contas');
+  await c.ate(`document.querySelector('#cambio button')`);
+  await c.clicar('#cambio button');
   await dialogoAberto();
   await c.espera(450);
   await c.foto('j-cambio');
@@ -778,19 +698,20 @@ await passo('celular', async () => {
   await preencher(await idPorRotulo('Cotação'), '5,123456');
   await preencher(await idPorRotulo('Data'), '2026-11-05');
   await c.clicar('texto=Adicionar câmbio');
-  await c.ate(`document.querySelector('#financeiro ul li dl')`);
+  await c.ate(`document.querySelector('#cambio ul li dl')`);
   await dialogoFechado();
   await c.espera(100);
-  const cartao = await texto('#financeiro ul li');
+  const cartao = await texto('#cambio ul li');
   ok('no celular, a linha vira cartão', cartao.includes('R$ 5,123456') && cartao.includes('05/11/2026') && cartao.includes('Não informada'), cartao);
-  await c.avaliar(`document.querySelector('#financeiro ul li').scrollIntoView({block:'center',behavior:'instant'})`);
+  await c.avaliar(`document.querySelector('#cambio ul li').scrollIntoView({block:'center',behavior:'instant'})`);
   await c.espera(100);
   await c.foto('j-cartao');
-  await c.clicar('#financeiro ul button[aria-label^="Remover"]');
+  await c.clicar('#cambio ul button[aria-label^="Remover"]');
   await dialogoAberto();
   await c.espera(420);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Remover câmbio').click()`);
   await dialogoFechado();
+  await voltarGeral();
   // sair com pendência pelo "Mais"
   await preencher('nome', 'Pendente no celular');
   await c.espera(60);
@@ -803,16 +724,6 @@ await passo('celular', async () => {
   await dialogoFechado();
   await c.clicar('texto=Descartar');
   await c.espera(100);
-  // fase no celular
-  await irSecao('fase');
-  await c.clicar('texto=Avançar para a Fase 0b');
-  await dialogoAberto();
-  await c.espera(450);
-  await c.foto('j-fase');
-  const cabe = await c.avaliar(`(()=>{const d=document.querySelector('.dialogo');const b=[...d.querySelectorAll('button')].at(-1);b.scrollIntoView({block:'nearest'});const r=b.getBoundingClientRect();return r.bottom<=800&&r.height>=44})()`);
-  ok('o diálogo de fase cabe na folha', cabe);
-  await c.tecla('Escape');
-  await dialogoFechado();
 });
 
 await c.tamanho(1440, 900);
@@ -821,17 +732,9 @@ await passo('teclado', async () => {
   await c.avaliar(`document.querySelector(${js(aba('organizacao'))}).focus()`);
   await c.tecla('ArrowDown');
   await c.espera(100);
-  ok('as setas passam pelas seções', (await secaoAberta()) === 'fase' && (await c.avaliar(`document.activeElement.getAttribute('role')`)) === 'tab');
+  ok('as setas passam pelas seções', (await secaoAberta()) === 'alertas' && (await c.avaliar(`document.activeElement.getAttribute('role')`)) === 'tab');
   ok('pelo teclado, o foco aparece', await c.avaliar(`document.activeElement.matches(':focus-visible')`));
   ok('as seções fechadas saem do caminho do Tab', await c.avaliar(`!document.getElementById('nome').offsetParent&&document.getElementById('nome').matches(':not(:focus)')`));
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.includes('Avançar para a Fase')).focus()`);
-  await c.tecla('Enter');
-  await dialogoAberto();
-  ok('abre a fase pelo teclado', true);
-  await c.tecla('Escape');
-  await dialogoFechado();
-  await c.espera(100);
-  ok('Esc fecha e o foco volta ao botão', await c.avaliar(`document.activeElement.textContent.includes('Avançar para a Fase')`));
   ok('rótulos em todos os campos (RT-19)', await c.avaliar(`[...document.querySelectorAll('main input:not([type=file]),main select')].every(e=>e.labels?.length>0||e.getAttribute('aria-label'))`));
 });
 

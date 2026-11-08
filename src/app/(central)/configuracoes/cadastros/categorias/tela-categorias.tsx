@@ -33,7 +33,7 @@ import {
   type FiltrosCategorias,
 } from '@/dominio/categorias';
 import { formatarNumero } from '@/lib/formatacao';
-import { AbasConfiguracoes, SubabasCadastros } from '../../abas';
+import { AbasFinanceiro } from '@/componentes/financeiro/abas-financeiro';
 import { FormularioCategoria } from './formulario-categoria';
 
 function SituacaoDaCategoria({ situacao }: { situacao: CategoriaFinanceira['situacao'] }) {
@@ -111,8 +111,8 @@ export function TelaCategorias() {
   return (
     <>
       <CabecalhoPagina
-        migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Categorias']}
-        kicker="Configurações"
+        migalhas={['Central Numa', 'Financeiro', 'Categorias']}
+        kicker="Financeiro"
         titulo="Categorias financeiras"
         resumo={categorias ? `${plural(grupos, 'grupo', 'grupos')} · ${plural(vivas.length - grupos, 'categoria', 'categorias')}` : undefined}
         acoes={
@@ -122,8 +122,7 @@ export function TelaCategorias() {
           </Button>
         }
       />
-      <AbasConfiguracoes ativa="cadastros" />
-      <SubabasCadastros ativa="categorias" />
+      <AbasFinanceiro ativa="categorias" className="" />
 
       <div className="mt-5 space-y-4">
         {consulta.estado === 'carregando' && <EstadoCarregando />}

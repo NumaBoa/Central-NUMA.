@@ -735,7 +735,7 @@ await passo('T03.05: os contadores aplicam filtro e seguem o recorte', async () 
 });
 
 await passo('T03.05: pausar se desfaz sem confirmação; encerrar pergunta', async () => {
-  const rotina = (await tabela('recorrencia')).find((item) => item.situacao === 'ativa' && !item.fase_minima);
+  const rotina = (await tabela('recorrencia')).find((item) => item.situacao === 'ativa' && !item.exemplo);
   const linha = `[...document.querySelectorAll('main tbody tr')].find(l=>l.textContent.includes(${js(rotina.titulo)}))`;
   await abrirMenu(`${linha}.querySelector('button[aria-label^="Ações de"]')`);
   ok('o menu diz o efeito de cada um', /Não gera novas\. As criadas continuam no Meu dia\./.test(await texto('.menu-suspenso')) && /Não volta\. Você escolhe o que fazer com as futuras\./.test(await texto('.menu-suspenso')));

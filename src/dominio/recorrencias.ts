@@ -14,7 +14,6 @@ import { hojeISO, instanteNoFuso } from '@/lib/datas';
 import { cancelarAtividade, estaAberta, MAXIMO_NO_TITULO, MINHAS, passaNoContexto, prazoEfetivo } from './atividades';
 import { definirContextos, definirParticipantes } from './atividades-painel';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
-import { FASES, type Fase } from './navegacao';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { normalizarTexto } from './duplicidade';
 import { datasDaRegra, errosDaRepeticao, esquemaCamposRepeticao, formularioDaRegra, mesmaAgenda, proximaData, proximasDatas, regraDoFormulario, regraPorExtenso, repeticaoPadrao, somarDias, type RegraDeRepeticao } from './repeticao';
@@ -116,8 +115,6 @@ async function gerarDaRotina(rotina: Recorrencia, hoje: string, chaves: Set<stri
   return novas;
 }
 
-export const faseAlcancada = (rotina: Pick<Recorrencia, 'fase_minima'>, faseAtiva: Fase) => !rotina.fase_minima || FASES.indexOf(rotina.fase_minima) <= FASES.indexOf(faseAtiva);
-
 async function chavesExistentes(): Promise<Set<string>> {
   const atividades = await repositorios.atividade.listar({ incluirArquivados: true });
   return new Set(atividades.flatMap((atividade) => (atividade.chave_idempotencia ? [atividade.chave_idempotencia] : [])));
@@ -128,8 +125,7 @@ async function chavesExistentes(): Promise<Set<string>> {
  * gerado continua como está, inclusive o que foi concluído, cancelado ou editado.
  */
 export async function gerarOcorrencias(hoje: string = hojeISO()): Promise<number> {
-  const { fase_ativa } = await repositorios.configuracao.ler();
-  const rotinas = (await repositorios.recorrencia.listar({ onde: { situacao: 'ativa' } })).filter((rotina) => faseAlcancada(rotina, fase_ativa));
+  const rotinas = await repositorios.recorrencia.listar({ onde: { situacao: 'ativa' } });
   if (!rotinas.length) return 0;
   return emTransacao(async () => {
     const [chaves, ativos] = await Promise.all([chavesExistentes(), lerAtivos()]);
@@ -162,8 +158,8 @@ async function nascerComPrimeira(rotina: Recorrencia, hoje: string): Promise<Ati
   return primeira;
 }
 
-function novaRotina({ titulo, responsavel_id, modelo, regra }: DadosDaRotina, extras: Partial<Pick<Recorrencia, 'situacao' | 'substitui_id' | 'fase_minima' | 'exemplo'>> = {}) {
-  return { titulo, responsavel_id, modelo, ...regra, situacao: 'ativa' as const, substitui_id: null, fase_minima: null, ...extras };
+function novaRotina({ titulo, responsavel_id, modelo, regra }: DadosDaRotina, extras: Partial<Pick<Recorrencia, 'situacao' | 'substitui_id' | 'exemplo'>> = {}) {
+  return { titulo, responsavel_id, modelo, ...regra, situacao: 'ativa' as const, substitui_id: null, ...extras };
 }
 
 export async function criarRotina(dados: DadosDaRotina, hoje: string = hojeISO()): Promise<{ rotina: Recorrencia; primeira: Atividade | null }> {
@@ -220,7 +216,7 @@ export async function editarRotina(id: string, dados: DadosDaRotina, hoje: strin
     const regra = { ...dados.regra, inicio };
     if (!proximaData(regra, inicio)) throw new ErroDeRegra('Com esse fim, a rotina não teria nenhuma ocorrência.');
     await repositorios.recorrencia.atualizar(id, { situacao: 'encerrada', fim_data: somarDias(inicio, -1) });
-    const nova = await repositorios.recorrencia.criar(novaRotina({ ...dados, regra }, { situacao: atual.situacao, substitui_id: id, fase_minima: atual.fase_minima, exemplo: atual.exemplo }));
+    const nova = await repositorios.recorrencia.criar(novaRotina({ ...dados, regra }, { situacao: atual.situacao, substitui_id: id, exemplo: atual.exemplo }));
     const datasNovas = datasDaRegra(regra, somarDias(hoje, 400));
     for (const atividade of await ocorrenciasAbertas(id, inicio)) {
       if (ehCandidataARefazer(atividade)) {
@@ -297,7 +293,7 @@ export async function editarOcorrencia(id: string, campos: CamposDaOcorrencia, e
     };
     const restantes = rotina.fim_ocorrencias ? Math.max(1, rotina.fim_ocorrencias - ((atividade.ocorrencia_numero ?? 1) - 1)) : null;
     await repositorios.recorrencia.atualizar(rotina.id, { situacao: 'encerrada', fim_data: somarDias(data, -1) });
-    const nova = await repositorios.recorrencia.criar({ titulo: simples.titulo ?? rotina.titulo, responsavel_id: simples.responsavel_id ?? rotina.responsavel_id, modelo, frequencia: rotina.frequencia, intervalo: rotina.intervalo, dias_semana: rotina.dias_semana, dia_mes: rotina.dia_mes, ultimo_dia: rotina.ultimo_dia, mes: rotina.mes, hora: rotina.hora, inicio: data, fim_data: rotina.fim_data, fim_ocorrencias: restantes, situacao: rotina.situacao, substitui_id: rotina.id, fase_minima: rotina.fase_minima, exemplo: rotina.exemplo });
+    const nova = await repositorios.recorrencia.criar({ titulo: simples.titulo ?? rotina.titulo, responsavel_id: simples.responsavel_id ?? rotina.responsavel_id, modelo, frequencia: rotina.frequencia, intervalo: rotina.intervalo, dias_semana: rotina.dias_semana, dia_mes: rotina.dia_mes, ultimo_dia: rotina.ultimo_dia, mes: rotina.mes, hora: rotina.hora, inicio: data, fim_data: rotina.fim_data, fim_ocorrencias: restantes, situacao: rotina.situacao, substitui_id: rotina.id, exemplo: rotina.exemplo });
     await alinharConfiguracaoDoBackup(rotina.id, nova.responsavel_id);
     const datas = datasDaRegra(nova, somarDias(data, 400));
     for (const outra of await ocorrenciasAbertas(rotina.id, data)) {
@@ -481,31 +477,27 @@ export type LinhaDaRotina = Recorrencia & {
   /** A próxima data da regra que ainda não foi encerrada. */
   proxima: string | null;
   abertas: number;
-  /** Rotina de uma fase que ainda não chegou (T03.05). */
-  aguardaFase: Fase | null;
 };
 
 export type DadosDasRotinas = { rotinas: LinhaDaRotina[]; pessoas: Pessoa[]; areas: Area[]; produtos: Produto[]; marcas: Marca[]; hoje: string };
 
-function linhaDaRotina(rotina: Recorrencia, ocorrencias: readonly Atividade[], hoje: string, faseAtiva: Fase): LinhaDaRotina {
+function linhaDaRotina(rotina: Recorrencia, ocorrencias: readonly Atividade[], hoje: string): LinhaDaRotina {
   const delas = ocorrencias.filter((atividade) => atividade.recorrencia_id === rotina.id);
   const fechadas = new Set(delas.filter((atividade) => !estaAberta(atividade)).map((atividade) => atividade.ocorrencia_data));
-  const espera = !faseAlcancada(rotina, faseAtiva);
-  const proxima = rotina.situacao === 'ativa' && !espera ? (proximasDatas(rotina, hoje, 40).find((dia) => !fechadas.has(dia)) ?? null) : null;
-  return { ...rotina, proxima, abertas: delas.filter(estaAberta).length, aguardaFase: espera ? rotina.fase_minima : null };
+  const proxima = rotina.situacao === 'ativa' ? (proximasDatas(rotina, hoje, 40).find((dia) => !fechadas.has(dia)) ?? null) : null;
+  return { ...rotina, proxima, abertas: delas.filter(estaAberta).length };
 }
 
 export async function carregarRotinas(hoje: string = hojeISO()): Promise<DadosDasRotinas> {
-  const [rotinas, atividades, pessoas, areas, produtos, marcas, { fase_ativa }] = await Promise.all([
+  const [rotinas, atividades, pessoas, areas, produtos, marcas] = await Promise.all([
     repositorios.recorrencia.listar(),
     repositorios.atividade.listar(),
     repositorios.pessoa.listar({ incluirArquivados: true }),
     repositorios.area.listar({ incluirArquivados: true }),
     repositorios.produto.listar({ incluirArquivados: true }),
     repositorios.marca.listar({ incluirArquivados: true }),
-    repositorios.configuracao.ler(),
   ]);
-  return { rotinas: rotinas.map((rotina) => linhaDaRotina(rotina, atividades, hoje, fase_ativa)), pessoas, areas, produtos, marcas, hoje };
+  return { rotinas: rotinas.map((rotina) => linhaDaRotina(rotina, atividades, hoje)), pessoas, areas, produtos, marcas, hoje };
 }
 
 // ---------- Filtros de T03.05 (o mesmo padrão do Meu dia) ----------

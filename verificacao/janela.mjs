@@ -18,13 +18,13 @@ const obrigatoriosForaDaVista = () =>
 const FORMULARIOS = [
   { nome: 'Nova pessoa', caminho: '/configuracoes/cadastros/pessoas', botao: 'Nova pessoa' },
   { nome: 'Nova área', caminho: '/configuracoes/cadastros/areas', botao: 'Nova área' },
-  { nome: 'Nova marca', caminho: '/configuracoes/cadastros/marcas', botao: 'Nova marca' },
-  { nome: 'Novo produto', caminho: '/configuracoes/cadastros/marcas', botao: 'Novo produto' },
+  { nome: 'Nova marca', caminho: '/produtos/marcas', botao: 'Nova marca' },
+  { nome: 'Novo produto', caminho: '/produtos/marcas', botao: 'Novo produto' },
   { nome: 'Nova entidade', caminho: '/configuracoes/cadastros/entidades', botao: 'Nova entidade' },
   // País e situação já vêm preenchidos e ficam no fim: o que falta preencher está à vista.
-  { nome: 'Nova contraparte', caminho: '/configuracoes/cadastros/contrapartes', botao: 'Nova contraparte', preenchidosNoFim: ['País *', 'Situação *'] },
-  { nome: 'Nova categoria', caminho: '/configuracoes/cadastros/categorias', botao: 'Nova categoria' },
-  { nome: 'Nova conta', caminho: '/configuracoes/cadastros/contas', botao: 'Nova conta' },
+  { nome: 'Nova contraparte', caminho: '/comercial/contrapartes', botao: 'Nova contraparte', preenchidosNoFim: ['País *', 'Situação *'] },
+  { nome: 'Nova categoria', caminho: '/financeiro/categorias', botao: 'Nova categoria' },
+  { nome: 'Nova conta', caminho: '/financeiro/contas/cadastro', botao: 'Nova conta' },
   { nome: 'Novo feriado', caminho: '/configuracoes/cadastros/calendario', botao: 'Novo feriado' },
   { nome: 'Nova etiqueta', caminho: '/configuracoes/cadastros/etiquetas', botao: 'Nova etiqueta' },
   { nome: 'Nova ferramenta', caminho: '/ferramentas', botao: 'Nova ferramenta' },
@@ -33,7 +33,7 @@ const FORMULARIOS = [
   { nome: 'Nova despesa', caminho: '/financeiro', botao: 'Nova despesa' },
   { nome: 'Novo aporte', caminho: '/financeiro/socias', botao: 'Novo aporte em dinheiro', dialogo: true },
   { nome: 'Nova transferência', caminho: '/financeiro/transferencias', botao: 'Nova transferência', dialogo: true },
-  { nome: 'Adicionar câmbio', caminho: '/configuracoes#financeiro', botao: 'Adicionar', dialogo: true },
+  { nome: 'Adicionar câmbio', caminho: '/financeiro/contas#cambio', botao: 'Adicionar', dialogo: true },
 ];
 
 async function abrir(formulario) {

@@ -498,7 +498,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                   control={control}
                   name="conta_financeira_id"
                   render={({ field }) => (
-                    <Campo id={ID_DO_CAMPO.conta_financeira_id} rotulo="Conta de pagamento" obrigatorio erro={errors.conta_financeira_id?.message} ajuda={dados.contas.some((conta) => conta.situacao === 'ativa') ? undefined : 'Nenhuma conta ativa ainda. Cadastre em Configurações › Contas financeiras, ou deixe o custo para depois.'}>
+                    <Campo id={ID_DO_CAMPO.conta_financeira_id} rotulo="Conta de pagamento" obrigatorio erro={errors.conta_financeira_id?.message} ajuda={dados.contas.some((conta) => conta.situacao === 'ativa') ? undefined : 'Nenhuma conta ativa ainda. Cadastre em Financeiro › Contas e saldos › Cadastrar conta, ou deixe o custo para depois.'}>
                       {(controle) => (
                         <Selecao {...controle} {...field}>
                           <option value="">Escolha uma conta</option>

@@ -1,8 +1,8 @@
 // Verificação de T02.07 (Categorias), T02.08 (Contas), T02.09 (Calendário) e T02.10 (Etiquetas) no sistema real.
 import { iniciar, ID_CAMILA, ID_KIMBERLY } from './apoio.mjs';
 
-const CATEGORIAS = '/configuracoes/cadastros/categorias';
-const CONTAS = '/configuracoes/cadastros/contas';
+const CATEGORIAS = '/financeiro/categorias';
+const CONTAS = '/financeiro/contas/cadastro';
 const CALENDARIO = '/configuracoes/cadastros/calendario';
 const ETIQUETAS = '/configuracoes/cadastros/etiquetas';
 const ENTIDADES = '/configuracoes/cadastros/entidades';
@@ -54,9 +54,7 @@ await passo('navegação', async () => {
   await ir(CATEGORIAS);
   await pularAbertura();
   await pronta();
-  const sub = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Cadastros base"] a')].map(a=>a.textContent+(a.getAttribute('aria-current')?'*':''))`);
-  ok('os nove cadastros, na ordem', sub.join('|') === 'Pessoas|Áreas|Marcas e produtos|Entidades|Contrapartes|Categorias*|Contas|Calendário|Etiquetas', sub.join('|'));
-  ok('todos cabem na fileira em 1440px', await c.avaliar(`(()=>{const n=document.querySelector('nav[aria-label="Cadastros base"]');return n.scrollWidth<=n.clientWidth})()`));
+  ok('Categorias é uma aba do Financeiro (decisão de 07/11/2026)', await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Seções do financeiro"] a[href="/financeiro/categorias"][aria-current]'))`));
   for (const [caminho, titulo, aba] of [[CATEGORIAS, 'Categorias financeiras', 'Categorias financeiras'], [CONTAS, 'Contas financeiras', 'Contas financeiras'], [CALENDARIO, 'Calendário e feriados', 'Calendário e feriados'], [ETIQUETAS, 'Etiquetas', 'Etiquetas']]) {
     await ir(caminho);
     await c.ate(`document.querySelector('main h1')?.textContent===${js(titulo)}`);
@@ -739,7 +737,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   ok('feriados do ano entram', (await tabela('feriado')).length === 15 && (await tabela('feriado')).every((x) => x.data.startsWith(String(ANO))));
   ok('contas de exemplo entram', (await tabela('conta_financeira')).length === 2);
   ok('etiquetas ficam vazias', (await tabela('etiqueta')).length === 0 && (await tabela('etiqueta_vinculo')).length === 0);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 21);
   ok('o que existia continua como estava', (await tabela('pessoa')).find((x) => x.id === ID_CAMILA).funcao === 'Dado que precisa continuar');
   await restaurarExemplos();
   await botao('Limpar exemplos');
@@ -793,9 +791,7 @@ await passo('celular', async () => {
   await c.espera(200);
   ok('categorias em cartões', await c.avaliar(`document.querySelector('main ul[aria-label="Categorias de Marketing"]').getBoundingClientRect().height>0&&document.querySelector('main table').getBoundingClientRect().height===0`));
   ok('as ações do cartão têm 44px', await c.avaliar(`document.querySelector('main ul[aria-label="Categorias de Marketing"] button[aria-label="Editar Eventos"]').getBoundingClientRect().height>=44`));
-  ok('o segundo nível rola só na fileira, com a ativa visível', await c.avaliar(`(()=>{const nav=document.querySelector('nav[aria-label="Cadastros base"]');const a=nav.querySelector('a[aria-current]').getBoundingClientRect();return nav.scrollWidth>nav.clientWidth&&a.left>=0&&a.right<=360&&document.documentElement.scrollWidth<=innerWidth})()`));
-  const p = await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Cadastros base"] a')].map(a=>Math.round(a.getBoundingClientRect().height))`);
-  ok('nove pílulas de 44px', p.length === 9 && p.every((x) => x === 44), p.join(','));
+  ok('as abas do módulo cabem, com a ativa visível e sem rolagem da página', await c.avaliar(`(()=>{const a=[...document.querySelectorAll('main nav a[aria-current]')].find(x=>x.getBoundingClientRect().width>0);const r=a?.getBoundingClientRect();return Boolean(r)&&r.left>=0&&r.right<=innerWidth+1&&document.documentElement.scrollWidth<=innerWidth})()`));
   await c.foto('m-categorias');
   await c.clicar('texto=Filtros');
   await c.ate(`document.querySelector('.dialogo')`);

@@ -129,7 +129,7 @@ await passo('busca: teclado e destino', async () => {
   await buscar('souza contabilidade');
   await c.ate(`document.querySelector('.busca-global [role=option]')?.textContent.includes('Souza Contabilidade')`);
   await c.tecla('Enter');
-  await c.ate(`location.pathname.startsWith('/configuracoes/cadastros/contrapartes/')`);
+  await c.ate(`location.pathname.startsWith('/comercial/contrapartes/')`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Souza Contabilidade'`);
   ok('contraparte abre a ficha', true);
   await abrirBusca();
@@ -141,7 +141,7 @@ await passo('busca: teclado e destino', async () => {
   await abrirBusca();
   await buscar('zupi');
   await c.ate(`[...document.querySelectorAll('.busca-global [role=listbox] > p')].some(p=>p.textContent.startsWith('Produtos'))`);
-  await c.avaliar(`[...document.querySelectorAll('.busca-global [role=option]')].find(o=>o.getAttribute('href').includes('/marcas/produtos/')).click()`);
+  await c.avaliar(`[...document.querySelectorAll('.busca-global [role=option]')].find(o=>o.getAttribute('href').startsWith('/produtos/')&&!o.getAttribute('href').includes('/cadastro')).click()`);
   await c.ate(`document.querySelector('main h1')?.textContent==='Zupi'`);
   ok('produto abre a ficha', true);
   await abrirBusca();
@@ -284,7 +284,7 @@ await passo('sino: alerta resolvido e dados', async () => {
   // migração
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:notificacao');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=9;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await c.recarregar();
-  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===20`);
+  await c.ate(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados===21`);
   ok('versão anterior recebe a tabela', await c.avaliar(`localStorage.getItem('numa-central:v1:notificacao')!==null`));
   await irDados();
   await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Restaurar exemplos').click()`);

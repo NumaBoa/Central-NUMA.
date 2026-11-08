@@ -94,7 +94,7 @@ export function DialogoDeTransferencia({ contas, aoFechar }: { contas: readonly 
             {disponiveis.length < 2 && (
               <Faixa tipo="atencao">
                 É preciso ter ao menos duas contas da Numa.{' '}
-                <LinkCentral href="/configuracoes/cadastros/contas" className="inline-flex min-h-11 items-center underline md:min-h-0">
+                <LinkCentral href="/financeiro/contas/cadastro" className="inline-flex min-h-11 items-center underline md:min-h-0">
                   Cadastrar conta
                 </LinkCentral>
               </Faixa>

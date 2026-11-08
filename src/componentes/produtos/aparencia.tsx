@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Layers, Radio, SlidersHorizontal } from 'lucide-react';
+import { Layers, Radio, SlidersHorizontal, Tag } from 'lucide-react';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
 import { Faixa } from '@/componentes/padroes/faixa';
@@ -64,15 +64,16 @@ export function Indisponivel({ titulo, children, className }: { titulo: string; 
 }
 
 /** Seções do módulo. Ofertas, simulações e indicadores ficam dentro de cada produto, com o contexto dele. */
-export function AbasProdutos({ ativa }: { ativa: 'portfolio' | 'simulador' | 'canais' }) {
+export function AbasProdutos({ ativa, className = '!mt-0' }: { ativa: 'portfolio' | 'simulador' | 'canais' | 'marcas'; className?: string }) {
   return (
     <AbasPagina
       rotulo="Seções de produtos"
-      className="!mt-0"
+      className={className}
       abas={[
         { rotulo: 'Portfólio', icone: Layers, href: '/produtos', ativa: ativa === 'portfolio' },
         { rotulo: 'Simulador', icone: SlidersHorizontal, href: '/produtos/simulador', ativa: ativa === 'simulador' },
         { rotulo: 'Canais de venda', icone: Radio, href: '/produtos/canais', ativa: ativa === 'canais' },
+        { rotulo: 'Marcas', icone: Tag, href: '/produtos/marcas', ativa: ativa === 'marcas' },
       ]}
     />
   );

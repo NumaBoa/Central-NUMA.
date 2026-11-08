@@ -45,7 +45,7 @@ function Resumo({ pessoa, areas, contraparte }: { pessoa: Pessoa; areas: readonl
       {pessoa.tipo === 'externa' && (
         <Dado rotulo="Contraparte">
           {contraparte && (
-            <LinkCentral className={CLASSE_LINK} href={`/configuracoes/cadastros/contrapartes/${contraparte.id}`}>
+            <LinkCentral className={CLASSE_LINK} href={`/comercial/contrapartes/${contraparte.id}/cadastro`}>
               {contraparte.nome_fantasia || contraparte.nome}
             </LinkCentral>
           )}

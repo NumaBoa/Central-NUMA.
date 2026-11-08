@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { FASES } from '@/dominio/navegacao';
 import { esquemaControle } from './controle';
 
 const dia = z.iso.date();
@@ -25,8 +24,8 @@ export const esquemaModeloDaRecorrencia = z.object({
 export type ModeloDaRecorrencia = z.infer<typeof esquemaModeloDaRecorrencia>;
 
 /**
- * `recorrencia` (16 §4.3). `fase_minima` não está na especificação: é o que faz as rotinas iniciais
- * das outras fases (T03.05) esperarem a fase delas, sem gerar nada antes da hora.
+ * `recorrencia` (16 §4.3). A `fase_minima` saiu em 08/11/2026, com a fase da Numa: toda rotina ativa gera
+ * ocorrências, e as rotinas iniciais de telas ainda não construídas começam pausadas.
  */
 export const esquemaRecorrencia = esquemaControle
   .extend({
@@ -45,7 +44,6 @@ export const esquemaRecorrencia = esquemaControle
     situacao: z.enum(['ativa', 'pausada', 'encerrada']),
     substitui_id: texto,
     responsavel_id: z.string().min(1),
-    fase_minima: z.enum(FASES).nullable(),
   })
   .superRefine((regra, contexto) => {
     const falha = (campo: string, message: string) => contexto.addIssue({ code: 'custom', path: [campo], message });

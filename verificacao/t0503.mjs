@@ -281,7 +281,7 @@ await passo('nas outras telas', async () => {
   await clicarNoDialogo('Voltar');
   await dialogoFechado();
   const souza = (await tabela('contraparte')).find((x) => x.nome.startsWith('Souza'));
-  await ir(`/configuracoes/cadastros/contrapartes/${souza.id}`);
+  await ir(`/comercial/contrapartes/${souza.id}/cadastro`);
   await c.ate(`document.querySelector('main h1')`);
   await c.espera(150);
   await aba('Lançamentos');

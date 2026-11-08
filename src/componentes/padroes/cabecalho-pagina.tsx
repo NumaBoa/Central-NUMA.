@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { EmBreve } from '@/componentes/padroes/etiquetas';
+import { FaixaDeAbas } from '@/componentes/padroes/faixa-de-abas';
 import { cn } from '@/lib/utils';
 
 type CabecalhoPaginaProps = {
@@ -45,7 +46,7 @@ export type AbaPagina = { rotulo: string; icone: LucideIcon; href?: string; ativ
 /** Abas da página: pílula espresso na ativa; o que não existe ainda fica "Em breve", sem link. */
 export function AbasPagina({ abas, rotulo, className }: { abas: readonly AbaPagina[]; rotulo: string; className?: string }) {
   return (
-    <nav aria-label={rotulo} className={cn('faixa-rolagem mt-6 flex items-center gap-1.5 border-b border-line pb-3.5 md:mt-7', className)}>
+    <FaixaDeAbas rotulo={rotulo} className={cn('faixa-rolagem mt-6 flex items-center gap-1.5 border-b border-line pb-3.5 md:mt-7', className)}>
       {abas.map(({ rotulo: nome, icone: Icone, href, ativa }) =>
         href ? (
           <LinkCentral
@@ -70,6 +71,6 @@ export function AbasPagina({ abas, rotulo, className }: { abas: readonly AbaPagi
           </div>
         ),
       )}
-    </nav>
+    </FaixaDeAbas>
   );
 }

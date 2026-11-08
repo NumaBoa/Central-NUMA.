@@ -110,5 +110,7 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 18: a oferta ganha os campos do contrato SaaS (19 §8) e entra `configuracao_contratual` (T07.10).
  * 19: entra `orcamento` (T05.08).
  * 20: entra `receita_canal` (T05.12).
+ * 21: sai a fase da Numa: some a chave `fase_ativa` e o campo `fase_minima` das rotinas; a rotina que ainda
+ *     esperava a fase dela fica pausada, para não começar a gerar sozinha.
  */
-export const VERSAO_DADOS = 20;
+export const VERSAO_DADOS = 21;

@@ -218,6 +218,23 @@ function migrar(versao: number) {
   // 18: a oferta ganha os campos do contrato SaaS (19 §8), vazios; a configuração contratual (T07.10) começa vazia.
   if (versao < 19 && driver().getItem(chaveDaTabela('orcamento')) === null) alteracoes.orcamento = [];
   if (versao < 20 && driver().getItem(chaveDaTabela('receita_canal')) === null) alteracoes.receita_canal = [];
+  // 21: sai a fase da Numa (decisão de Kimberly em 08/11/2026). A rotina que ainda esperava a fase dela não
+  // começa a gerar sozinha: fica pausada, e quem quiser a retoma em Meu dia › Rotinas.
+  if (versao < 21) {
+    try {
+      const ordem = ['f0a', 'f0b', 'f1', 'f2', 'f3'];
+      const configuracao = lerTabela<Record<string, unknown>>('configuracao');
+      const linhaDaFase = configuracao.find((linha) => linha.chave === 'fase_ativa');
+      const faseAtiva = ordem.indexOf(String(linhaDaFase?.valor ?? 'f0a'));
+      if (linhaDaFase) alteracoes.configuracao = configuracao.filter((linha) => linha !== linhaDaFase);
+      const rotinas = lerTabela<Record<string, unknown>>('recorrencia');
+      if (rotinas.some((linha) => 'fase_minima' in linha)) {
+        alteracoes.recorrencia = rotinas.map(({ fase_minima: faseMinima, ...linha }) => (linha.situacao === 'ativa' && typeof faseMinima === 'string' && ordem.indexOf(faseMinima) > faseAtiva ? { ...linha, situacao: 'pausada' } : linha));
+      }
+    } catch {
+      // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
+    }
+  }
   if (versao < 18) {
     if (driver().getItem(chaveDaTabela('configuracao_contratual')) === null) alteracoes.configuracao_contratual = [];
     try {
