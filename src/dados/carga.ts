@@ -220,6 +220,7 @@ function migrar(versao: number) {
   if (versao < 20 && driver().getItem(chaveDaTabela('receita_canal')) === null) alteracoes.receita_canal = [];
   if (versao < 22 && driver().getItem(chaveDaTabela('reajuste_aplicado')) === null) alteracoes.reajuste_aplicado = [];
   if (versao < 23 && driver().getItem(chaveDaTabela('competencia_fechamento')) === null) alteracoes.competencia_fechamento = [];
+  for (const tabela of ['venda_parceiro', 'repasse'] as const) if (versao < 24 && driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = [];
   // 21: sai a fase da Numa (decisão de Kimberly em 08/11/2026). A rotina que ainda esperava a fase dela não
   // começa a gerar sozinha: fica pausada, e quem quiser a retoma em Meu dia › Rotinas.
   if (versao < 21) {

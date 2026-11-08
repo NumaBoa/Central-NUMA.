@@ -67,7 +67,7 @@ export function NovoContrato() {
         <ArrowLeft className="size-4" aria-hidden />
         Contratos
       </LinkCentral>
-      <CabecalhoPagina kicker="Contratos" titulo="Novo contrato" resumo="Família parceiro, com repasse, é da F2. Societário fica em Empresa." />
+      <CabecalhoPagina kicker="Contratos" titulo="Novo contrato" resumo="Societário fica em Empresa. Parceiro leva os termos de repasse nos itens." />
       <CartaoDePainel className="mt-5 max-w-3xl">
         <div className="grid gap-[18px] md:grid-cols-2">
           <Campo id="novo-familia" rotulo="Família" obrigatorio>
@@ -80,7 +80,7 @@ export function NovoContrato() {
           <Campo id="novo-tipo" rotulo="Tipo" obrigatorio>
             {(controle) => (
               <Selecao {...controle} value={tipo} onChange={(evento) => setTipo(evento.target.value as Contrato['tipo'])}>
-                {Object.entries(ROTULOS_TIPO_CONTRATO).filter(([valor]) => valor !== 'parceria' || familia === 'institucional').map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+                {Object.entries(ROTULOS_TIPO_CONTRATO).filter(([valor]) => valor !== 'parceria' || familia === 'institucional' || familia === 'parceiro').map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
               </Selecao>
             )}
           </Campo>

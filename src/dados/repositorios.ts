@@ -24,6 +24,7 @@ import { repositoriosF1, type RepositoriosF1 } from './repositorios-f1';
 import { esquemaOrcamento, type Orcamento } from './tipos/orcamento';
 import { esquemaCompetenciaFechamento, type CompetenciaFechamento } from './tipos/fechamento';
 import { esquemaReajusteAplicado, type ReajusteAplicado } from './tipos/reajuste';
+import { esquemaRepasse, esquemaVendaParceiro, type Repasse, type VendaParceiro } from './tipos/repasse';
 import { esquemaReceitaCanal, type ReceitaCanal } from './tipos/receita-canal';
 
 /** Ponto de acesso aos dados. Na etapa com servidor, só estas implementações mudam (02 §0.3). */
@@ -79,6 +80,8 @@ export const repositorios: {
   receita_canal: Repositorio<ReceitaCanal>;
   reajuste_aplicado: Repositorio<ReajusteAplicado>;
   competencia_fechamento: Repositorio<CompetenciaFechamento>;
+  venda_parceiro: Repositorio<VendaParceiro>;
+  repasse: Repositorio<Repasse>;
   concorrente_referencia: Repositorio<Concorrente>;
   kpi_definicao: Repositorio<KpiDefinicao>;
   kpi_mensal: Repositorio<KpiMensal>;
@@ -134,6 +137,8 @@ export const repositorios: {
   receita_canal: criarRepositorioLocal({ tabela: 'receita_canal', esquema: esquemaReceitaCanal }),
   reajuste_aplicado: criarRepositorioLocal({ tabela: 'reajuste_aplicado', esquema: esquemaReajusteAplicado }),
   competencia_fechamento: criarRepositorioLocal({ tabela: 'competencia_fechamento', esquema: esquemaCompetenciaFechamento }),
+  venda_parceiro: criarRepositorioLocal({ tabela: 'venda_parceiro', esquema: esquemaVendaParceiro }),
+  repasse: criarRepositorioLocal({ tabela: 'repasse', esquema: esquemaRepasse }),
   concorrente_referencia: criarRepositorioLocal({ tabela: 'concorrente_referencia', esquema: esquemaConcorrente }),
   kpi_definicao: criarRepositorioLocal({ tabela: 'kpi_definicao', esquema: esquemaKpiDefinicao }),
   kpi_mensal: criarRepositorioLocal({ tabela: 'kpi_mensal', esquema: esquemaKpiMensal }),

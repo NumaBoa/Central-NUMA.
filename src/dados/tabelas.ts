@@ -21,6 +21,7 @@ import { esquemaNotificacao } from './tipos/notificacao';
 import { esquemaOrcamento } from './tipos/orcamento';
 import { esquemaCompetenciaFechamento } from './tipos/fechamento';
 import { esquemaReajusteAplicado } from './tipos/reajuste';
+import { esquemaRepasse, esquemaVendaParceiro } from './tipos/repasse';
 import { esquemaReceitaCanal } from './tipos/receita-canal';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
@@ -79,6 +80,8 @@ export const TABELAS = {
   receita_canal: { rotulo: 'Receitas por canal', esquema: esquemaReceitaCanal },
   reajuste_aplicado: { rotulo: 'Reajustes de contrato', esquema: esquemaReajusteAplicado },
   competencia_fechamento: { rotulo: 'Fechamentos de competência', esquema: esquemaCompetenciaFechamento },
+  venda_parceiro: { rotulo: 'Vendas de parceiros', esquema: esquemaVendaParceiro },
+  repasse: { rotulo: 'Repasses a parceiros', esquema: esquemaRepasse },
   concorrente_referencia: { rotulo: 'Concorrentes de referência', esquema: esquemaConcorrente },
   kpi_definicao: { rotulo: 'Indicadores próprios', esquema: esquemaKpiDefinicao },
   kpi_mensal: { rotulo: 'KPIs mensais', esquema: esquemaKpiMensal },
@@ -118,5 +121,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  *     esperava a fase dela fica pausada, para não começar a gerar sozinha.
  * 22: entra `reajuste_aplicado` (T11.10).
  * 23: entra `competencia_fechamento` (T05.10).
+ * 24: entram `venda_parceiro` e `repasse` (T05.13); o item de contrato ganha os termos de repasse, opcionais.
  */
-export const VERSAO_DADOS = 23;
+export const VERSAO_DADOS = 24;

@@ -40,8 +40,8 @@ export const ROTULOS_FORMA_PAGAMENTO = { pix: 'Pix', boleto: 'Boleto', cartao: '
 export const ROTULOS_RENOVACAO_TIPO = { sem_renovacao: 'Sem renovação', automatica: 'Automática por período igual', mediante_aditivo: 'Mediante aditivo' } as const;
 export const ROTULOS_ENCERRAMENTO = { termino: 'Término', rescisao_numa: 'Rescisão pela Numa', rescisao_contraparte: 'Rescisão pela contraparte', acordo: 'Acordo' } as const;
 
-/** F1: parceiro (repasse) é da F2, e societário fica em M06 (§2). */
-export const FAMILIAS_F1 = ['cliente_negociado', 'adesao_condicao_especial', 'fornecedor', 'institucional'] as const;
+/** Famílias que se criam aqui: societário fica em M06 (§2). Parceiro, com termos de repasse, desde a T05.13 (F2). */
+export const FAMILIAS_F1 = ['cliente_negociado', 'adesao_condicao_especial', 'parceiro', 'fornecedor', 'institucional'] as const;
 /** Família e tipo que não têm valor: dispensam item (RN-11.06). */
 const SEM_VALOR = (contrato: Pick<Contrato, 'tipo'>) => contrato.tipo === 'confidencialidade';
 
@@ -58,7 +58,7 @@ function versaoNova(contratoId: string, numero: number, tipo: ContratoVersao['ti
 
 export async function criarContrato(partes: DadosDasPartes, { saas = false, dadosSaas = null }: { saas?: boolean; dadosSaas?: DadosSaas | null } = {}): Promise<Contrato> {
   if (!partes.titulo.trim()) throw new ErroDeRegra('Informe o título do contrato.');
-  if (!(FAMILIAS_F1 as readonly string[]).includes(partes.familia)) throw new ErroDeRegra('Família de parceiro com repasse é da F2.');
+  if (!(FAMILIAS_F1 as readonly string[]).includes(partes.familia)) throw new ErroDeRegra('Família de contrato inválida.');
   return emTransacao(async () => {
     const contrato = await repositorios.contrato.criar({ ...partes, titulo: partes.titulo.trim(), proposta_versao_id: null, moeda: 'BRL', situacao_documental: 'rascunho', renovacao_situacao: 'nao_se_aplica', versao_vigente_id: null, versao_elaboracao_id: null, classe: 'doc', saas, suspensao: null, vigencia_prorrogada_ate: null, encerrado_em: null, encerramento_motivo: null, cancelado_motivo: null, administrativo: { endereco_correspondencia: null, dados_bancarios: null, observacoes: null } });
     const versao = await repositorios.contrato_versao.criar(versaoNova(contrato.id, 1, 'original', { dados_saas: dadosSaas }));

@@ -186,6 +186,12 @@ export const esquemaItemContrato = esquemaControle.extend({
   item_origem_id: texto,
   proposta_item_id: texto,
   ordem: z.number().int().nonnegative(),
+  /** RN-11.26 (F2): termos de repasse do item de contrato de parceiro. Ausentes nos itens anteriores à T05.13. */
+  percentual_repasse: z.number().min(0).max(100).nullable().optional(),
+  /** Base do repasse: venda bruta ou líquida das taxas. */
+  base_repasse: z.enum(['bruta', 'liquida']).nullable().optional(),
+  /** Retenção para estornos, em % do repasse. */
+  retencao: z.number().min(0).max(100).nullable().optional(),
 });
 export type ItemContrato = z.infer<typeof esquemaItemContrato>;
 
