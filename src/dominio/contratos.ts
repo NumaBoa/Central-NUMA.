@@ -11,6 +11,7 @@ import { emTransacao } from '@/dados/transacao';
 import type { Contraparte, Entidade } from '@/dados/tipos/contraparte';
 import { CONDICOES_VAZIAS, type CondicoesContrato, type Contrato, type ContratoSignatario, type ContratoVersao, type DadosSaas, type EventoContrato, type ItemContrato, type ObrigacaoContratual, type RegraPrazo } from '@/dados/tipos/contrato';
 import type { Feriado } from '@/dados/tipos/calendario';
+import type { ReajusteAplicado } from '@/dados/tipos/reajuste';
 import type { Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
@@ -724,6 +725,11 @@ function vencimentoNoMes(inicioPeriodo: string, dia: number | null): string {
 }
 
 /** Previsão sem gravar nada (P6): tudo o que a ativação criaria, e o que já existe aparece como "já gerado" (CA-11.06). */
+/** T11.10: a programação (RN-11.17) gera com o valor reajustado, o produto dos reajustes aplicados até o período. */
+export function fatorDosReajustes(aplicados: readonly Pick<ReajusteAplicado, 'situacao' | 'data_base' | 'percentual'>[], periodo: string): number {
+  return aplicados.filter((reajuste) => reajuste.situacao === 'aplicado' && reajuste.percentual !== null && reajuste.data_base <= periodo).reduce((fator, reajuste) => fator * (1 + (reajuste.percentual as number) / 100), 1);
+}
+
 export async function previaDaProgramacao(contratoId: string, hoje: string = hojeISO()): Promise<PrevisaoDaProgramacao> {
   const ficha = await carregarContrato(contratoId, hoje);
   const versao = ficha?.versoes.filter((item) => item.situacao === 'publicada').sort((a, b) => b.numero - a.numero)[0];
@@ -738,6 +744,7 @@ export async function previaDaProgramacao(contratoId: string, hoje: string = hoj
   const linhas: LinhaDaProgramacao[] = [];
   const aguardando: PrevisaoDaProgramacao['aguardando'] = [];
   const especial = versao.dados_saas?.condicao_especial;
+  const reajustes = await repositorios.reajuste_aplicado.listar({ onde: { contrato_id: contratoId } });
   for (const item of itens.sort((a, b) => a.ordem - b.ordem)) {
     if (item.valor_total === null) {
       aguardando.push({ descricao: item.descricao, motivo: 'Sem valor definido: nada é gerado.' });
@@ -761,7 +768,7 @@ export async function previaDaProgramacao(contratoId: string, hoje: string = hoj
         const proximo = somarMeses(comeco, passo * (indice + 1));
         // Condição especial (RN-11.31): o valor especial vale nos primeiros meses, e depois o valor aprovado.
         const noEspecial = especial && especial.valor !== null && especial.duracao_meses && item.oferta_id === versao.dados_saas?.oferta_id && passo * indice < especial.duracao_meses;
-        empurrar(periodo, somarDias(proximo, -1), vencimentoNoMes(periodo, ficha.atual.condicoes.dia_vencimento ?? versao.condicoes.dia_vencimento), noEspecial ? arredondar((especial.valor as number) * item.quantidade) : item.valor_total);
+        empurrar(periodo, somarDias(proximo, -1), vencimentoNoMes(periodo, ficha.atual.condicoes.dia_vencimento ?? versao.condicoes.dia_vencimento), noEspecial ? arredondar((especial.valor as number) * item.quantidade) : arredondar((item.valor_total as number) * fatorDosReajustes(reajustes, periodo)));
         periodo = proximo;
         indice += 1;
       }

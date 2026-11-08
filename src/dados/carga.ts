@@ -218,6 +218,7 @@ function migrar(versao: number) {
   // 18: a oferta ganha os campos do contrato SaaS (19 §8), vazios; a configuração contratual (T07.10) começa vazia.
   if (versao < 19 && driver().getItem(chaveDaTabela('orcamento')) === null) alteracoes.orcamento = [];
   if (versao < 20 && driver().getItem(chaveDaTabela('receita_canal')) === null) alteracoes.receita_canal = [];
+  if (versao < 22 && driver().getItem(chaveDaTabela('reajuste_aplicado')) === null) alteracoes.reajuste_aplicado = [];
   // 21: sai a fase da Numa (decisão de Kimberly em 08/11/2026). A rotina que ainda esperava a fase dela não
   // começa a gerar sozinha: fica pausada, e quem quiser a retoma em Meu dia › Rotinas.
   if (versao < 21) {

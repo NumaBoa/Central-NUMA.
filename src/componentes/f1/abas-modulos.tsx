@@ -1,6 +1,6 @@
 'use client';
 
-import { BookText, FileText, Files, Handshake, RefreshCw, ScrollText, ShieldCheck, Target, Users } from 'lucide-react';
+import { BookText, FileText, Files, Handshake, RefreshCw, ScrollText, ShieldCheck, Target, Users, Percent } from 'lucide-react';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { Subabas } from '@/componentes/padroes/subabas';
 
@@ -51,13 +51,14 @@ export function AbasComercial({ ativa }: { ativa: 'contrapartes' | 'funil' | 'pr
   );
 }
 
-export function AbasContratos({ ativa }: { ativa: 'contratos' | 'renovacao' | 'adesoes' }) {
+export function AbasContratos({ ativa }: { ativa: 'contratos' | 'renovacao' | 'reajustes' | 'adesoes' }) {
   return (
     <AbasPagina
       rotulo="Áreas de Contratos"
       abas={[
         { rotulo: 'Contratos', icone: ScrollText, href: '/contratos', ativa: ativa === 'contratos' },
         { rotulo: 'Renovação', icone: RefreshCw, href: '/contratos/renovacao', ativa: ativa === 'renovacao' },
+        { rotulo: 'Reajuste', icone: Percent, href: '/contratos/reajustes', ativa: ativa === 'reajustes' },
         { rotulo: 'Adesão padrão', icone: Handshake, href: '/contratos/adesoes', ativa: ativa === 'adesoes' },
       ]}
     />

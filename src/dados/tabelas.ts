@@ -19,6 +19,7 @@ import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/fina
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaNotificacao } from './tipos/notificacao';
 import { esquemaOrcamento } from './tipos/orcamento';
+import { esquemaReajusteAplicado } from './tipos/reajuste';
 import { esquemaReceitaCanal } from './tipos/receita-canal';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
@@ -75,6 +76,7 @@ export const TABELAS = {
   configuracao_contratual: { rotulo: 'Configurações contratuais', esquema: esquemaConfiguracaoContratual },
   orcamento: { rotulo: 'Orçamentos', esquema: esquemaOrcamento },
   receita_canal: { rotulo: 'Receitas por canal', esquema: esquemaReceitaCanal },
+  reajuste_aplicado: { rotulo: 'Reajustes de contrato', esquema: esquemaReajusteAplicado },
   concorrente_referencia: { rotulo: 'Concorrentes de referência', esquema: esquemaConcorrente },
   kpi_definicao: { rotulo: 'Indicadores próprios', esquema: esquemaKpiDefinicao },
   kpi_mensal: { rotulo: 'KPIs mensais', esquema: esquemaKpiMensal },
@@ -112,5 +114,6 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 20: entra `receita_canal` (T05.12).
  * 21: sai a fase da Numa: some a chave `fase_ativa` e o campo `fase_minima` das rotinas; a rotina que ainda
  *     esperava a fase dela fica pausada, para não começar a gerar sozinha.
+ * 22: entra `reajuste_aplicado` (T11.10).
  */
-export const VERSAO_DADOS = 21;
+export const VERSAO_DADOS = 22;

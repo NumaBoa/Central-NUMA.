@@ -19,6 +19,7 @@ import { textoDoDocumento as textoComEspacos } from './modelo-texto';
 const semNbsp = (texto: string) => texto.replace(/\u00a0/g, ' ');
 const textoDoDocumento = (...args: Parameters<typeof textoComEspacos>) => semNbsp(textoComEspacos(...args));
 import { criarModelo, novoBloco, salvarEstruturaDoModelo } from './modelos';
+import { aplicarReajuste, carregarReajustes, salvarCalculo } from './reajustes';
 import { registrarPagamento } from './titulos';
 
 const HOJE = '2026-11-06';
@@ -314,6 +315,32 @@ describe('M10 e M11', () => {
       const titulos = await repositorios.titulo.listar({ onde: { origem: 'contrato', origem_id: ficha.contrato.id } });
       expect(titulos).toHaveLength(criados);
       expect(titulos.every((titulo) => titulo.natureza === 'receber')).toBe(true);
+    });
+
+    it('T11.10 e CA-11.09: o reajuste aplicado muda os títulos futuros não pagos, e a programação gera com o novo valor', async () => {
+      const ficha = await contratoAssinado({ inicio: '2026-01-01' });
+      await repositorios.contrato.atualizar(ficha.contrato.id, { vigencia_prorrogada_ate: '2027-12-31' });
+      const categorias = { categoriaRecorrente: categoria('Assinaturas'), categoriaUnica: categoria('Implantação/setup') };
+      await ativarProgramacao(ficha.contrato.id, categorias, HOJE);
+      const antes = await repositorios.titulo.listar({ onde: { origem: 'contrato', origem_id: ficha.contrato.id } });
+      const linha = (await carregarReajustes(HOJE)).pendentes.find((item) => item.contrato.id === ficha.contrato.id)!;
+      expect(linha).toMatchObject({ dataBase: '2027-01-01', indice: 'IPCA', periodicidadeMeses: 12 });
+      await expect(salvarCalculo(linha, { percentual: '10', fonte: '', data: '2026-12-10' })).rejects.toThrow('fonte');
+      const calculo = await salvarCalculo(linha, { percentual: '10', fonte: 'IBGE', data: '2026-12-10' });
+      expect(calculo.previa.itens.length).toBeGreaterThan(0);
+      expect(calculo.previa.titulos.length).toBeGreaterThan(0);
+      expect(calculo.previa.titulos.every((item) => item.vencimento! >= '2027-01-01' && item.para === Math.round(item.de * 110) / 100)).toBe(true);
+      expect(await aplicarReajuste(calculo.id, ID_KIMBERLY)).toBe(calculo.previa.titulos.length);
+      const depois = await repositorios.titulo.listar({ onde: { origem: 'contrato', origem_id: ficha.contrato.id } });
+      for (const titulo of depois) {
+        const naPrevia = calculo.previa.titulos.find((item) => item.id === titulo.id);
+        expect(titulo.valor).toBe(naPrevia ? naPrevia.para : antes.find((item) => item.id === titulo.id)!.valor);
+      }
+      const programacao = await previaDaProgramacao(ficha.contrato.id, HOJE);
+      const recorrentesDepois = programacao.linhas.filter((item) => item.recorrente && item.periodo_inicio >= '2027-01-01');
+      expect(recorrentesDepois.length).toBeGreaterThan(0);
+      expect(recorrentesDepois.every((item) => item.valor === calculo.previa.itens[0]!.para)).toBe(true);
+      expect((await carregarReajustes(HOJE)).pendentes.some((item) => item.contrato.id === ficha.contrato.id)).toBe(false);
     });
 
     it('CA-11.08: mudar o preço de assinado só por aditivo; a V1 fica intacta', async () => {
