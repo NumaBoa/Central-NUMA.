@@ -57,6 +57,13 @@ export function contadoresDaLista(inscritos: readonly Pick<Inscrito, 'situacao' 
   };
 }
 
+const contar = (quantos: number, singular: string, plural: string) => `${quantos} ${quantos === 1 ? singular : plural}`;
+
+/** Situações primeiro, porque somam o total; a elegibilidade é outra leitura das mesmas pessoas. */
+export function textoDaContagem({ total, ativos, convidados, convertidos, descadastrados, aptos, pendentes }: ContadoresDaLista): string {
+  return `${contar(total, 'pessoa', 'pessoas')}: ${contar(ativos, 'ativa', 'ativas')}, ${contar(convidados, 'convidada', 'convidadas')}, ${contar(convertidos, 'convertida', 'convertidas')} e ${contar(descadastrados, 'descadastrada', 'descadastradas')}. Para marketing: ${contar(aptos, 'apta', 'aptas')} e ${contar(pendentes, 'pendente', 'pendentes')} de consentimento.`;
+}
+
 // ---------- Listas e textos de consentimento ----------
 
 const curto = z.string().trim();

@@ -39,6 +39,9 @@ export const VISOES_DO_CALENDARIO = [
 ] as const;
 export type VisaoDoCalendario = (typeof VISOES_DO_CALENDARIO)[number]['id'];
 
+/** T08.05: "Padrão: Kimberly (Social media)", pela responsável padrão da área. */
+export const responsavelDeMarketing = (areas: readonly Pick<Area, 'nome' | 'responsavel_padrao_id'>[]) => areas.find((area) => area.nome === 'Social media / Marketing')?.responsavel_padrao_id ?? null;
+
 // ---------- Formulário ----------
 
 const curto = z.string().trim();
