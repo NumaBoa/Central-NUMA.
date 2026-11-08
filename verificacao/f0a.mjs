@@ -186,12 +186,13 @@ await passo('fim do teste da ferramenta, e o cancelamento conclui o alerta', asy
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(160);
   await clicarBotao('Cancelar ferramenta', '.menu-suspenso');
-  await dialogoAberto();
+  // Revisão do M04 (07/11/2026): o cancelamento abre em janela, com a prévia.
+  await painelAberto();
   await c.espera(160);
   await preencher('cancelar-motivo', 'Não vamos assinar');
-  await clicarNoDialogo('Cancelar ferramenta');
-  await esperarAviso('Ferramenta cancelada.');
-  await dialogoFechado();
+  await clicarNoDialogo('Confirmar cancelamento');
+  await esperarAviso('Ferramenta cancelada');
+  await c.ate(`!document.querySelector('.janela')`);
   await c.espera(300);
   ok('o alerta é concluído na hora, com a nota de Ferramentas', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota === 'Concluído por Cancelar ferramenta em Ferramentas.', (await alertas()).find((a) => a.id === alerta.id)?.conclusao_nota);
 });

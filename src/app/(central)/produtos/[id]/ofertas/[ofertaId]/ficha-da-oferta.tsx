@@ -9,7 +9,7 @@ import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
-import { AvisoDeFase, CartaoDaFicha, SituacaoDaOferta, SituacaoDaVersao, textoDoPreco } from '@/componentes/produtos/aparencia';
+import { CartaoDaFicha, SituacaoDaOferta, SituacaoDaVersao, textoDoPreco } from '@/componentes/produtos/aparencia';
 import { DialogoAprovarPreco } from '@/componentes/produtos/dialogo-aprovar-preco';
 import { FormularioOferta, FormularioVersao } from '@/componentes/produtos/formularios-oferta';
 import { Button, variantesBotao } from '@/componentes/ui/button';
@@ -151,7 +151,6 @@ export function FichaDaOferta() {
           )}
         </div>
       </header>
-      <AvisoDeFase />
       {futuras.length > 0 && situacao !== 'aprovada' && <Faixa tipo="info">Há preço aprovado para o futuro. A oferta só passa a Aprovada quando ele entrar em vigência.</Faixa>}
 
       <dl className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-paper p-4 text-[13px] md:grid-cols-4">

@@ -429,7 +429,7 @@ describe('M10 e M11', () => {
       const { contrato } = await contratoSaas();
       const pendencia = (await documento(contrato.id)).pendencias.find((item) => item.id === 'config');
       expect(pendencia?.mensagem).toContain('Rascunho');
-      expect(pendencia?.href).toBe(`/configuracoes/cadastros/marcas/produtos/${ID_PRODUTO_KIPI}`);
+      expect(pendencia?.href).toBe(`/produtos/${ID_PRODUTO_KIPI}?aba=contrato`);
     });
 
     it('CA-11.16: multa de 5% é recusada com a mensagem do CDC', async () => {

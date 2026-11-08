@@ -38,10 +38,9 @@ await passo('abertura automática', async () => {
   const escondida = await c.avaliar(`document.documentElement.hasAttribute('data-abertura')&&getComputedStyle(document.getElementById('moldura')).visibility==='hidden'`);
   ok('a Central não aparece por trás da abertura', escondida);
   await c.ate(`document.querySelector('.abertura')`);
-  await c.foto('a-inicio');
-  await c.espera(300);
-  await c.foto('a-300ms');
-  await c.ate(`document.querySelector('.abertura[data-saindo]')`);
+  // Sem fotos aqui: tirar a foto segura a página e alonga a própria medida (visto em 07/11/2026).
+  // As fotos podem levar mais que a abertura inteira: confere pelo registro da página, não pelo elemento, que já pode ter saído.
+  await c.ate(`window.__abertura.saindo!==undefined`);
   const duracao = Math.round(await c.avaliar(`window.__abertura.saindo-window.__abertura.inicio`));
   ok('fica até 1,6s', duracao >= 1500 && duracao <= 1800, `${duracao}ms`);
   await c.ate(`window.__abertura.fim!==undefined`);
@@ -61,7 +60,7 @@ await passo('uma vez por dia', async () => {
   ok('volta no dia seguinte', true);
   await c.espera(100);
   await c.tecla('a');
-  ok('tecla pula', await c.avaliar(`Boolean(document.querySelector('.abertura[data-saindo]'))`));
+  ok('tecla pula', await c.ate(`Boolean(document.querySelector('.abertura[data-saindo]'))||!document.querySelector('.abertura')`, 1000).then(() => true, () => false));
   await c.ate(`!document.querySelector('.abertura')`);
 });
 await passo('rever e manter', async () => {
@@ -138,7 +137,7 @@ await passo('menu', async () => {
   await c.ir(BASE + '/configuracoes');
   await c.espera(400);
   const m = await c.avaliar(`(()=>{const links=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));const emBreve=[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')];return {links,emBreve:emBreve.length,textos:emBreve.every(e=>e.textContent.includes('Em breve')),semLink:emBreve.every(e=>!e.closest('a')),ativo:document.querySelector('[data-menu-lateral] a[aria-current=page]')?.textContent}})()`);
-  ok('8 módulos "Em breve", sem link', m.emBreve === 8 && m.textos && m.semLink);
+  ok('3 módulos "Em breve", sem link: só os que não existem (decisão de 07/11/2026; a Empresa chegou com o M06)', m.emBreve === 3 && m.textos && m.semLink);
   ok('Configurações marcada como atual', m.ativo === 'Configurações', m.ativo);
   ok('nenhum link vazio', !m.links.some((h) => h === '#' || !h));
   const respostas = await c.avaliar(`Promise.all([...new Set([...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>h.startsWith('/')))].map(h=>fetch(h).then(r=>h+':'+r.status)))`);
@@ -266,7 +265,7 @@ await passo('celular', async () => {
   await c.espera(450);
   await c.foto('c-mais');
   const mais = await c.avaliar(`(()=>{const d=document.querySelector('.dialogo');return {etiqueta:d.textContent.includes('Dados de exemplo'),voceE:Boolean(d.querySelector('#voce-e-celular')),config:Boolean(d.querySelector('a[href="/configuracoes"]')),emBreve:(d.textContent.match(/Em breve/g)||[]).length}})()`);
-  ok('"Mais" traz módulos, "Você é" e a etiqueta', mais.etiqueta && mais.voceE && mais.config && mais.emBreve === 8, JSON.stringify(mais));
+  ok('"Mais" traz módulos, "Você é" e a etiqueta', mais.etiqueta && mais.voceE && mais.config && mais.emBreve === 3, JSON.stringify(mais));
   await c.clicar('.dialogo a[href="/configuracoes"]');
   await c.ate(`!document.querySelector('.dialogo')`);
   await c.clicar('[aria-label^="Contexto"]');

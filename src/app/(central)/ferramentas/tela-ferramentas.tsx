@@ -1,10 +1,9 @@
 'use client';
 
 import { EtiquetasDoRegistro } from '@/componentes/campos/etiquetas';
-import { etiquetasDoModulo } from '@/dominio/etiquetas';
 import { useMemo, useState, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, ChartLine, CreditCard, Database, GitBranch, Globe, HardDrive, Mail, MessageCircle, Palette, Plus, Scale, Server, Share2, Sparkles, Store, Wrench } from 'lucide-react';
+import { ChartLine, CreditCard, Database, GitBranch, Globe, HardDrive, Mail, MessageCircle, Palette, Plus, Scale, Server, Share2, Sparkles, Store, Wrench } from 'lucide-react';
 import { AbasFerramentas } from '@/componentes/ferramentas/abas-ferramentas';
 import { EtiquetaCritica } from '@/componentes/ferramentas/etiquetas-ferramentas';
 import { FormularioDeFerramenta } from '@/componentes/ferramentas/formulario-ferramenta';
@@ -17,7 +16,6 @@ import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { EtiquetaContexto, EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
 import { Indicador } from '@/componentes/padroes/indicador';
-import { BarraFiltros, type FiltroAtivo } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
 import { Pessoa as NomeDaPessoa } from '@/componentes/padroes/pessoa';
 import { BotaoExportarCsv, MenuColunas, MenuVisoes, usePreferenciasDaLista } from '@/componentes/padroes/recursos-lista';
@@ -28,12 +26,13 @@ import type { Ferramenta } from '@/dados/tipos/ferramenta';
 import { useConsulta } from '@/dados/use-consulta';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { tintaDaCor } from '@/dominio/cores';
-import { carregarFerramentas, filtrarFerramentas, FILTROS_FERRAMENTAS_INICIAIS, indicadoresDeFerramentas, mudarResponsavelTecnica, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, ROTULOS_TITULAR, vincularFerramentasAProduto, type DadosDasFerramentas, type FiltrosFerramentas, type LinhaDaFerramenta } from '@/dominio/ferramentas';
+import { carregarFerramentas, filtrarFerramentas, FILTROS_FERRAMENTAS_INICIAIS, indicadoresDeFerramentas, mudarResponsavelTecnica, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_SITUACAO_FERRAMENTA, vincularFerramentasAProduto, type DadosDasFerramentas, type FiltrosFerramentas, type LinhaDaFerramenta } from '@/dominio/ferramentas';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { textoDoTitular } from '@/dominio/titularidade';
 import { salvarColunas } from '@/dominio/preferencias-lista';
 import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro, formatarNumero } from '@/lib/formatacao';
+import { BarraDeFerramentas } from './filtros-ferramentas';
 
 const LISTA = 'ferramentas';
 /** O que cabe em 1440 sem rolagem. A modalidade já aparece no valor ("Gratuita", "depois do teste"). */
@@ -104,7 +103,8 @@ function Indicadores({ ferramentas, hoje, contextoId }: { ferramentas: readonly 
       <Indicador titulo="Em teste" valor={formatarNumero(valores.emTeste)} />
       {/* No celular, o custo fica por último, na linha inteira: é o único com texto embaixo. */}
       <Indicador titulo="Custo mensal estimado" valor={formatarDinheiro(valores.custoMensal, 'BRL')} contexto={valores.naoIncluidas ? `${valores.naoIncluidas === 1 ? '1 não incluída' : `${valores.naoIncluidas} não incluídas`} no total` : 'Em reais, pelo câmbio de referência'} className="max-md:order-last max-md:col-span-2" />
-      <Indicador titulo="Renovações em 30 dias" valor={formatarNumero(valores.renovacoes30)} />
+      {/* Conta próximas cobranças, e não alertas de renovação: a mensal automática não tem alerta de renovação (06-M04 §6). */}
+      <Indicador titulo="Cobranças nos próximos 30 dias" valor={formatarNumero(valores.renovacoes30)} />
     </section>
   );
 }
@@ -271,21 +271,8 @@ export function TelaFerramentas() {
 
   // Os indicadores seguem o contexto escolhido no topo, e não os filtros da tela.
   const doContexto = filtrarFerramentas(dados.ferramentas, FILTROS_FERRAMENTAS_INICIAIS, { contextoGlobalId: contexto.id, hoje, nomeDaCategoria });
-  const arquivadas = dados.ferramentas.filter((ferramenta) => ferramenta.arquivado_em).length;
   const mudar = (parcial: Partial<FiltrosFerramentas>) => setFiltros((atuais) => ({ ...atuais, ...parcial }));
-  const limpar = () => setFiltros((atuais) => ({ ...FILTROS_FERRAMENTAS_INICIAIS, arquivadas: atuais.arquivadas }));
-  const nomeDoContexto = (id: string) => (id === ID_INSTITUCIONAL ? 'Numa' : (dados.produtos.find((produto) => produto.id === id)?.nome ?? 'Produto removido'));
-  const ativos: FiltroAtivo[] = [
-    ...(filtros.categoria ? [{ id: 'categoria', rotulo: `Categoria: ${nomeDaCategoria(filtros.categoria)}` }] : []),
-    ...(filtros.contexto ? [{ id: 'contexto', rotulo: `Contexto: ${nomeDoContexto(filtros.contexto)}` }] : []),
-    ...(filtros.situacao ? [{ id: 'situacao', rotulo: `Situação: ${ROTULOS_SITUACAO_FERRAMENTA[filtros.situacao as Ferramenta['situacao']]}` }] : []),
-    ...(filtros.modalidade ? [{ id: 'modalidade', rotulo: `Modalidade: ${filtros.modalidade === 'a_definir' ? 'A definir' : ROTULOS_MODALIDADE[filtros.modalidade as keyof typeof ROTULOS_MODALIDADE]}` }] : []),
-    ...(filtros.critica ? [{ id: 'critica', rotulo: filtros.critica === 'sim' ? 'Críticas' : 'Não críticas' }] : []),
-    ...(filtros.titular ? [{ id: 'titular', rotulo: `Titular: ${ROTULOS_TITULAR[filtros.titular as keyof typeof ROTULOS_TITULAR]}` }] : []),
-    ...(filtros.dados ? [{ id: 'dados', rotulo: filtros.dados === 'sim' ? 'Trata dados pessoais' : 'Não trata dados pessoais' }] : []),
-    ...(filtros.venceEm ? [{ id: 'venceEm', rotulo: `Vence em ${filtros.venceEm} dias` }] : []),
-    ...(filtros.etiqueta ? [{ id: 'etiqueta', rotulo: `Etiqueta: ${dados.etiquetas.find((etiqueta) => etiqueta.id === filtros.etiqueta)?.nome ?? ''}` }] : []),
-  ];
+  const limpar = () => setFiltros({ ...FILTROS_FERRAMENTAS_INICIAIS });
   const { arquivadas: _semArquivadas, ...filtrosDaVisao } = filtros;
   const selecionadas = linhas.filter((linha) => selecionados.has(linha.id));
 
@@ -304,147 +291,30 @@ export function TelaFerramentas() {
       />
       <AbasFerramentas ativa="ferramentas" />
       <Indicadores ferramentas={doContexto} hoje={hoje} contextoId={contexto.id} />
-      <BarraFiltros
-        busca={filtros.busca}
-        aoBuscar={(busca) => mudar({ busca })}
-        rotuloBusca="Buscar por nome, código, finalidade ou categoria"
-        ativos={ativos}
-        aoRemoverAtivo={(id) => mudar({ [id]: '' })}
-        aoLimpar={limpar}
-        filtrosDetalhados={
-          <div className="grid gap-4 px-1 pb-2 md:px-3">
-            <Campo rotulo="Categoria" id="filtro-categoria">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.categoria} onChange={(evento) => mudar({ categoria: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {dados.categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nome}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Produto ou contexto" id="filtro-contexto">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.contexto} onChange={(evento) => mudar({ contexto: evento.target.value })}>
-                  <option value="">Todos</option>
-                  <option value={ID_INSTITUCIONAL}>Numa</option>
-                  {dados.produtos
-                    .filter((produto) => !produto.arquivado_em)
-                    .map((produto) => (
-                      <option key={produto.id} value={produto.id}>
-                        {produto.nome}
-                      </option>
-                    ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Situação" id="filtro-situacao">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.situacao} onChange={(evento) => mudar({ situacao: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {Object.entries(ROTULOS_SITUACAO_FERRAMENTA).map(([valor, rotulo]) => (
-                    <option key={valor} value={valor}>
-                      {rotulo}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Modalidade" id="filtro-modalidade">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.modalidade} onChange={(evento) => mudar({ modalidade: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {Object.entries(ROTULOS_MODALIDADE).map(([valor, rotulo]) => (
-                    <option key={valor} value={valor}>
-                      {rotulo}
-                    </option>
-                  ))}
-                  <option value="a_definir">A definir</option>
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Crítica" id="filtro-critica">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.critica} onChange={(evento) => mudar({ critica: evento.target.value as FiltrosFerramentas['critica'] })}>
-                  <option value="">Todas</option>
-                  <option value="sim">Críticas</option>
-                  <option value="nao">Não críticas</option>
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Titular atual" id="filtro-titular">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.titular} onChange={(evento) => mudar({ titular: evento.target.value })}>
-                  <option value="">Todos</option>
-                  {Object.entries(ROTULOS_TITULAR).map(([valor, rotulo]) => (
-                    <option key={valor} value={valor}>
-                      {rotulo}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Trata dados pessoais" id="filtro-dados">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.dados} onChange={(evento) => mudar({ dados: evento.target.value as FiltrosFerramentas['dados'] })}>
-                  <option value="">Todas</option>
-                  <option value="sim">Sim</option>
-                  <option value="nao">Não</option>
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Etiqueta" id="filtro-etiqueta">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.etiqueta} onChange={(evento) => mudar({ etiqueta: evento.target.value })}>
-                  <option value="">Todas</option>
-                  {etiquetasDoModulo(dados.etiquetas, 'ferramentas').map((etiqueta) => (
-                    <option key={etiqueta.id} value={etiqueta.id}>
-                      {etiqueta.nome}
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-            <Campo rotulo="Vence em" id="filtro-vence">
-              {(controle) => (
-                <Selecao {...controle} value={filtros.venceEm} onChange={(evento) => mudar({ venceEm: evento.target.value as FiltrosFerramentas['venceEm'] })}>
-                  <option value="">Qualquer data</option>
-                  {['7', '30', '60', '90'].map((dias) => (
-                    <option key={dias} value={dias}>
-                      {dias} dias
-                    </option>
-                  ))}
-                </Selecao>
-              )}
-            </Campo>
-          </div>
-        }
-        acoes={
-          <>
-            <MenuVisoes
-              pessoaId={pessoa.id}
-              lista={LISTA}
-              visoes={visoes}
-              filtros={filtrosDaVisao}
-              colunas={colunasVisiveis}
-              aoAplicar={(visao) => {
-                setFiltros((atuais) => ({ ...FILTROS_FERRAMENTAS_INICIAIS, ...(visao.filtros as Partial<FiltrosFerramentas>), arquivadas: atuais.arquivadas }));
-                salvarColunas(pessoa.id, LISTA, visao.colunas);
-              }}
-            />
-            <MenuColunas pessoaId={pessoa.id} lista={LISTA} colunas={colunas} visiveis={colunasVisiveis} padrao={COLUNAS_PADRAO} />
-            <BotaoExportarCsv nomeDoArquivo="ferramentas" colunas={visiveis} linhas={linhas} />
-            {arquivadas > 0 && (
-              <Button variante="terciario" aria-pressed={filtros.arquivadas} onClick={() => mudar({ arquivadas: !filtros.arquivadas })}>
-                <Archive aria-hidden />
-                {filtros.arquivadas ? 'Voltar às ativas' : `Arquivadas (${arquivadas})`}
-              </Button>
-            )}
-          </>
-        }
-      />
+      <BarraDeFerramentas filtros={filtros} aoMudar={mudar} dados={dados} />
+      {/* Utilidades da lista, separadas da criação (P1): visões, colunas e exportar, com a contagem do que está à vista. */}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Utilidades da lista">
+        <MenuVisoes
+          pessoaId={pessoa.id}
+          lista={LISTA}
+          visoes={visoes}
+          filtros={filtrosDaVisao}
+          colunas={colunasVisiveis}
+          aoAplicar={(visao) => {
+            setFiltros((atuais) => ({ ...FILTROS_FERRAMENTAS_INICIAIS, ...(visao.filtros as Partial<FiltrosFerramentas>), arquivadas: atuais.arquivadas }));
+            salvarColunas(pessoa.id, LISTA, visao.colunas);
+          }}
+        />
+        {/* Em cartões, no celular, colunas não fazem sentido. */}
+        <div className="hidden md:block">
+          <MenuColunas pessoaId={pessoa.id} lista={LISTA} colunas={colunas} visiveis={colunasVisiveis} padrao={COLUNAS_PADRAO} />
+        </div>
+        <BotaoExportarCsv nomeDoArquivo="ferramentas" colunas={visiveis} linhas={linhas} />
+        <p className="ml-auto text-[13px] text-ink-soft tabular-nums" aria-live="polite" data-quantas-ferramentas>
+          {linhas.length === 1 ? '1 ferramenta' : `${formatarNumero(linhas.length)} ferramentas`}
+          {filtros.arquivadas ? ' arquivadas' : ''}
+        </p>
+      </div>
       {selecionadas.length > 0 && (
         <div className="hidden flex-wrap items-center gap-2 rounded-lg border border-line bg-mist px-4 py-2 text-[13px] md:flex" role="region" aria-label="Ações em lote">
           <span className="font-semibold">{selecionadas.length === 1 ? '1 selecionada' : `${selecionadas.length} selecionadas`}</span>
@@ -466,7 +336,7 @@ export function TelaFerramentas() {
         chave={(ferramenta) => ferramenta.id}
         aoAbrir={(ferramenta) => roteador.push(`${CAMINHO_DE_FERRAMENTAS}/${ferramenta.id}`)}
         selecao={{ selecionados, aoMudar: setSelecionados, rotuloDaLinha: (ferramenta) => ferramenta.nome }}
-        filtrando={ativos.length > 0 || Boolean(filtros.busca.trim()) || filtros.arquivadas}
+        filtrando={JSON.stringify(filtros) !== JSON.stringify(FILTROS_FERRAMENTAS_INICIAIS)}
         aoLimparFiltros={limpar}
         vazio={<EstadoVazio icone={Wrench} titulo="Nenhuma ferramenta ainda." texto="Que tal cadastrar a primeira?" acao={<Button onClick={() => setCadastrando(true)}>Nova ferramenta</Button>} />}
         cartao={(ferramenta) => (

@@ -8,7 +8,7 @@ import { Campo } from '@/componentes/campos/campo';
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { AbaArquivosDoRegistro } from '@/componentes/empresa/aba-arquivos';
-import { AvisoDeFaseDaEmpresa, SituacaoDaVersaoDoAcordo, VoltarPara } from '@/componentes/empresa/aparencia';
+import { SituacaoDaVersaoDoAcordo, VoltarPara } from '@/componentes/empresa/aparencia';
 import { FormularioDoAcordo } from '@/componentes/empresa/formulario-acordo';
 import { MenuDeAcoes } from '@/componentes/empresa/menu-de-acoes';
 import { useFormulario } from '@/componentes/empresa/use-formulario';
@@ -327,7 +327,6 @@ export function FichaDoAcordo() {
   return (
     <div className="space-y-4">
       {voltar}
-      <AvisoDeFaseDaEmpresa />
       <Ficha
         tituloDePagina
         codigo={acordo.codigo}

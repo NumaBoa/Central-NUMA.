@@ -65,15 +65,15 @@ await esperarTexto('Jornada da empresa');
 await passo('T06.01: painel da empresa, com a fase ainda não ativa', async () => {
   const p = await pagina();
   ok('título e resumo', p.includes('A Numa, por inteiro') && p.includes('Sociedade, patrimônio e próximos passos.'));
-  ok('aviso de fase, sem o menu ligar a tela', p.includes('A Fase 0b ainda não está ativa') && (await c.avaliar(`!document.querySelector('aside a[href="/empresa"]')`)));
+  ok('sem aviso de fase, e o menu leva à Empresa (decisão de 07/11/2026)', !p.includes('ainda não está ativa') && (await c.avaliar(`Boolean(document.querySelector('aside a[href="/empresa"]'))`)));
   ok('os 12 marcos na linha da jornada', (await c.avaliar(`document.querySelectorAll('ol[aria-label="Marcos da jornada"] li').length`)) === 12);
   ok('sócias com 50% cada', p.includes('Kimberly Grebe50%') && p.includes('Camila Lima50%'), p.slice(0, 300));
   ok('alerta de titularidade (RN-06.06)', p.includes('Titularidade de ativos e PI ainda não formalizada em acordo vigente.'));
   ok('entidade planejada, sem CNPJ, regime ou contador inventados', p.includes('Planejada') && p.includes('CNPJNão definido') && p.includes('RegimeNão definido') && p.includes('ContadorNão escolhido'));
   ok('constituição em 0 de 17', p.includes('0 de 17 itens concluídos'));
   ok('aviso das marcas provisórias (CA-06.04)', p.includes('Verificar disponibilidade antes de investir em identidade'));
-  ok('decisões e obrigações nos estados vazios', p.includes('Nenhuma decisão registrada.') && p.includes('As obrigações corporativas chegam com a Fase 1'));
-  ok('antes da F1, a aba Obrigações fica Em breve, sem link', !(await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Seções da empresa"] a')].some(a=>a.textContent.includes('Obrigações'))`)));
+  ok('decisões e obrigações nos estados vazios', p.includes('Nenhuma decisão registrada.') && p.includes('Nenhuma obrigação ativa: as ocorrências começam com a Fase 1.'));
+  ok('a aba Obrigações tem link em qualquer fase', await c.avaliar(`[...document.querySelectorAll('nav[aria-label="Seções da empresa"] a')].some(a=>a.textContent.includes('Obrigações'))`));
   ok('investimento vindo do Financeiro', p.includes('Investimento das sócias') && p.includes('Ver no Financeiro'));
   await clicarBotao('Ver jornada completa');
   await painelAberto();
@@ -259,15 +259,16 @@ await passo('T06.04: ativos a transferir; gerar não duplica; o fluxo é o do M0
   const comAlerta = (await alertas()).filter((linha) => linha.situacao !== 'concluida').map((linha) => linha.origem_id);
   const alvo = (await tabela('ativo_digital')).find((linha) => comAlerta.includes(linha.id));
   await c.avaliar(`[...document.querySelectorAll('main tbody tr')].find(l=>l.textContent.includes(${js(alvo.identificador)})).querySelector('button').click()`);
-  await c.ate(`[...document.querySelectorAll('.dialogo h2')].some(h=>h.textContent.startsWith('Registrar a transferência de '))`);
+  // O diálogo é o do M04 (T04.05), o mesmo da ficha do ativo.
+  await c.ate(`document.getElementById('transferencia-evidencia')`);
   const nome = alvo.identificador;
   await clicarNoDialogo('Registrar transferência');
   await c.espera(200);
-  ok('sem evidência, não conclui (CA-04.07)', (await erroDe('transferencia-evidencia')).includes('evidência'));
+  ok('sem evidência, não conclui (CA-04.07)', (await c.avaliar(`Boolean(document.getElementById('transferencia-evidencia'))`)) && (await tabela('ativo_digital')).find((linha) => linha.id === alvo.id).transferencia_situacao !== 'concluida');
   await preencher('transferencia-evidencia', LINK);
   await clicarNoDialogo('Registrar transferência');
   await esperarAviso('Transferência registrada.');
-  await c.ate(`!document.querySelector('.dialogo')`);
+  await c.ate(`!document.getElementById('transferencia-evidencia')`);
   await c.espera(300);
   ok('o item sai da lista', (await contagem()) === antes - 1, nome);
   const ativo = (await tabela('ativo_digital')).find((linha) => linha.identificador === nome);
@@ -431,7 +432,7 @@ await passo('T06.07: a entidade, sem um segundo cadastro', async () => {
   ok('Ativa, com o CNPJ formatado', p.includes('Ativa') && p.includes('11.222.333/0001-81'));
   ok('regime e contador seguem vazios', p.includes('Regime tributárioA definir') && p.includes('ContadorNão escolhido'));
   await aba('Obrigações');
-  ok('obrigações dependem da F1', (await pagina()).includes('chegam com a Fase 1'));
+  ok('obrigações da entidade, sem nada presumido', (await pagina()).includes('Nenhuma obrigação cadastrada.'));
   await aba('Contas financeiras');
   ok('nenhuma conta da PJ ainda', (await pagina()).includes('Nenhuma conta em nome desta entidade.'));
 });
@@ -439,7 +440,7 @@ await passo('T06.07: a entidade, sem um segundo cadastro', async () => {
 await passo('T06.08: obrigações respeitam a F1; alerta, título e cumprimento sem duplicar', async () => {
   await ir('/empresa/obrigacoes');
   await esperarTexto('Nenhuma obrigação cadastrada.');
-  ok('aviso da Fase 1 e nada presumido', (await pagina()).includes('A Fase 1 ainda não está ativa') && (await pagina()).includes('Nenhuma obrigação fiscal é presumida'));
+  ok('a F1 decide as ocorrências, e nada é presumido', (await pagina()).includes('As obrigações geram ocorrências a partir da Fase 1') && (await pagina()).includes('Nenhuma obrigação fiscal é presumida'));
   await clicarBotao('Nova obrigação');
   await painelAberto();
   await preencher('obrigacao-nome', 'Obrigação de verificação');

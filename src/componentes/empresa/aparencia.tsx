@@ -2,11 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { ArrowRightLeft, BadgeCheck, Building2, CalendarClock, FileText, Gavel, LayoutGrid, ListChecks, Lock, Users } from 'lucide-react';
-import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { AbasPagina, CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
-import { Faixa } from '@/componentes/padroes/faixa';
 import { Subabas } from '@/componentes/padroes/subabas';
 import type { Entidade } from '@/dados/tipos/contraparte';
 import type { AcordoVersao, ConstituicaoItem, MarcaProcesso, Obrigacao } from '@/dados/tipos/sociedade';
@@ -14,15 +12,12 @@ import { ROTULOS_SITUACAO_VERSAO } from '@/dominio/acordos';
 import { ROTULOS_SITUACAO_ITEM, type EstadoDoItem } from '@/dominio/constituicao';
 import { ROTULOS_SITUACAO_ENTIDADE } from '@/dominio/entidades';
 import { ROTULOS_SITUACAO_PROCESSO } from '@/dominio/marcas-inpi';
-import { faseLiberada, type Fase } from '@/dominio/navegacao';
 import { ROTULOS_SITUACAO_OBRIGACAO } from '@/dominio/obrigacoes';
-import { rotuloDaFase } from '@/dominio/fases';
 
 export type AbaDaEmpresa = 'painel' | 'socias' | 'acordos' | 'ativos' | 'marcas' | 'constituicao' | 'entidade' | 'obrigacoes' | 'reunioes';
 
-/** As seções do módulo. Obrigações é da F1: antes dela, "Em breve", e a tela só abre pelo endereço, com o aviso. */
+/** As seções do módulo. Tudo o que foi construído fica liberado, em qualquer fase (decisão de Kimberly em 07/11/2026). */
 export function AbasEmpresa({ ativa }: { ativa: AbaDaEmpresa }) {
-  const { faseAtiva } = useCentral();
   return (
     <AbasPagina
       rotulo="Seções da empresa"
@@ -35,7 +30,7 @@ export function AbasEmpresa({ ativa }: { ativa: AbaDaEmpresa }) {
         { rotulo: 'Marcas', icone: BadgeCheck, href: '/empresa/marcas', ativa: ativa === 'marcas' },
         { rotulo: 'Constituição', icone: ListChecks, href: '/empresa/constituicao', ativa: ativa === 'constituicao' },
         { rotulo: 'Entidade', icone: Building2, href: '/empresa/entidade', ativa: ativa === 'entidade' },
-        { rotulo: 'Obrigações', icone: CalendarClock, ativa: ativa === 'obrigacoes', ...(faseLiberada('f1', faseAtiva) || ativa === 'obrigacoes' ? { href: '/empresa/obrigacoes' } : {}) },
+        { rotulo: 'Obrigações', icone: CalendarClock, href: '/empresa/obrigacoes', ativa: ativa === 'obrigacoes' },
         { rotulo: 'Reuniões e decisões', icone: Gavel, href: '/empresa/reunioes', ativa: ativa === 'reunioes' },
       ]}
     />
@@ -54,31 +49,12 @@ export function SubabasDeReunioes({ ativa }: { ativa: 'reunioes' | 'decisoes' })
   );
 }
 
-/** A tela abre por link, mas o menu segue a fase ativa (RT-23): diz isso em vez de parecer um erro. */
-export function AvisoDeFaseDaEmpresa({ fase = 'f0b', tela = 'Empresa' }: { fase?: Fase; tela?: string }) {
-  const { faseAtiva } = useCentral();
-  if (faseLiberada(fase, faseAtiva)) return null;
-  return (
-    <Faixa
-      tipo="info"
-      acao={
-        <LinkCentral href="/configuracoes#fase" className="inline-flex min-h-11 items-center underline md:min-h-0">
-          Ver fase
-        </LinkCentral>
-      }
-    >
-      A {rotuloDaFase(fase)} ainda não está ativa: no menu, {tela} continua “Em breve”, e esta tela abre só por este endereço.
-    </Faixa>
-  );
-}
-
-/** Cabeçalho, abas e o aviso de fase, iguais em todas as telas do módulo. */
-export function MolduraDaEmpresa({ ativa, titulo, resumo, acoes, fase, tela, children }: { ativa: AbaDaEmpresa; titulo: string; resumo?: ReactNode; acoes?: ReactNode; fase?: Fase; tela?: string; children: ReactNode }) {
+/** Cabeçalho e abas, iguais em todas as telas do módulo. */
+export function MolduraDaEmpresa({ ativa, titulo, resumo, acoes, children }: { ativa: AbaDaEmpresa; titulo: string; resumo?: ReactNode; acoes?: ReactNode; children: ReactNode }) {
   return (
     <div className="space-y-5">
       <CabecalhoPagina kicker="Empresa" titulo={titulo} {...(resumo ? { resumo } : {})} {...(acoes ? { acoes } : {})} />
       <AbasEmpresa ativa={ativa} />
-      <AvisoDeFaseDaEmpresa {...(fase ? { fase } : {})} {...(tela ? { tela } : {})} />
       {children}
     </div>
   );

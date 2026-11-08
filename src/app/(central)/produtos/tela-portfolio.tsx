@@ -16,7 +16,7 @@ import { EtiquetaLivre } from '@/componentes/padroes/etiquetas';
 import { EtiquetasDosFiltros, type FiltroAtivo } from '@/componentes/padroes/filtros';
 import { Lista, type Coluna } from '@/componentes/padroes/lista';
 import { MenuSobreposto } from '@/componentes/padroes/menu-sobreposto';
-import { AbasProdutos, AvisoDeFase, EtiquetaEstagio } from '@/componentes/produtos/aparencia';
+import { AbasProdutos, EtiquetaEstagio } from '@/componentes/produtos/aparencia';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { ESTAGIOS_DO_PRODUTO } from '@/dados/tipos/precificacao';
@@ -88,7 +88,7 @@ function CartaoDoProduto({ linha, hoje }: { linha: LinhaDoPortfolio; hoje: strin
       </div>
       <dl className="grid gap-1.5">
         <Linha rotulo="Custo médio">{textoDoCusto(linha.custo, dinheiro)}</Linha>
-        <Linha rotulo="Orçamento">Sem orçamento: chega com a T05.08</Linha>
+        <Linha rotulo="Orçamento">Em Financeiro › Orçamento</Linha>
         <Linha rotulo="Ofertas">{textoDasOfertas(linha)}</Linha>
         <Linha rotulo="Usuários ativos">{textoDosUsuarios(linha)}</Linha>
         <Linha rotulo="Legal">Sem dados: chega com o M09</Linha>
@@ -271,7 +271,6 @@ export function TelaPortfolio() {
         }
       />
       <AbasProdutos ativa="portfolio" />
-      <AvisoDeFase />
 
       <section aria-label="Filtros do portfólio" className="space-y-3">
         <div className="flex flex-wrap items-end gap-2.5">

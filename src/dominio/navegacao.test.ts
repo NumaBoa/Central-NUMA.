@@ -23,7 +23,7 @@ describe('estrutura do menu', () => {
   });
 
   it('não tem link para nenhuma tela ainda não construída', () => {
-    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'empresa', 'produtos', 'financeiro', 'ferramentas', 'configuracoes']);
+    expect(todos.filter((modulo) => modulo.href).map((modulo) => modulo.id)).toEqual(['meu-dia', 'empresa', 'produtos', 'comercial', 'contratos', 'financeiro', 'ferramentas', 'legal', 'configuracoes']);
   });
 });
 
@@ -41,13 +41,12 @@ describe('moduloDisponivel', () => {
   const semTela: Modulo = { id: 'financeiro', nome: 'Financeiro', fase: 'f0a' };
 
   it('exige tela construída', () => {
-    expect(moduloDisponivel(semTela, 'f3')).toBe(false);
-    expect(moduloDisponivel(MODULO_CONFIGURACOES, 'f0a')).toBe(true);
+    expect(moduloDisponivel(semTela)).toBe(false);
+    expect(moduloDisponivel(MODULO_CONFIGURACOES)).toBe(true);
   });
 
-  it('mantém "Em breve" a tela pronta de fase ainda não ativa', () => {
-    expect(moduloDisponivel(pronta, 'f0a')).toBe(false);
-    expect(moduloDisponivel(pronta, 'f0b')).toBe(true);
+  it('libera a tela pronta mesmo de fase ainda não ativa (decisão de 07/11/2026)', () => {
+    expect(moduloDisponivel(pronta)).toBe(true);
   });
 });
 

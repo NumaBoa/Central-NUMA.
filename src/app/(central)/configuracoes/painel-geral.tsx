@@ -24,7 +24,6 @@ import { municipiosDaUf } from '@/dados/referencia/municipios';
 import { useConsulta } from '@/dados/use-consulta';
 import { carregarTelaGeral, esquemaFormularioGeral, formularioDosValores, lerConfiguracoes, pessoasParaBackup, responsavelDisponivel, salvarFormularioGeral, type DadosDaTelaGeral, type FormularioGeral } from '@/dominio/configuracoes';
 import { INFO_FASES, rotuloDaFase } from '@/dominio/fases';
-import { faseLiberada } from '@/dominio/navegacao';
 import { LEMBRETE_LINK_DRIVE } from '@/dominio/link-drive';
 import { cn } from '@/lib/utils';
 import { RegrasFinanceiras, SecaoCambio } from './secao-cambio';
@@ -245,10 +244,8 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
   const { errors, isDirty, dirtyFields, isSubmitting } = formState;
   useAlteracoesPendentes(isDirty);
 
-  // Legal e comercial é da F1: aparece com a F1 ativa, ou quando uma tela da F1 traz até aqui (#legal).
-  const [legalPedida] = useState(() => window.location.hash === '#legal');
-  const mostrarLegal = legalPedida || faseLiberada('f1', configuracoes.fase_ativa);
-  const secoes = mostrarLegal ? SECOES : SECOES.filter((secao) => secao.id !== 'legal');
+  // Decisão de 07/11/2026: tudo o que já foi construído aparece, em qualquer fase. Legal e comercial (F1) inclusive.
+  const secoes = SECOES;
   const [secaoAberta, setSecaoAberta] = useState<IdDaSecao>(secaoDoEndereco);
   const [resumoAberto, setResumoAberto] = useState(false);
   const [focoPedido, setFocoPedido] = useState<{ campoId: string } | null>(null);
@@ -474,11 +471,9 @@ function Conteudo({ dados }: { dados: DadosDaTelaGeral }) {
             <SecaoCambio cambios={cambios} />
           </PainelDaSecao>
 
-          {mostrarLegal && (
-            <PainelDaSecao secao={SECAO.legal}>
-              <SecaoLegalDaConfiguracao embutida />
-            </PainelDaSecao>
-          )}
+          <PainelDaSecao secao={SECAO.legal}>
+            <SecaoLegalDaConfiguracao embutida />
+          </PainelDaSecao>
 
           <PainelDaSecao secao={SECAO.backup}>
             {faltaResponsavel && (

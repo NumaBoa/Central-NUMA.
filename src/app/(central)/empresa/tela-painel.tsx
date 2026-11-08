@@ -276,10 +276,8 @@ export function TelaPainelDaEmpresa() {
             <p className="text-ink-soft">Nenhuma decisão registrada.</p>
           )}
         </Cartao>
-        <Cartao titulo="Obrigações" {...(f1 ? { href: '/empresa/obrigacoes', rotuloDoLink: 'Ver obrigações' } : {})}>
-          {!f1 ? (
-            <p className="text-ink-soft">As obrigações corporativas chegam com a {rotuloDaFase('f1')}.</p>
-          ) : dados.obrigacoes.length ? (
+        <Cartao titulo="Obrigações" href="/empresa/obrigacoes" rotuloDoLink="Ver obrigações">
+          {dados.obrigacoes.length ? (
             <ul className="grid gap-1.5">
               {dados.obrigacoes.map(({ obrigacao, proximo: vencimento }) => (
                 <li key={obrigacao.id} className="flex items-baseline justify-between gap-2">
@@ -291,7 +289,7 @@ export function TelaPainelDaEmpresa() {
               ))}
             </ul>
           ) : (
-            <p className="text-ink-soft">Nenhuma obrigação ativa. O cadastro é definido com o contador.</p>
+            <p className="text-ink-soft">{f1 ? 'Nenhuma obrigação ativa. O cadastro é definido com o contador.' : `Nenhuma obrigação ativa: as ocorrências começam com a ${rotuloDaFase('f1')}.`}</p>
           )}
         </Cartao>
       </div>

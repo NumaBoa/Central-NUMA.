@@ -6,7 +6,6 @@ import { FormularioConta } from '@/app/(central)/configuracoes/cadastros/contas/
 import { FormularioDaEntidade } from '@/app/(central)/configuracoes/cadastros/entidades/tela-entidades';
 import { Selecao } from '@/componentes/campos/selecao';
 import { MolduraDaEmpresa, SituacaoDaEntidadeDaEmpresa, SituacaoDaObrigacao, SituacaoDoItem } from '@/componentes/empresa/aparencia';
-import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { Dado, ListaDeDados } from '@/componentes/padroes/dado';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
@@ -22,20 +21,13 @@ import { ROTULOS_DOCUMENTAL } from '@/dominio/contratos';
 import { enderecoEmLinha } from '@/dominio/endereco';
 import { carregarEntidadeDaEmpresa, entidadeInicial, pendenciasParaAtivar } from '@/dominio/entidade-empresa';
 import { formatarDocumentoDaEntidade, nomeDaEntidade, representantesDaEntidade, ROTULOS_TIPO_ENTIDADE } from '@/dominio/entidades';
-import { rotuloDaFase } from '@/dominio/fases';
-import { faseLiberada } from '@/dominio/navegacao';
 import { nomeDaPessoa } from '@/dominio/sociedade';
 import { formatarDiaISO } from '@/lib/formatacao';
 
 const A_DEFINIR = <span className="text-ink-soft">A definir</span>;
 
-function NaFase1({ assunto }: { assunto: string }) {
-  return <Faixa tipo="info">{assunto} chegam com a {rotuloDaFase('f1')}.</Faixa>;
-}
-
 /** T06.07: atalho para a ficha da entidade (T02.05), com as abas a mais. O cadastro é um só. */
 export function TelaEntidadeDaEmpresa() {
-  const { faseAtiva } = useCentral();
   const consulta = useConsulta(carregarEntidadeDaEmpresa);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const [editando, setEditando] = useState(false);
@@ -69,7 +61,6 @@ export function TelaEntidadeDaEmpresa() {
   const contratos = dados.contratos.filter((contrato) => contrato.entidade_id === entidade.id && contrato.situacao_documental === 'assinado');
   const obrigacoes = dados.obrigacoes.filter((obrigacao) => obrigacao.entidade_id === entidade.id);
   const contas = dados.contas.contas.filter((conta) => conta.titular_entidade_id === entidade.id && !conta.arquivado_em);
-  const f1 = faseLiberada('f1', faseAtiva);
 
   return moldura(
     <>
@@ -178,9 +169,7 @@ export function TelaEntidadeDaEmpresa() {
           )}
         </TabsContent>
         <TabsContent value="contratos" className="mt-4">
-          {!f1 ? (
-            <NaFase1 assunto="Os contratos assinados" />
-          ) : contratos.length ? (
+          {contratos.length ? (
             <ul className="grid gap-1 rounded-lg border border-line bg-paper p-4 text-[13px]">
               {contratos.map((contrato) => (
                 <li key={contrato.id} className="flex flex-wrap items-center justify-between gap-2">
@@ -196,9 +185,7 @@ export function TelaEntidadeDaEmpresa() {
           )}
         </TabsContent>
         <TabsContent value="obrigacoes" className="mt-4">
-          {!f1 ? (
-            <NaFase1 assunto="As obrigações corporativas" />
-          ) : obrigacoes.length ? (
+          {obrigacoes.length ? (
             <ul className="grid gap-1 rounded-lg border border-line bg-paper p-4 text-[13px]">
               {obrigacoes.map((obrigacao) => (
                 <li key={obrigacao.id} className="flex flex-wrap items-center justify-between gap-2">

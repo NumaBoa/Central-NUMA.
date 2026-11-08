@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GitBranchPlus, Gavel } from 'lucide-react';
-import { AvisoDeFaseDaEmpresa, VoltarPara } from '@/componentes/empresa/aparencia';
+import { VoltarPara } from '@/componentes/empresa/aparencia';
 import { FormularioDaDecisao } from '@/componentes/empresa/formularios-reuniao';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
 import { Dado, ListaDeDados } from '@/componentes/padroes/dado';
@@ -94,7 +94,6 @@ export function FichaDaDecisao() {
   return (
     <div className="space-y-4">
       {voltar}
-      <AvisoDeFaseDaEmpresa />
       <Ficha
         tituloDePagina
         codigo={decisao.codigo}

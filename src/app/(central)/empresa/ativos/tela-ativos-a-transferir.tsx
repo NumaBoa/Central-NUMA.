@@ -32,7 +32,7 @@ const TIPOS_DA_SITUACAO: Readonly<Record<SituacaoATransferir, TipoSituacao>> = {
 
 async function carregar() {
   const [transferir, ativos, entidades] = await Promise.all([carregarAtivosATransferir(), carregarAtivos(), repositorios.entidade.listar()]);
-  return { ...transferir, dadosDosAtivos: ativos, entidade: entidadePrincipal(entidades) ?? null };
+  return { ...transferir, dadosDosAtivos: ativos, entidades, entidade: entidadePrincipal(entidades) ?? null };
 }
 
 const rotuloDoTipo = (item: Pick<ItemComAtividade, 'tipoAtivo'>) => (item.tipoAtivo ? ROTULOS_TIPO_ATIVO[item.tipoAtivo] : 'Ferramenta');
@@ -257,7 +257,7 @@ export function TelaAtivosATransferir() {
 
       <Faixa tipo="info">Lista derivada de Ferramentas e ativos. Atividades existentes são reaproveitadas, sem duplicação, e também nascem quando a entidade PJ fica Ativa.</Faixa>
 
-      {emTransferencia && <DialogoDeTransferencia ativo={emTransferencia} dados={dados.dadosDosAtivos} aoFechar={() => setTransferindo(null)} />}
+      {emTransferencia && <DialogoDeTransferencia ativo={emTransferencia} dados={dados.dadosDosAtivos} entidades={dados.entidades} aoFechar={() => setTransferindo(null)} />}
       <Confirmacao
         aberto={Boolean(impedindo)}
         aoFechar={() => setImpedindo(null)}

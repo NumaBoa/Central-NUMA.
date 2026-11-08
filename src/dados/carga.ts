@@ -122,7 +122,10 @@ export function valoresIniciais(tabela: keyof typeof VALORES_INICIAIS, agora: st
   return VALORES_INICIAIS[tabela](agora);
 }
 
-const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico', 'objetivo', 'oferta', 'oferta_recurso', 'canal_venda', 'simulacao', 'preco_versao', 'concorrente_referencia', 'kpi_definicao', 'kpi_mensal'] as const;
+/** Os campos da oferta que chegaram na versão 18, vazios: nenhum padrão é inventado. */
+const CAMPOS_NOVOS_DA_OFERTA = { regras_uso: null, suporte_canal: null, suporte_horario: null, suporte_prazo_critico: null, suporte_prazo_normal: null, disponibilidade_meta: null, disponibilidade_compensacao: null, teste_dias: null, adicionais_ids: [] };
+
+const TABELAS_DO_M07 = ['decisao', 'decisao_decisor', 'produto_estagio_historico', 'objetivo', 'oferta', 'oferta_recurso', 'canal_venda', 'simulacao', 'preco_versao', 'concorrente_referencia', 'kpi_definicao', 'kpi_mensal', 'configuracao_contratual', 'orcamento'] as const;
 
 /** Linhas iniciais de todas as tabelas: os exemplos e os padrões, com o histórico e os backups vazios. */
 export function tabelasIniciais(agora: string) {
@@ -214,6 +217,17 @@ function migrar(versao: number) {
   }
   // M07: tudo começa vazio (M07 §6: nenhum preço), para quem já usa a Central e para a primeira abertura.
   if (versao < 16) for (const tabela of TABELAS_DO_M07) if (driver().getItem(chaveDaTabela(tabela)) === null) alteracoes[tabela] = [];
+  // 18: a oferta ganha os campos do contrato SaaS (19 §8), vazios; a configuração contratual (T07.10) começa vazia.
+  if (versao < 19 && driver().getItem(chaveDaTabela('orcamento')) === null) alteracoes.orcamento = [];
+  if (versao < 18) {
+    if (driver().getItem(chaveDaTabela('configuracao_contratual')) === null) alteracoes.configuracao_contratual = [];
+    try {
+      const ofertas = lerTabela<Record<string, unknown>>('oferta');
+      if (ofertas.some((linha) => !('adicionais_ids' in linha))) alteracoes.oferta = ofertas.map((linha) => ('adicionais_ids' in linha ? linha : { ...CAMPOS_NOVOS_DA_OFERTA, ...linha }));
+    } catch {
+      // tabela danificada: a tela de Dados mostra o problema e o caminho de saída
+    }
+  }
   // M09, M10 e M11: acrescenta o que faltar, seja qual for a versão de origem.
   acrescentarTabelasF1(alteracoes, agora);
   // M06: idem, com a carga da especificação nas tabelas que faltarem.

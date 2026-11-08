@@ -42,7 +42,8 @@ function valorEmReais(titulo: Titulo, rateio: TituloRateio, baixas: readonly Bai
  * O que é custo do produto: despesa a pagar, não cancelada nem suspensa, sem os reembolsos (RN-05.07: o custo
  * já está na despesa original). Investimento fica marcado, para a média poder tirar.
  */
-export function linhasDeCustoDoProduto(produtoId: string, { titulos, rateios, baixas, categorias, cambios }: FontesDeCusto): LinhaDeCusto[] {
+/** `produtoId` vazio (null) é a Numa institucional: o rateio sem produto. */
+export function linhasDeCustoDoProduto(produtoId: string | null, { titulos, rateios, baixas, categorias, cambios }: FontesDeCusto): LinhaDeCusto[] {
   const porId = new Map(titulos.map((titulo) => [titulo.id, titulo]));
   const categoriaPorId = new Map(categorias.map((categoria) => [categoria.id, categoria]));
   return rateios.flatMap((rateio) => {
@@ -87,7 +88,7 @@ export function calcularCustoMedio(produtoId: string, fontes: FontesDeCusto, hoj
   return { ...base, valor: linhas.reduce((total, linha) => total + (linha.valor as number), 0) / mesesComCusto, situacao: 'calculado' };
 }
 
-async function lerFontes(): Promise<FontesDeCusto> {
+export async function lerFontes(): Promise<FontesDeCusto> {
   const [titulos, rateios, baixas, categorias, cambios] = await Promise.all([repositorios.titulo.listar(), repositorios.titulo_rateio.listar(), repositorios.baixa.listar(), repositorios.categoria_financeira.listar({ incluirArquivados: true }), repositorios.cambio_referencia.listar()]);
   return { titulos, rateios, baixas, categorias, cambios };
 }

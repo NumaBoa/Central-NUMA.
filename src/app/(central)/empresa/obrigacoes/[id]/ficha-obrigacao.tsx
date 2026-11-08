@@ -7,7 +7,7 @@ import { Campo } from '@/componentes/campos/campo';
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { EntradaLinkDrive } from '@/componentes/campos/link-drive';
 import { Selecao } from '@/componentes/campos/selecao';
-import { AvisoDeFaseDaEmpresa, SituacaoDaObrigacao, VoltarPara } from '@/componentes/empresa/aparencia';
+import { SituacaoDaObrigacao, VoltarPara } from '@/componentes/empresa/aparencia';
 import { FormularioDaObrigacao } from '@/componentes/empresa/formulario-obrigacao';
 import { useFormulario } from '@/componentes/empresa/use-formulario';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
@@ -202,7 +202,6 @@ export function FichaDaObrigacao() {
   return (
     <div className="space-y-4">
       {voltar}
-      <AvisoDeFaseDaEmpresa fase="f1" tela="Obrigações" />
       <Ficha
         tituloDePagina
         titulo={obrigacao.nome}

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { BadgeCheck, Check, ExternalLink, FilePlus2, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
-import { AvisoDeFaseDaEmpresa, SituacaoDoProcesso, VoltarPara } from '@/componentes/empresa/aparencia';
+import { SituacaoDoProcesso, VoltarPara } from '@/componentes/empresa/aparencia';
 import { JanelaDaPesquisa, JanelaDoPrazo, JanelaDoProcesso } from '@/componentes/empresa/formularios-marca';
 import { MenuDeAcoes } from '@/componentes/empresa/menu-de-acoes';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
@@ -267,7 +267,6 @@ export function FichaDaMarca() {
   return (
     <div className="space-y-4">
       {voltar}
-      <AvisoDeFaseDaEmpresa />
       <Ficha
         tituloDePagina
         titulo={marca.nome}

@@ -739,7 +739,7 @@ await passo('dados de quem vinha da versão anterior', async () => {
   ok('feriados do ano entram', (await tabela('feriado')).length === 15 && (await tabela('feriado')).every((x) => x.data.startsWith(String(ANO))));
   ok('contas de exemplo entram', (await tabela('conta_financeira')).length === 2);
   ok('etiquetas ficam vazias', (await tabela('etiqueta')).length === 0 && (await tabela('etiqueta_vinculo')).length === 0);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
   ok('o que existia continua como estava', (await tabela('pessoa')).find((x) => x.id === ID_CAMILA).funcao === 'Dado que precisa continuar');
   await restaurarExemplos();
   await botao('Limpar exemplos');

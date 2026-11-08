@@ -11,13 +11,14 @@ import { esquemaContraparte, esquemaEntidade, esquemaEntidadeRepresentante } fro
 import { esquemaDecisao, esquemaDecisaoDecisor } from './tipos/decisao';
 import { esquemaEtiqueta, esquemaEtiquetaVinculo } from './tipos/etiqueta';
 import { esquemaAtivoDigital } from './tipos/ativo';
-import { esquemaCanalVenda, esquemaConcorrente, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao } from './tipos/precificacao';
+import { esquemaCanalVenda, esquemaConcorrente, esquemaConfiguracaoContratual, esquemaEstagioHistorico, esquemaKpiDefinicao, esquemaKpiMensal, esquemaObjetivo, esquemaOferta, esquemaOfertaRecurso, esquemaPrecoVersao, esquemaSimulacao } from './tipos/precificacao';
 import { esquemaBaixa, esquemaMovimentoSocietario, esquemaTitulo, esquemaTituloRateio } from './tipos/titulo';
 import { esquemaConferenciaSaldo, esquemaTransferencia } from './tipos/transferencia';
 import { esquemaAssinaturaFerramenta, esquemaAssinaturaValorHistorico, esquemaCategoriaFerramenta, esquemaFerramenta, esquemaFerramentaContexto } from './tipos/ferramenta';
 import { esquemaCategoriaFinanceira, esquemaContaFinanceira } from './tipos/financeiro';
 import { esquemaMarca, esquemaProduto } from './tipos/marca';
 import { esquemaNotificacao } from './tipos/notificacao';
+import { esquemaOrcamento } from './tipos/orcamento';
 import { esquemaPessoa } from './tipos/pessoa';
 import { esquemaRecorrencia } from './tipos/recorrencia';
 import { TABELAS_F1 } from './tabelas-f1';
@@ -71,6 +72,8 @@ export const TABELAS = {
   canal_venda: { rotulo: 'Canais de venda', esquema: esquemaCanalVenda },
   simulacao: { rotulo: 'Simulações', esquema: esquemaSimulacao },
   preco_versao: { rotulo: 'Versões de preço', esquema: esquemaPrecoVersao },
+  configuracao_contratual: { rotulo: 'Configurações contratuais', esquema: esquemaConfiguracaoContratual },
+  orcamento: { rotulo: 'Orçamentos', esquema: esquemaOrcamento },
   concorrente_referencia: { rotulo: 'Concorrentes de referência', esquema: esquemaConcorrente },
   kpi_definicao: { rotulo: 'Indicadores próprios', esquema: esquemaKpiDefinicao },
   kpi_mensal: { rotulo: 'KPIs mensais', esquema: esquemaKpiMensal },
@@ -104,6 +107,8 @@ export const NOMES_TABELAS = Object.keys(TABELAS) as Tabela[];
  * 15: a transferência ganha `transferencia_original_id`, para o estorno.
  * 16: M07 acrescenta `decisao`, `decisao_decisor`, `produto_estagio_historico`, `objetivo`, `oferta`, `oferta_recurso`, `canal_venda`, `simulacao`, `preco_versao`, `concorrente_referencia`, `kpi_definicao` e `kpi_mensal`.
  * 17: M09, M10 e M11 acrescentam as tabelas de `tabelas-f1.ts` e o rascunho de `MOD-SAAS-LIC`.
- * 18: M06 acrescenta as tabelas de `tabelas-m06.ts`, com as sócias, o memorando em rascunho e o checklist de constituição.
+ * 18: a oferta ganha os campos do contrato SaaS (19 §8) e entra `configuracao_contratual` (T07.10).
+ * 19: entra `orcamento` (T05.08).
+ * 20: M06 acrescenta as tabelas de `tabelas-m06.ts`, com as sócias, o memorando em rascunho e o checklist de constituição.
  */
-export const VERSAO_DADOS = 18;
+export const VERSAO_DADOS = 20;

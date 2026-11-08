@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, CalendarDays, ExternalLink, Gavel, ListTodo, Pencil, Plus } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { AbaArquivosDoRegistro } from '@/componentes/empresa/aba-arquivos';
-import { AvisoDeFaseDaEmpresa, VoltarPara } from '@/componentes/empresa/aparencia';
+import { VoltarPara } from '@/componentes/empresa/aparencia';
 import { FormularioDaDecisao, FormularioDaReuniao, JanelaDaAcao } from '@/componentes/empresa/formularios-reuniao';
 import { MenuDeAcoes } from '@/componentes/empresa/menu-de-acoes';
 import { useCentral } from '@/componentes/layout/central-provider';
@@ -234,7 +234,6 @@ export function FichaDaReuniao() {
   return (
     <div className="space-y-4">
       {voltar}
-      <AvisoDeFaseDaEmpresa />
       <Ficha
         tituloDePagina
         codigo={reuniao.codigo}

@@ -13,11 +13,10 @@ import { LinkCentral } from './protecao-saida';
 import { SeletorPessoaLateral } from './seletor-pessoa';
 
 function ItemMenu({ modulo }: { modulo: Modulo }) {
-  const { faseAtiva } = useCentral();
   const caminho = usePathname();
   const Icone = ICONES_MODULO[modulo.id];
 
-  if (!modulo.href || !moduloDisponivel(modulo, faseAtiva)) {
+  if (!modulo.href || !moduloDisponivel(modulo)) {
     return (
       <div
         role="link"

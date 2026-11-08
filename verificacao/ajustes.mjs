@@ -16,7 +16,8 @@ const linha = (etiqueta) => ({ criado_em: agora, criado_por: null, atualizado_em
 const cartao = (titulo) => `[...document.querySelectorAll('main article')].find(a=>a.querySelector('h3')?.textContent===${js(titulo)})`;
 const titulosNoQuadro = () => c.avaliar(`[...document.querySelectorAll('main article h3')].map(h=>h.textContent)`);
 const abrirFiltros = async () => {
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^Filtros/.test(b.textContent.trim())).click()`);
+  // Na lista de ferramentas, o botão é "Mais filtros" (revisão do M04, 07/11/2026).
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>/^(Mais filtros|Filtros)/.test(b.textContent.trim())).click()`);
   await c.ate(`document.querySelector('.menu-suspenso')`);
   await c.espera(150);
 };

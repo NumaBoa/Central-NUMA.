@@ -16,7 +16,8 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { PERIODICIDADES, SITUACOES_DA_OBRIGACAO } from '@/dados/tipos/sociedade';
 import { useConsulta } from '@/dados/use-consulta';
-import { carregarObrigacoes, filtrarObrigacoes, FILTROS_OBRIGACOES_INICIAIS, linhasDasObrigacoes, NOTA_PAGAMENTO, NOTA_SEM_PRESUNCAO, ROTULOS_PERIODICIDADE_OBRIGACAO, ROTULOS_SITUACAO_OBRIGACAO, type LinhaDaObrigacao } from '@/dominio/obrigacoes';
+import { faseLiberada } from '@/dominio/navegacao';
+import { carregarObrigacoes, filtrarObrigacoes, MENSAGEM_FASE_DAS_OBRIGACOES, FILTROS_OBRIGACOES_INICIAIS, linhasDasObrigacoes, NOTA_PAGAMENTO, NOTA_SEM_PRESUNCAO, ROTULOS_PERIODICIDADE_OBRIGACAO, ROTULOS_SITUACAO_OBRIGACAO, type LinhaDaObrigacao } from '@/dominio/obrigacoes';
 import { nomeDaPessoa } from '@/dominio/sociedade';
 import { formatarDiaISO } from '@/lib/formatacao';
 
@@ -44,8 +45,6 @@ export function TelaObrigacoes() {
       ativa="obrigacoes"
       titulo="Obrigações corporativas"
       resumo={NOTA_SEM_PRESUNCAO}
-      fase="f1"
-      tela="Obrigações"
       acoes={
         <Button onClick={() => setNova(true)} disabled={!dados}>
           <Plus aria-hidden />
@@ -96,6 +95,7 @@ export function TelaObrigacoes() {
 
   return moldura(
     <>
+      {!faseLiberada('f1', dados.fase) && <Faixa tipo="info">{MENSAGEM_FASE_DAS_OBRIGACOES}</Faixa>}
       <section aria-label="Filtros das obrigações" className="space-y-3">
         <div className="grid gap-2.5 md:grid-cols-[minmax(0,1fr)_200px_170px_auto] md:items-end">
           <div>
