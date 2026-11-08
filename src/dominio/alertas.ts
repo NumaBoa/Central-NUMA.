@@ -29,6 +29,8 @@ export type AlertaDesejado = {
   acao: string;
   /** Nasce de um registro de exemplo: sai junto quando os exemplos forem limpos. */
   exemplo?: boolean;
+  /** A data só compõe a chave: não vira prazo, para não acusar atraso sem haver prazo (transferências, RN-06.07). */
+  semPrazo?: boolean;
 };
 
 /** `tipo_origem + id_origem + motivo + data_referencia` (05-M03 §5). */
@@ -70,7 +72,7 @@ function novoAlerta(desejado: AlertaDesejado) {
     bloqueio_motivo: null,
     bloqueada_em: null,
     inicio: null,
-    prazo: desejado.data_referencia,
+    prazo: desejado.semPrazo ? null : desejado.data_referencia,
     prazo_hora: null,
     aviso_em: null,
     solicitante_pessoa_id: null,
@@ -87,7 +89,7 @@ function novoAlerta(desejado: AlertaDesejado) {
     origem_tipo: desejado.origem_tipo,
     origem_id: desejado.origem_id,
     alerta_motivo: desejado.motivo,
-    alerta_data_referencia: desejado.data_referencia,
+    alerta_data_referencia: desejado.semPrazo ? null : desejado.data_referencia,
     alerta_acao: desejado.acao,
     chave_idempotencia: chaveDoAlerta(desejado),
     adiamentos: 0,
@@ -124,7 +126,7 @@ export async function sincronizarAlertas(origemTipo: string, desejados: readonly
       const chave = chaveDoAlerta(desejado);
       const aberto = abertos.find((atividade) => mesmoAlerta(atividade, desejado));
       if (aberto) {
-        if (aberto.chave_idempotencia !== chave || aberto.titulo !== desejado.titulo) await repositorios.atividade.atualizar(aberto.id, { alerta_data_referencia: desejado.data_referencia, prazo: desejado.data_referencia, chave_idempotencia: chave, titulo: desejado.titulo });
+        if (aberto.chave_idempotencia !== chave || aberto.titulo !== desejado.titulo) await repositorios.atividade.atualizar(aberto.id, { alerta_data_referencia: desejado.semPrazo ? null : desejado.data_referencia, prazo: desejado.semPrazo ? null : desejado.data_referencia, chave_idempotencia: chave, titulo: desejado.titulo });
         continue;
       }
       const anterior = existentes.find((atividade) => atividade.chave_idempotencia === chave);

@@ -75,7 +75,7 @@ await passo('primeira abertura', async () => {
   ok('grava uma chave por tabela (02 §0.3)', ['numa-central:v1:auditoria', 'numa-central:v1:backup_registro', 'numa-central:v1:meta', 'numa-central:v1:pessoa'].every((k) => chaves.includes(k)), chaves.join(','));
   ok('todas as chaves no prefixo da especificação', chaves.every((k) => k.startsWith('numa-central:v1:')));
   const p = await pagina();
-  ok('151 registros, 51 de exemplo', p.includes('Registros151') && p.includes('51 de exemplo'));
+  ok('154 registros, 51 de exemplo', p.includes('Registros154') && p.includes('51 de exemplo'));
   ok('ainda sem backup', p.includes('Último backupNenhum'));
   ok('avisa os limites do armazenamento', p.includes('não é o registro oficial'));
   ok('etiqueta "Dados de exemplo" aparece', await etiqueta());
@@ -119,7 +119,7 @@ await passo('limpar exemplos', async () => {
   ok('diz quantos serão removidos', (await texto('.dialogo')).includes('51 registros de exemplo serão removidos'), await texto('.dialogo'));
   await c.clicar('texto=Voltar');
   await c.ate(`!document.querySelector('.dialogo')`);
-  ok('voltar não muda nada', (await pagina()).includes('Registros151'));
+  ok('voltar não muda nada', (await pagina()).includes('Registros154'));
   await c.clicar('texto=Limpar exemplos');
   await c.ate(`document.querySelector('.dialogo')`);
   await c.espera(420);
@@ -127,7 +127,7 @@ await passo('limpar exemplos', async () => {
   await c.ate(`!document.querySelector('.dialogo')`);
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum de exemplo')`);
   const p = await pagina();
-  ok('ficam só as sócias', p.includes('Registros100'));
+  ok('ficam só as sócias', p.includes('Registros103'));
   ok('a etiqueta some', !(await etiqueta()));
   ok('Bruna sai de "Você é"', JSON.stringify(await opcoesVoceE()) === JSON.stringify(['Kimberly Grebe', 'Camila Lima']));
   ok('o botão fica desativado', await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent==='Limpar exemplos').disabled`));
@@ -135,7 +135,7 @@ await passo('limpar exemplos', async () => {
   await fecharAvisos();
   await c.recarregar();
   await pronta();
-  ok('recarregar mantém a alteração', (await pagina()).includes('Registros100'));
+  ok('recarregar mantém a alteração', (await pagina()).includes('Registros103'));
   ok('os exemplos não voltam sozinhos', !(await etiqueta()));
 });
 await passo('importar: prévia', async () => {
@@ -148,10 +148,10 @@ await passo('importar: prévia', async () => {
   const t = await texto('.dialogo');
   ok('avisa que substitui e mostra a origem', t.includes('substitui tudo') && t.includes('por Kimberly Grebe'), t.slice(0, 120));
   ok('avisa que baixa uma cópia antes', t.includes('baixa uma cópia do que há hoje') && t.includes('Baixar cópia e substituir'));
-  ok('nada mudou ainda', (await pagina()).includes('Registros100'));
+  ok('nada mudou ainda', (await pagina()).includes('Registros103'));
   await c.clicar('texto=Voltar');
   await c.ate(`!document.querySelector('.dialogo')`);
-  ok('voltar cancela', (await pagina()).includes('Registros100'));
+  ok('voltar cancela', (await pagina()).includes('Registros103'));
   await c.espera(600);
   ok('voltar não baixa nada', !readdirSync(downloads).some((n) => /^central-numa-/.test(n)));
 });
@@ -168,12 +168,12 @@ await passo('importar: confirmar', async () => {
   ok('a cópia traz o que havia antes', conteudoDaCopia.tabelas.pessoa.length === 2, conteudoDaCopia.tabelas.pessoa.length);
   await c.ate(`!document.querySelector('.dialogo')`);
   await c.ate(`document.querySelector('main').textContent.includes('51 de exemplo')`);
-  ok('volta o conteúdo do arquivo', (await pagina()).includes('Registros151'), (await pagina()).slice(150, 330));
+  ok('volta o conteúdo do arquivo', (await pagina()).includes('Registros154'), (await pagina()).slice(150, 330));
   ok('a etiqueta volta', await etiqueta());
   const textoDoAviso = await avisoDaImportacao;
-  ok('aviso de sucesso', textoDoAviso.includes('Dados importados: 151 registros'), textoDoAviso);
+  ok('aviso de sucesso', textoDoAviso.includes('Dados importados: 154 registros'), textoDoAviso);
   ok('o aviso conta da cópia', textoDoAviso.includes('A cópia do que havia antes foi baixada'), textoDoAviso);
-  ok('o histórico registra', (await historico())[0]?.includes('importou 151 registros de um arquivo, com cópia do que havia antes'), (await historico())[0]);
+  ok('o histórico registra', (await historico())[0]?.includes('importou 154 registros de um arquivo, com cópia do que havia antes'), (await historico())[0]);
   await fecharAvisos();
 });
 await passo('importar: arquivos ruins', async () => {
@@ -235,8 +235,8 @@ await passo('backup atrasado', async () => {
   await c.foto('d-atrasado');
 });
 await passo('mudança vinda de outra aba', async () => {
-  // Os 151 da carga, mais os alertas que os exemplos geraram na rodada manual.
-  const registros = 151 + alertasDosExemplos;
+  // Os 154 da carga, mais os alertas que os exemplos geraram na rodada manual.
+  const registros = 154 + alertasDosExemplos;
   await c.avaliar(`(()=>{const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l.pop();const novo=JSON.stringify(l);localStorage.setItem(k,novo);window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:novo}))})()`);
   await c.ate(`document.querySelector('main').textContent.includes('Registros${registros - 1}')`, 3000);
   ok('a tela atualiza sozinha', true);
@@ -251,7 +251,7 @@ await passo('restaurar', async () => {
   await c.ate(`!document.querySelector('.dialogo')`);
   await c.ate(`document.querySelector('main').textContent.includes('Último backupNenhum')`);
   const p = await pagina();
-  ok('volta ao início', p.includes('Registros151') && p.includes('51 de exemplo'));
+  ok('volta ao início', p.includes('Registros154') && p.includes('51 de exemplo'));
   const h = await historico();
   ok('o histórico recomeça, com o registro de quem restaurou', h.length === 1 && h[0].startsWith('Camila Lima restaurou os dados de exemplo'), h.join(' ; '));
   ok('quem estava selecionada continua', (await c.avaliar(`document.querySelector('[data-menu-lateral] select').selectedOptions[0].textContent`)) === 'Camila Lima');
@@ -285,7 +285,7 @@ await passo('dados danificados: restaurar', async () => {
   await c.ate(`document.querySelector('.dialogo')`);
   await c.espera(420);
   await c.avaliar(`[...document.querySelectorAll('.dialogo button')].find(b=>b.textContent==='Restaurar exemplos').click()`);
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
   ok('restaurar recupera', true);
   await fecharAvisos();
 });
@@ -299,7 +299,7 @@ await passo('dados danificados: importar', async () => {
   ok('a prévia marca o que está danificado', (await texto('.dialogo tbody')).includes('Danificado'));
   ok('e explica que não há cópia a baixar', (await texto('.dialogo')).includes('não dá para baixar uma cópia') && !(await texto('.dialogo')).includes('Baixar cópia e substituir'));
   await c.clicar('texto=Substituir os dados');
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')&&!document.querySelector('.dialogo')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')&&!document.querySelector('.dialogo')`);
   ok('importar recupera', true);
   await c.espera(600);
   ok('sem baixar cópia de dados danificados', !readdirSync(downloads).some((n) => /^central-numa-/.test(n)));

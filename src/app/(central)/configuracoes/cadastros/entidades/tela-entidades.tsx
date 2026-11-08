@@ -56,8 +56,9 @@ function SituacaoDaEntidade({ situacao }: { situacao: Entidade['situacao'] }) {
   return <EtiquetaSituacao tipo={TIPOS_SITUACAO[situacao]}>{ROTULOS_SITUACAO_ENTIDADE[situacao]}</EtiquetaSituacao>;
 }
 
-function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: boolean; aoFechar: () => void; entidade: Entidade | null; dados: DadosEntidades }) {
-  const { register, handleSubmit, control, reset, watch, formState } = useForm<FormularioEntidade>({
+/** T02.05. O M06 usa este mesmo formulário (T06.06 e T06.07): não existe um segundo cadastro de entidade. */
+export function FormularioDaEntidade({ aberto, aoFechar, entidade, dados, situacaoInicial }: { aberto: boolean; aoFechar: () => void; entidade: Entidade | null; dados: DadosEntidades; situacaoInicial?: Entidade['situacao'] }) {
+  const { register, handleSubmit, control, reset, watch, setValue, formState } = useForm<FormularioEntidade>({
     resolver: zodResolver(esquemaFormularioEntidade),
     defaultValues: FORMULARIO_ENTIDADE_VAZIO,
     mode: 'onTouched',
@@ -68,6 +69,7 @@ function FormularioDaEntidade({ aberto, aoFechar, entidade, dados }: { aberto: b
   // O formulário começa do que está salvo a cada vez que abre, e não enquanto alguém digita.
   useEffect(() => {
     if (aberto) reset(entidade ? formularioDaEntidade(entidade, representantesDaEntidade(entidade.id, dados.representantes), { socias: dados.socias.find((linha) => linha.entidade_id === entidade.id) ?? null, licenciantes: dados.licenciantes.filter((linha) => linha.entidade_id === entidade.id) }) : FORMULARIO_ENTIDADE_VAZIO);
+    if (aberto && situacaoInicial) setValue('situacao', situacaoInicial, { shouldDirty: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- os dados mudam quando alguém mexe em outra aba
   }, [aberto, entidade?.id, reset]);
 

@@ -6,7 +6,9 @@ import { repositorios } from '@/dados/repositorios';
 import type { Atividade } from '@/dados/tipos/atividade';
 import { CAMINHO_DA_ATIVIDADE, carregarMeuDia, contextosDaAtividade, estaAberta, ROTULOS_SITUACAO_ATIVIDADE, ROTULOS_TIPO_ATIVIDADE } from './atividades';
 import { nomeDaContraparte } from './contrapartes';
+import { diaEHoraNoFuso } from '@/lib/datas';
 import { formatarDiaISO } from '@/lib/formatacao';
+import { ROTULOS_TIPO_ACORDO } from './acordos';
 import { ROTULOS_TIPO_ATIVO } from './ativos';
 import { ROTULOS_SITUACAO_TITULO } from './titulos';
 import { normalizarTexto } from './duplicidade';
@@ -51,6 +53,8 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
   const termo = normalizarTexto(busca).trim();
   if (termo.length < MINIMO_PARA_BUSCAR) return [];
   const [meuDia, contrapartes, pessoas, produtos, marcas, ferramentas, ativos, titulos] = await Promise.all([carregarMeuDia(), repositorios.contraparte.listar(), repositorios.pessoa.listar(), repositorios.produto.listar(), repositorios.marca.listar(), repositorios.ferramenta.listar(), repositorios.ativo_digital.listar(), repositorios.titulo.listar()]);
+
+  const [acordos, decisoes, reunioes] = await Promise.all([repositorios.acordo_societario.listar(), repositorios.decisao.listar(), repositorios.reuniao.listar()]);
 
   const grupos = [
     montarGrupo(
@@ -152,6 +156,24 @@ export async function buscarNaCentral(busca: string): Promise<GrupoDaBusca[]> {
         texto: `${produto.nome} ${produto.codigo_curto}`,
         peso: produto.situacao === 'ativo' ? 0 : 1,
       })),
+      termo,
+    ),
+    montarGrupo(
+      'acordos',
+      'Acordos',
+      acordos.map((acordo) => ({ id: acordo.id, codigo: acordo.codigo, titulo: acordo.titulo, detalhe: ROTULOS_TIPO_ACORDO[acordo.tipo], href: `/empresa/acordos/${acordo.id}`, texto: `${acordo.titulo} ${acordo.codigo}`, peso: 0 })),
+      termo,
+    ),
+    montarGrupo(
+      'decisoes',
+      'Decisões',
+      decisoes.map((decisao) => ({ id: decisao.id, codigo: decisao.codigo, titulo: decisao.titulo, detalhe: `${decisao.situacao === 'registrada' ? 'Registrada' : 'Substituída'} em ${formatarDiaISO(decisao.data)}`, href: `/empresa/decisoes/${decisao.id}`, texto: `${decisao.titulo} ${decisao.codigo} ${decisao.descricao}`, peso: decisao.situacao === 'registrada' ? 0 : 1 })),
+      termo,
+    ),
+    montarGrupo(
+      'reunioes',
+      'Reuniões',
+      reunioes.map((reuniao) => ({ id: reuniao.id, codigo: reuniao.codigo, titulo: reuniao.titulo, detalhe: formatarDiaISO(diaEHoraNoFuso(reuniao.data_hora).dia), href: `/empresa/reunioes/${reuniao.id}`, texto: `${reuniao.titulo} ${reuniao.codigo}`, peso: 0 })),
       termo,
     ),
   ].filter((grupo): grupo is GrupoDaBusca => grupo !== null);

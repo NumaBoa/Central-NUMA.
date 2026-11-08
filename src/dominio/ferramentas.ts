@@ -16,6 +16,7 @@ import type { Titulo } from '@/dados/tipos/titulo';
 import { hojeISO } from '@/lib/datas';
 import { AREAS_INICIAIS } from '@/dados/exemplos/base';
 import { sincronizarAlertasDasFerramentas, sincronizarAlertasDosTitulos } from './alertas';
+import { sincronizarAlertasDeTransferencia } from './alertas-m06';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { ativosDaFerramenta } from './ativos';
 import { cobrancasPrevistas, MESES_DA_PERIODICIDADE, somarMeses } from './cobrancas';
@@ -395,6 +396,8 @@ function situacaoAoSalvar({ situacao, modalidade, fim_teste }: Pick<FormularioFe
 export async function salvarFerramenta(id: string, formulario: FormularioFerramenta, opcoes: { motivoDoValor?: string; trocarPlano?: boolean; hoje?: string } = {}): Promise<Ferramenta> {
   const ferramenta = await gravarFerramenta(id, formulario, opcoes);
   await avisarAlertas([id], opcoes.hoje);
+  // T06.04: o titular pode ter passado a ser o desejado.
+  await sincronizarAlertasDeTransferencia({ apenas: [id] });
   return ferramenta;
 }
 

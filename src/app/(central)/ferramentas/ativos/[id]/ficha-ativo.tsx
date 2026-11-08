@@ -46,6 +46,7 @@ function Resumo({ ativo, dados }: { ativo: AtivoDigital; dados: DadosDosAtivos }
   return (
     <ListaDeDados>
       <Dado rotulo="Tipo">{ROTULOS_TIPO_ATIVO[ativo.tipo]}</Dado>
+      {ativo.transferencia_situacao === 'impedida' && ativo.impedimento_motivo && <Dado rotulo="O que impede a transferência">{ativo.impedimento_motivo}</Dado>}
       <Dado rotulo="Ferramenta ou plataforma">
         {ferramenta && (
           <LinkCentral href={`/ferramentas/${ferramenta.id}`} className="inline-flex min-h-11 items-center underline md:min-h-0">
@@ -152,7 +153,8 @@ function AbaHistorico({ id }: { id: string }) {
 }
 
 /** T04.05: data, novo titular, evidência e observação. A evidência é obrigatória (CA-04.07). */
-function DialogoDeTransferencia({ ativo, dados, aoFechar }: { ativo: AtivoDigital; dados: DadosDosAtivos; aoFechar: () => void }) {
+/** O fluxo de T04.05. T06.04 usa este mesmo diálogo: é o único lugar que registra uma transferência. */
+export function DialogoDeTransferencia({ ativo, dados, aoFechar }: { ativo: AtivoDigital; dados: Pick<DadosDosAtivos, 'pessoas'>; aoFechar: () => void }) {
   const [valores, setValores] = useState<FormularioTransferencia>(() => formularioTransferenciaVazio());
   const [erros, setErros] = useState<Partial<Record<keyof FormularioTransferencia, string>>>({});
   const socias = pessoasDoSeletor(dados.pessoas).filter((pessoa) => pessoa.eh_socia);
@@ -225,7 +227,8 @@ export function FichaAtivo() {
   const { id } = useParams<{ id: string }>();
   const consulta = useConsulta(carregarAtivos);
   const [editando, setEditando] = useState(false);
-  const [transferindo, setTransferindo] = useState(false);
+  // Vindo do alerta de transferência (05-M03 §5): abre direto no registro.
+  const [transferindo, setTransferindo] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('acao') === 'transferir');
   const [arquivando, setArquivando] = useState(false);
 
   const voltar = (
@@ -356,7 +359,7 @@ export function FichaAtivo() {
         ]}
       />
       <FormularioDeAtivo aberto={editando} aoFechar={() => setEditando(false)} dados={dados} ativo={ativo} />
-      {transferindo && <DialogoDeTransferencia ativo={ativo} dados={dados} aoFechar={() => setTransferindo(false)} />}
+      {transferindo && podeTransferir && <DialogoDeTransferencia ativo={ativo} dados={dados} aoFechar={() => setTransferindo(false)} />}
       <Confirmacao
         aberto={arquivando}
         aoFechar={() => setArquivando(false)}

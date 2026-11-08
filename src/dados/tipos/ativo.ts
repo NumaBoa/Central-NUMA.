@@ -21,6 +21,8 @@ export const esquemaAtivoDigital = esquemaControle
     titular_desejado: z.string().trim().min(1),
     transferencia_situacao: z.enum(SITUACOES_DE_TRANSFERENCIA),
     requisito_transferencia: texto,
+    /** Por que a transferência está impedida (T06.04). Não está em 16: o motivo precisa aparecer na lista, e não só no histórico. */
+    impedimento_motivo: z.string().nullable().optional(),
     registrado_em: dia,
     vencimento: dia,
     renovacao_automatica: z.boolean().nullable(),

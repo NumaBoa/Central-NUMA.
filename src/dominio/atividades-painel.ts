@@ -13,6 +13,7 @@ import { normalizarTexto } from './duplicidade';
 import { linkDoDriveValido, MENSAGEM_LINK_DRIVE } from './link-drive';
 import { notificarMencoes } from './notificacoes';
 import { ORIGEM_DO_ALERTA_F1, REGISTROS_VINCULAVEIS_F1 } from './integracoes/meu-dia-f1';
+import { ORIGEM_DO_ALERTA_M06, ORIGEM_TRANSFERENCIA, REGISTROS_VINCULAVEIS_M06 } from './integracoes/meu-dia-m06';
 
 const TIPO_DO_REGISTRO = 'atividade';
 export const TEXTO_DO_COMENTARIO_REMOVIDO = 'Comentário removido';
@@ -25,6 +26,7 @@ export const REGISTROS_VINCULAVEIS: Readonly<Record<string, { rotulo: string; hr
   ativo_digital: { rotulo: 'Ativo digital', href: (id) => `/ferramentas/ativos/${id}` },
   titulo: { rotulo: 'Lançamento', href: (id) => `/financeiro/${id}` },
   ...REGISTROS_VINCULAVEIS_F1,
+  ...REGISTROS_VINCULAVEIS_M06,
 };
 
 export { CAMINHO_DA_ATIVIDADE };
@@ -270,7 +272,7 @@ export type DadosDoPainel = {
   etiquetas: string[];
 };
 
-async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
+export async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
   if (tipo === 'contraparte') {
     const contraparte = await repositorios.contraparte.obter(id);
     return contraparte?.nome_fantasia || contraparte?.nome || 'Contraparte removida';
@@ -279,6 +281,12 @@ async function nomeDoRegistro(tipo: string, id: string): Promise<string> {
   if (tipo === 'ferramenta') return (await repositorios.ferramenta.obter(id))?.nome ?? 'Ferramenta removida';
   if (tipo === 'ativo_digital') return (await repositorios.ativo_digital.obter(id))?.identificador ?? 'Ativo removido';
   if (tipo === 'titulo') return (await repositorios.titulo.obter(id))?.descricao ?? 'Lançamento removido';
+  if (tipo === 'reuniao') return (await repositorios.reuniao.obter(id))?.titulo ?? 'Reunião removida';
+  if (tipo === 'decisao') return (await repositorios.decisao.obter(id))?.titulo ?? 'Decisão removida';
+  if (tipo === 'acordo_societario') return (await repositorios.acordo_societario.obter(id))?.titulo ?? 'Acordo removido';
+  if (tipo === 'constituicao_item') return (await repositorios.constituicao_item.obter(id))?.titulo ?? 'Item removido';
+  if (tipo === 'obrigacao_corporativa') return (await repositorios.obrigacao_corporativa.obter(id))?.nome ?? 'Obrigação removida';
+  if (tipo === 'contrato') return (await repositorios.contrato.obter(id))?.titulo ?? 'Contrato removido';
   return 'Registro removido';
 }
 
@@ -328,7 +336,7 @@ export async function carregarPainel(id: string): Promise<DadosDoPainel | null> 
 // ---------- RN-03.20: a atividade aparece na ficha do registro vinculado ----------
 
 /** A origem do alerta, para cada tipo de registro que tem ficha. */
-const ORIGEM_DO_ALERTA: Readonly<Record<string, string>> = { titulo: 'titulo', ferramenta: 'ferramenta', ativo_digital: 'ativo', ...ORIGEM_DO_ALERTA_F1 };
+const ORIGEM_DO_ALERTA: Readonly<Record<string, string>> = { titulo: 'titulo', ferramenta: 'ferramenta', ativo_digital: 'ativo', ...ORIGEM_DO_ALERTA_F1, ...ORIGEM_DO_ALERTA_M06 };
 
 /** Vinculadas a um registro: pelo `vinculo`, no caso do produto também pelo contexto, e os alertas que nasceram dele. */
 export async function atividadesDoRegistro(tipo: string, id: string): Promise<Atividade[]> {
@@ -341,7 +349,7 @@ export async function atividadesDoRegistro(tipo: string, id: string): Promise<At
       return [];
     }),
   ]);
-  return atividades.filter((atividade) => ids.has(atividade.id) || (atividade.tipo === 'alerta' && atividade.origem_id === id && Boolean(ORIGEM_DO_ALERTA[tipo]) && atividade.origem_tipo === ORIGEM_DO_ALERTA[tipo]));
+  return atividades.filter((atividade) => ids.has(atividade.id) || (atividade.tipo === 'alerta' && atividade.origem_id === id && ((Boolean(ORIGEM_DO_ALERTA[tipo]) && atividade.origem_tipo === ORIGEM_DO_ALERTA[tipo]) || atividade.origem_tipo === ORIGEM_TRANSFERENCIA)));
 }
 
 /** Responsável ou participante. */

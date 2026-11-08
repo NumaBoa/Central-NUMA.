@@ -10,6 +10,7 @@ import type { Pessoa } from '@/dados/tipos/pessoa';
 import type { Area } from '@/dados/tipos/area';
 import { hojeISO } from '@/lib/datas';
 import { sincronizarAlertasDosAtivos } from './alertas';
+import { sincronizarAlertasDeTransferencia } from './alertas-m06';
 import { quantasAtividadesAbertasVinculadas } from './atividades';
 import { ID_CONSOLIDADA, ID_INSTITUCIONAL } from './contextos';
 import { normalizarTexto } from './duplicidade';
@@ -36,7 +37,7 @@ export const ROTULOS_TRANSFERENCIA: Readonly<Record<AtivoDigital['transferencia_
   impedida: 'Impedida',
 };
 
-/** Abas por tipo de T04.04. "Marcas" é um link para o M06, que ainda não existe. */
+/** Abas por tipo de T04.04. "Marcas" é um link para o M06 (T06.05). */
 export const ABAS_DE_ATIVO = [
   { id: 'todos', rotulo: 'Todos', tipos: TIPOS_DE_ATIVO },
   { id: 'dominios', rotulo: 'Domínios', tipos: ['dominio'] },
@@ -209,6 +210,7 @@ export async function salvarAtivo(id: string, formulario: FormularioAtivo, pesso
   const atual = await repositorios.ativo_digital.obter(id);
   const salvo = await repositorios.ativo_digital.atualizar(id, dadosDoAtivo(formulario, pessoas, atual));
   await sincronizarAlertasDosAtivos([id]);
+  await sincronizarAlertasDeTransferencia({ apenas: [id] });
   return salvo;
 }
 
@@ -241,7 +243,7 @@ export async function registrarTransferencia(id: string, formulario: FormularioT
   const conferido = esquemaRegistrarTransferencia.safeParse(formulario);
   if (!conferido.success) throw new ErroDeRegra(conferido.error.issues[0]?.message ?? 'Confira os dados da transferência.');
   const { data, titular_tipo, titular_pessoa_id, titular_texto, evidencia, observacao } = conferido.data;
-  return repositorios.ativo_digital.atualizar(
+  const salvo = await repositorios.ativo_digital.atualizar(
     id,
     {
       titular_atual_tipo: titular_tipo,
@@ -253,6 +255,19 @@ export async function registrarTransferencia(id: string, formulario: FormularioT
     },
     observacao ? { motivo: observacao } : undefined,
   );
+  await sincronizarAlertasDeTransferencia({ apenas: [id] });
+  return salvo;
+}
+
+/** T06.04: impedida com motivo. O motivo aparece na lista, e o histórico guarda (RT-16). */
+export async function marcarTransferenciaImpedida(id: string, motivo: string): Promise<void> {
+  const limpo = motivo.trim();
+  if (!limpo) throw new ErroDeRegra('Diga o que impede a transferência.');
+  await repositorios.ativo_digital.atualizar(id, { transferencia_situacao: 'impedida', impedimento_motivo: limpo }, { motivo: limpo });
+}
+
+export async function retomarTransferencia(id: string): Promise<void> {
+  await repositorios.ativo_digital.atualizar(id, { transferencia_situacao: 'pendente', impedimento_motivo: null });
 }
 
 export async function vinculosDoAtivo(id: string): Promise<string[]> {

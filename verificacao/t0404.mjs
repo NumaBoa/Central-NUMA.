@@ -66,7 +66,7 @@ await passo('T04.04: abas por tipo e filtros', async () => {
   await irLista();
   const abas = await c.avaliar(`[...document.querySelectorAll('main button[aria-pressed]')].map(b=>b.textContent.trim())`);
   ok('abas da especificação, com contadores', ['Todos5', 'Domínios2', 'Contas de loja1', 'Repositórios1', 'Redes sociais1', 'E-mails', 'Analytics', 'Outros'].every((t) => abas.includes(t)), js(abas));
-  ok('Marcas aparece "Em breve", sem clique', await c.avaliar(`[...document.querySelectorAll('main *')].some(e=>e.childElementCount===0&&e.textContent.trim()==='Marcas')&&(document.querySelector('main').textContent.includes('Em breve'))`));
+  ok('Marcas leva a Empresa › Marcas (T06.05), sem "Em breve"', abas.includes('Marcas') && !(await c.avaliar(`document.querySelector('main').textContent.includes('Em breve')`)), js(abas));
   await abaDoTipo('Domínios');
   ok('Domínios', js(await nomes()) === js(['kipi-exemplo.com.br', 'urbana-exemplo.com.br']), js(await nomes()));
   await abaDoTipo('Todos');
@@ -344,7 +344,7 @@ await passo('Limpar exemplos e migração', async () => {
   await c.recarregar();
   await c.ate(`document.querySelector('main').textContent.includes('Nenhum ativo ainda.')`);
   ok('migração: quem limpou os exemplos não recebe fictícios, e vê o estado vazio', true);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
 });
 
 await terminar();

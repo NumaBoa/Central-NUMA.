@@ -73,9 +73,15 @@ export async function decisoesParaVincular(regras: RegrasDaDecisao): Promise<Dec
 
 export type OpcoesDaDecisao = { decisoes: Decisao[]; socias: Pessoa[] };
 
+/** Quem registrou a saída em T06.02 não decide mais. */
+async function sociasQueDecidem(pessoas: readonly Pessoa[], hoje: string): Promise<Pessoa[]> {
+  const saidas = (await repositorios.socia.listar()).filter((socia) => socia.saida_em && socia.saida_em <= hoje).map((socia) => socia.pessoa_id);
+  return sociasParaDecidir(pessoas).filter((pessoa) => !saidas.includes(pessoa.id));
+}
+
 export async function carregarOpcoesDaDecisao(regras: RegrasDaDecisao): Promise<OpcoesDaDecisao> {
   const [decisoes, pessoas] = await Promise.all([decisoesParaVincular(regras), repositorios.pessoa.listar()]);
-  return { decisoes, socias: sociasParaDecidir(pessoas) };
+  return { decisoes, socias: await sociasQueDecidem(pessoas, hojeISO()) };
 }
 
 /** Registra a decisão nova ou confere a existente. Falhar aqui desfaz tudo o que vier na mesma transação. */
@@ -92,7 +98,7 @@ export async function resolverDecisao(entrada: EntradaDecisao | null, regras: Re
   }
 
   const pessoas = await repositorios.pessoa.listar();
-  const socias = new Set(sociasParaDecidir(pessoas).map((pessoa) => pessoa.id));
+  const socias = new Set((await sociasQueDecidem(pessoas, hoje)).map((pessoa) => pessoa.id));
   if (!entrada.decisores.every((id) => socias.has(id))) throw new ErroDeRegra('Só uma sócia ativa pode constar como quem decidiu.');
 
   return emTransacao(async () => {

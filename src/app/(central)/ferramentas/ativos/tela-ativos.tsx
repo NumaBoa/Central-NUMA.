@@ -156,9 +156,9 @@ export function TelaAtivos() {
         busca={filtros.busca}
         aoBuscar={(busca) => mudar({ busca })}
         rotuloBusca="Buscar por identificador, código ou ferramenta"
-        rapidos={[...ABAS_DE_ATIVO.map(({ id, rotulo }) => ({ id, rotulo, contador: contadores?.[id] || undefined })), { id: 'marcas', rotulo: 'Marcas', emBreve: true }]}
+        rapidos={[...ABAS_DE_ATIVO.map(({ id, rotulo }) => ({ id, rotulo, contador: contadores?.[id] || undefined })), { id: 'marcas', rotulo: 'Marcas' }]}
         rapidoAtivo={filtros.aba}
-        aoEscolherRapido={(aba) => mudar({ aba: aba as IdDaAbaDeAtivo })}
+        aoEscolherRapido={(aba) => (aba === 'marcas' ? roteador.push('/empresa/marcas') : mudar({ aba: aba as IdDaAbaDeAtivo }))}
         ativos={ativos}
         aoRemoverAtivo={(id) => mudar(id === 'titularDiferente' ? { titularDiferente: false } : { [id]: '' })}
         aoLimpar={limpar}

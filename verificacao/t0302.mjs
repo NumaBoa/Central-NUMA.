@@ -68,7 +68,7 @@ const restaurarExemplos = async () => {
   await c.espera(420);
   await clicarNoDialogo('Restaurar exemplos');
   await dialogoFechado();
-  await c.ate(`document.querySelector('main').textContent.includes('Registros151')`);
+  await c.ate(`document.querySelector('main').textContent.includes('Registros154')`);
 };
 
 await c.tamanho(1440, 900);
@@ -857,9 +857,9 @@ await passo('dados de quem vinha da versão anterior', async () => {
   await c.avaliar(`(()=>{for(const t of ['checklist_item','comentario','vinculo','anexo_link'])localStorage.removeItem('numa-central:v1:'+t);const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=7;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irMeuDia();
   ok('o apoio entra', (await tabela('checklist_item')).length === 4 && (await tabela('comentario')).length === 3 && (await tabela('vinculo')).length === 1 && (await tabela('anexo_link')).length === 1);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 17);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
   await restaurarExemplos();
-  ok('os registros não mudam: o apoio faz parte da atividade', (await texto('main')).includes('Registros151') && (await texto('main')).includes('51 de exemplo'));
+  ok('os registros não mudam: o apoio faz parte da atividade', (await texto('main')).includes('Registros154') && (await texto('main')).includes('51 de exemplo'));
 });
 
 for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
