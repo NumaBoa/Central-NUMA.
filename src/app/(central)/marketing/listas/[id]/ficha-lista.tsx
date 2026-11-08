@@ -390,7 +390,7 @@ function Inscritos({ lista, dados, textos, inscritos, somenteLeitura }: { lista:
         aoLimpar={() => setFiltros(FILTROS_INSCRITOS_INICIAIS)}
         rotuloBusca="Buscar por nome ou e-mail"
         rotuloAvancados="Mais filtros"
-        larguraAvancados={150}
+       
         seletores={[
           seletorDeOpcoes<FiltrosInscritos>({ id: 'situacao', rotulo: 'Situação', icone: CircleCheck, campo: 'situacao', opcoes: paraOpcoes(ROTULOS_SITUACAO_INSCRITO), todos: 'Todas', largura: 140 }),
           seletorDeOpcoes<FiltrosInscritos>({ id: 'origem', rotulo: 'Origem', icone: Target, campo: 'origem', opcoes: paraOpcoes(ROTULOS_ORIGEM_INSCRITO), todos: 'Todas', largura: 130 }),

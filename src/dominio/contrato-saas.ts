@@ -177,8 +177,8 @@ export async function pendenciasSaas(ficha: FichaDoContrato, catalogo: CatalogoD
   const avisa = (id: string, mensagem: string, etapa: string) => pendencias.push({ id, mensagem, tipo: 'aviso', etapa });
   if (catalogoComercial().estado === 'ausente') bloqueia('catalogo', MENSAGEM_CATALOGO_AUSENTE, 'plano');
   if (!dados.produto_id) bloqueia('produto', 'Escolha o produto.', 'produto');
-  else if (!catalogo.configuracao) bloqueia('config', catalogo.configuracaoRecente ? `Configuração contratual do produto em ${catalogo.configuracaoRecente.situacao === 'rascunho' ? 'Rascunho' : 'validação'}: a emissão final exige versão Validada (CA-11.15). Fica em Produto › Contrato (T07.10).` : 'O produto não tem configuração contratual validada (T07.10, Produto › Contrato).', 'produto', `/configuracoes/cadastros/marcas/produtos/${dados.produto_id}`);
-  else for (const campo of camposVaziosDaConfiguracao(catalogo.configuracao)) bloqueia(`config-${campo}`, `Configuração do produto sem ${campo} (RN-11.35 g).`, 'produto', `/configuracoes/cadastros/marcas/produtos/${dados.produto_id}`);
+  else if (!catalogo.configuracao) bloqueia('config', catalogo.configuracaoRecente ? `Configuração contratual do produto em ${catalogo.configuracaoRecente.situacao === 'rascunho' ? 'Rascunho' : 'validação'}: a emissão final exige versão Validada (CA-11.15). Fica em Produto › Contrato (T07.10).` : 'O produto não tem configuração contratual validada (T07.10, Produto › Contrato).', 'produto', `/produtos/${dados.produto_id}?aba=contrato`);
+  else for (const campo of camposVaziosDaConfiguracao(catalogo.configuracao)) bloqueia(`config-${campo}`, `Configuração do produto sem ${campo} (RN-11.35 g).`, 'produto', `/produtos/${dados.produto_id}?aba=contrato`);
   if (!dados.oferta_id) bloqueia('oferta', 'Escolha o plano.', 'plano');
   else if (!catalogo.oferta || catalogo.oferta.situacao !== 'aprovada') bloqueia('oferta-aprovada', 'O plano não está Aprovado no catálogo.', 'plano');
   else if (catalogo.oferta.tipo !== 'assinatura') bloqueia('oferta-tipo', 'Só plano do tipo Assinatura gera contrato; Gratuidade não.', 'plano');

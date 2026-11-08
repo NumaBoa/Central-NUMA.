@@ -705,7 +705,7 @@ await passo('configurações e rotina do backup', async () => {
   const id = await c.avaliar(`[...document.querySelectorAll('main select')].find(s=>[...s.options].some(o=>o.textContent==='Kimberly Grebe')&&s.closest('div').textContent.includes('backup')).id`);
   await escolher(id, ID_KIMBERLY);
   await c.espera(60);
-  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.includes('Salvar')).click()`);
+  await c.avaliar(`[...document.querySelectorAll('main button')].find(b=>b.textContent.trim()==='Salvar alterações').click()`);
   await c.ate(`[...document.querySelectorAll('[data-sonner-toast]')].some(t=>t.textContent.includes('salvas'))`);
   ok('T02.01 muda a responsável da rotina do backup', (await tabela('recorrencia')).find((r) => r.id === ID_BACKUP).responsavel_id === ID_KIMBERLY);
   const hojeDia = await hoje();
@@ -717,7 +717,7 @@ await passo('dados: versão anterior, limpar e restaurar', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:recorrencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=8;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m))})()`);
   await irRotinas();
   ok('versão 8 recebe as rotinas', (await tabela('recorrencia')).length === 7);
-  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
+  ok('versão atualizada', (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
   await restaurar();
   await irMeuDia();
   await c.espera(500);

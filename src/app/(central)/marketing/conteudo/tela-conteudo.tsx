@@ -356,8 +356,7 @@ export function TelaConteudo() {
           aoMudar={mudar}
           aoLimpar={limpar}
           rotuloBusca="Buscar peça por título, texto ou código"
-          rotuloAvancados="Mais filtros"
-          larguraAvancados={150}
+          rotuloAvancados="Mais filtros"
           seletores={[
             seletorDeOpcoes<FiltrosConteudo>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesDeContexto(dados.produtos), largura: 150 }),
             seletorDeOpcoes<FiltrosConteudo>({ id: 'canal', rotulo: 'Canal', icone: Radio, campo: 'canal', opcoes: paraOpcoes(ROTULOS_CANAL), largura: 120 }),

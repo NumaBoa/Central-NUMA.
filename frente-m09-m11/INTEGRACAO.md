@@ -54,7 +54,7 @@ Arquivo novo, sem importações: `src/dominio/integracoes/meu-dia-f1.ts`. Entrou
 
 ## 3. Produtos, ofertas e preços (M07): o contrato de integração
 
-> **Conectado em 07/11/2026**, na junção ao `main`: `catalogoPadrao` é `catalogoDoM07` (`src/dominio/integracoes/catalogo-m07.ts`). Ainda faltam no M07: os campos novos de §3.2 (ficam vazios), o `limite_tipo` (o texto do limite só vira número quando é um número) e a T07.10 (nenhuma configuração contratual, então o contrato SaaS segue sem emissão final). A versão dos dados ficou 17: 16 do M07 e 17 desta frente.
+> **Conectado em 07/11/2026**, na junção ao `main`: `catalogoPadrao` é `catalogoDoM07` (`src/dominio/integracoes/catalogo-m07.ts`). Os campos novos de §3.2 e a T07.10 foram construídos na mesma data (versão dos dados 18): o catálogo entrega a oferta completa e a configuração Validada. Ainda falta o `limite_tipo` (o texto do limite só vira número quando é um número). A versão dos dados ficou 17: 16 do M07 e 17 desta frente.
 
 **Proprietário:** frente do M07. **Ponto de conexão:** `src/dominio/integracoes/conexoes.ts`, função `catalogoComercial()`. Hoje devolve `catalogoAusente`. Para conectar, troque a constante `catalogoPadrao` por um adaptador que implemente a interface `CatalogoComercial` de `src/dominio/integracoes/catalogo-comercial.ts` sobre os repositórios do M07. Nada mais em M10 e M11 muda.
 

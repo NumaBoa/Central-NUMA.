@@ -86,7 +86,6 @@ export function TelaApresentacoes() {
           aoLimpar={limpar}
           rotuloBusca="Buscar apresentação por título, público ou código"
           rotuloAvancados="Mais filtros"
-          larguraAvancados={150}
           seletores={[
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesDeContexto(dados.produtos), largura: 150 }),
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'finalidade', rotulo: 'Finalidade', icone: Target, campo: 'finalidade', opcoes: paraOpcoes(ROTULOS_FINALIDADE), todos: 'Todas', largura: 150 }),

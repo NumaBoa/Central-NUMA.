@@ -21,10 +21,16 @@ import { mensagemDoErro } from '@/dados/erros';
 import type { AssinaturaFerramenta, Ferramenta, FerramentaContexto } from '@/dados/tipos/ferramenta';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { lerValor } from '@/dominio/dinheiro';
-import { CAMPOS_DA_ETAPA, cobrancasPrevistas, conferirFerramenta, criarFerramenta, esquemaFormularioFerramenta, ETAPAS_DA_FERRAMENTA, formularioDaFerramenta, formularioFerramentaVazio, responsaveisPadrao, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_TITULAR, salvarFerramenta, situacaoParaModalidade, valorMudou, type DadosDasFerramentas, type FormularioFerramenta as Formulario } from '@/dominio/ferramentas';
+import { CAMPOS_DA_ETAPA, conferirFerramenta, criarFerramenta, esquemaFormularioFerramenta, ETAPAS_DA_FERRAMENTA, formularioDaFerramenta, formularioFerramentaVazio, responsaveisPadrao, ROTULOS_MFA, ROTULOS_MODALIDADE, ROTULOS_PERIODICIDADE, ROTULOS_RENOVACAO, ROTULOS_TITULAR, salvarFerramenta, situacaoParaModalidade, valorMudou, type DadosDasFerramentas, type FormularioFerramenta as Formulario } from '@/dominio/ferramentas';
 import { pessoasDoSeletor } from '@/dominio/pessoa-atual';
 import { titulosAfetadosPeloReajuste } from '@/dominio/titulos';
+import { hojeISO } from '@/lib/datas';
 import { formatarDiaISO, formatarDinheiro } from '@/lib/formatacao';
+import { useConsulta } from '@/dados/use-consulta';
+import { carregarFinanceiroDaFerramenta, previaDasCobrancas, ROTULOS_ESTADO_COBRANCA, type CobrancaDaPrevia } from '@/dominio/ferramentas-ficha';
+import { equivalenteMensalBrl, ultimoCambio } from '@/dominio/ferramentas';
+import { EtiquetaSituacao } from '@/componentes/padroes/etiquetas';
+import { Button } from '@/componentes/ui/button';
 import { cn } from '@/lib/utils';
 
 const paraOpcoes = (rotulos: Record<string, string>) => Object.entries(rotulos).map(([valor, rotulo]) => ({ valor, rotulo }));
@@ -99,6 +105,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
   const [fila, setFila] = useState<Fila | null>(null);
   const [passo, setPasso] = useState<'avisos' | 'motivo' | 'previa' | null>(null);
   const [cadastrando, setCadastrando] = useState<string | null>(null);
+  const lancados = useConsulta(() => (ferramenta ? carregarFinanceiroDaFerramenta(ferramenta.id) : Promise.resolve(null)), [ferramenta?.id]);
 
   // O formulário começa do que está salvo a cada vez que abre, e não enquanto alguém digita.
   useEffect(() => {
@@ -199,8 +206,8 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
         const titulos = await titulosAfetadosPeloReajuste(assinatura.id);
         if (titulos.length) previa = { titulo: 'Títulos que mudam de valor', texto: 'Só os títulos futuros e sem pagamento mudam. Os já pagos e os ajustados à mão continuam como estão.', colunas: ['Vencimento', 'De', 'Para'], linhas: titulos.map((titulo) => [formatarDiaISO(titulo.vencimento), formatarDinheiro(titulo.valor, titulo.moeda), formatarDinheiro(valor, titulo.moeda)]), rotulo: 'Salvar' };
       } else if (formulario.modalidade === 'paga' && valor !== null && (trocandoPlano || !assinatura?.gerar_titulos)) {
-        const datas = cobrancasPrevistas({ modalidade: 'paga', valor, periodicidade: (formulario.periodicidade || null) as AssinaturaFerramenta['periodicidade'], proxima_cobranca: formulario.proxima_cobranca || null, gerar_titulos: formulario.gerar_titulos });
-        if (datas.length) previa = { titulo: 'Títulos a pagar que serão criados', texto: 'Um para cada cobrança prevista, como previstos. Salvar de novo não duplica.', colunas: ['Vencimento', 'Valor'], linhas: datas.map((dia) => [formatarDiaISO(dia), formatarDinheiro(valor, formulario.moeda)]), rotulo: 'Salvar ferramenta' };
+        const cobrancas = previaDoFormulario(formulario, trocandoPlano ? null : (assinatura?.id ?? null));
+        if (cobrancas.length) previa = { titulo: 'Confira as cobranças antes de salvar', texto: 'Um lançamento a pagar para cada cobrança prevista, sem pagamento registrado. O que já está no Financeiro é vinculado, e não criado de novo. Esta prévia não contrata nada no fornecedor.', colunas: ['Vencimento', 'Valor', 'Ao salvar'], linhas: cobrancas.map((item) => [formatarDiaISO(item.dia), formatarDinheiro(valor, formulario.moeda), ROTULOS_ESTADO_COBRANCA[item.estado]]), rotulo: ferramenta ? 'Confirmar e salvar' : 'Confirmar cadastro e cobranças' };
       }
       const proxima: Fila = { formulario, avisos, motivo: '', previa };
       setFila(proxima);
@@ -212,6 +219,11 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
     },
   );
 
+  /** RN-04.03: mensal até 3 meses, as demais só a próxima, contra o que já foi lançado. */
+  function previaDoFormulario(valores: Formulario, assinaturaId: string | null): CobrancaDaPrevia[] {
+    return previaDasCobrancas({ modalidade: valores.modalidade === 'paga' ? 'paga' : 'gratuita', valor: lerValor(valores.valor), moeda: valores.moeda, periodicidade: (valores.periodicidade || null) as AssinaturaFerramenta['periodicidade'], proxima_cobranca: valores.proxima_cobranca || null, gerar_titulos: valores.gerar_titulos }, assinaturaId ? (lancados.dados?.titulos ?? []) : [], assinaturaId, hojeISO());
+  }
+
   async function proximaEtapa() {
     if (await trigger([...CAMPOS_DA_ETAPA[etapa]!])) setEtapa((atual) => Math.min(atual + 1, ETAPAS_DA_FERRAMENTA.length - 1));
   }
@@ -221,6 +233,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
   return (
     <>
       <JanelaFormulario colunas={2} aberto={aberto} aoFechar={aoFechar} titulo={titulo} alterado={isDirty} aoEnviar={enviar} rotuloSalvar={ferramenta ? 'Salvar' : 'Salvar ferramenta'} {...(etapa < ETAPAS_DA_FERRAMENTA.length - 1 && !trocandoPlano ? { aoSalvarEOutro: () => void proximaEtapa(), rotuloSalvarEOutro: 'Continuar' } : {})} salvando={isSubmitting} erros={erros}>
+        {!trocandoPlano && <p className="mb-2 text-xs font-semibold text-ink-soft" aria-live="polite">Etapa {etapa + 1} de {ETAPAS_DA_FERRAMENTA.length} · dá para salvar em qualquer uma</p>}
         {!trocandoPlano && (
           <ol className="mb-5 grid grid-cols-3 gap-1.5" aria-label="Etapas">
             {ETAPAS_DA_FERRAMENTA.map((nomeDaEtapa, indice) => (
@@ -318,10 +331,10 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
 
         {etapa === 1 && (
           <div className="grid gap-[18px]">
-            <Campo id="ferramenta-email-login" rotulo="E-mail ou usuário de login" ajuda="Só o login. Senha nunca fica aqui (RT-14).">
+            <Campo id="ferramenta-email-login" rotulo="E-mail ou usuário de login" ajuda="Opcional. Só a identificação da conta: senha, token e cartão nunca ficam aqui.">
               {(controle) => <Input autoComplete="off" {...controle} {...register('email_login_conta')} />}
             </Campo>
-            <Campo id="ferramenta-ambiente" rotulo="Ambiente, organização ou workspace">
+            <Campo id="ferramenta-ambiente" rotulo="Ambiente, organização ou workspace" ajuda="Opcional.">
               {(controle) => <Input autoComplete="off" {...controle} {...register('ambiente')} />}
             </Campo>
             <Controller control={control} name="titular_atual_tipo" render={({ field }) => <Pilulas rotulo="Titular atual" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_TITULAR)} />} />
@@ -350,10 +363,10 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                 {(controle) => <Input autoComplete="off" {...controle} {...register('titular_atual_texto')} />}
               </Campo>
             )}
-            <Campo id={ID_DO_CAMPO.titular_desejado} rotulo="Titular desejado" obrigatorio erro={errors.titular_desejado?.message} ajuda="Em nome de quem a conta deveria estar. O padrão é a Numa.">
+            <Campo id={ID_DO_CAMPO.titular_desejado} rotulo="Titular desejado" obrigatorio erro={errors.titular_desejado?.message} ajuda="Em nome de quem a conta deveria estar. O padrão é a Numa. Escolher o desejado não muda o titular atual: a transferência é feita no fornecedor e depende da entidade da Numa estar ativa.">
               {(controle) => <Input autoComplete="off" {...controle} {...register('titular_desejado')} />}
             </Campo>
-            <Controller control={control} name="mfa_conta" render={({ field }) => <Pilulas rotulo="Segunda etapa habilitada na conta" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_MFA)} />} />
+            <Controller control={control} name="mfa_conta" render={({ field }) => <Pilulas rotulo="Autenticação em duas etapas" obrigatorio valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_MFA)} />} />
             <Controller
               control={control}
               name="responsavel_tecnico_id"
@@ -376,7 +389,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
               control={control}
               name="responsavel_financeiro_id"
               render={({ field }) => (
-                <Campo id={ID_DO_CAMPO.responsavel_financeiro_id} rotulo="Responsável financeira" obrigatorio={paga} erro={errors.responsavel_financeiro_id?.message}>
+                <Campo id={ID_DO_CAMPO.responsavel_financeiro_id} rotulo="Responsável financeira" obrigatorio={paga} ajuda={paga ? undefined : 'Obrigatória quando a ferramenta é paga.'} erro={errors.responsavel_financeiro_id?.message}>
                   {(controle) => (
                     <Selecao {...controle} {...field}>
                       <option value="">Nenhuma</option>
@@ -390,12 +403,17 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                 </Campo>
               )}
             />
-            <Campo id="ferramenta-recuperacao" rotulo="Caminho de recuperação" ajuda="Como voltar a entrar, se a pessoa responsável não estiver disponível. Sem senhas.">
+            <Campo id="ferramenta-recuperacao" rotulo="Caminho de recuperação" ajuda={watch('critica') ? 'Opcional, mas recomendado: a ferramenta é crítica. Como voltar a entrar se a responsável não estiver disponível. Sem senhas.' : 'Opcional. Como voltar a entrar, se a pessoa responsável não estiver disponível. Sem senhas.'}>
               {(controle) => <Textarea {...controle} {...register('caminho_recuperacao')} />}
             </Campo>
-            <Campo id="ferramenta-cofre" rotulo="Referência ao cofre" ajuda="Só onde a senha está. Ex.: Bitwarden › Numa › Hospedagem.">
-              {(controle) => <Input autoComplete="off" {...controle} {...register('referencia_cofre')} />}
-            </Campo>
+            <details className="group rounded-md border border-line px-3.5" open={Boolean(getValues('referencia_cofre'))}>
+              <summary className="flex min-h-11 cursor-pointer list-none items-center text-[13px] font-semibold text-ink-soft [&::-webkit-details-marker]:hidden">Referência ao cofre (opcional)</summary>
+              <div className="pb-3">
+                <Campo id="ferramenta-cofre" rotulo="Referência ao cofre" ajuda="Só onde a senha está, nunca a senha. Ex.: Bitwarden › Numa › Hospedagem.">
+                  {(controle) => <Input autoComplete="off" {...controle} {...register('referencia_cofre')} />}
+                </Campo>
+              </div>
+            </details>
             <Campo id="ferramenta-observacoes" rotulo="Observações">
               {(controle) => <Textarea {...controle} {...register('observacoes')} />}
             </Campo>
@@ -421,9 +439,14 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                 )}
               />
               {errors.modalidade?.message && <p className="mt-1.5 text-xs font-medium text-err">{errors.modalidade.message}</p>}
-              {!modalidade && <p className="mt-1.5 text-xs text-ink-soft">Sem modalidade, o custo fica “a definir”.</p>}
+              {!modalidade && <p className="mt-1.5 text-xs text-ink-soft">Custo a definir: dá para salvar assim e escolher depois. A definir não é gratuita.</p>}
+              {modalidade && !trocandoPlano && !assinatura && (
+                <Button variante="terciario" tamanho="pequeno" className="mt-1" onClick={() => setValue('modalidade', '', { shouldDirty: true })}>
+                  Definir custo depois
+                </Button>
+              )}
             </div>
-            {modalidade === 'gratuita' && <p className="text-[13px] text-ink-soft">Gratuita não gera títulos no financeiro (RN-04.02).</p>}
+            {modalidade === 'gratuita' && <p className="text-[13px] text-ink-soft">Gratuita não gera lançamento no Financeiro, nem de valor zero (RN-04.02).</p>}
             {(paga || teste) && (
               <Campo id={ID_DO_CAMPO.plano} rotulo="Plano" obrigatorio erro={errors.plano?.message}>
                 {(controle) => <Input autoComplete="off" {...controle} {...register('plano')} />}
@@ -432,7 +455,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
             {paga && (
               <>
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-                  <Campo id={ID_DO_CAMPO.valor} rotulo="Valor" erro={errors.valor?.message} ajuda="Vazio: a confirmar.">
+                  <Campo id={ID_DO_CAMPO.valor} rotulo="Valor" erro={errors.valor?.message} ajuda="Vazio fica a confirmar, nunca zero.">
                     {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('valor')} />}
                   </Campo>
                   <Controller control={control} name="moeda" render={({ field }) => <Campo id="ferramenta-moeda" rotulo="Moeda" ajuda={moedaTravada ? 'Para trocar, use Trocar plano.' : undefined}>{(controle) => <SelecaoMoeda {...controle} {...field} disabled={moedaTravada} />}</Campo>} />
@@ -468,7 +491,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                   <Controller control={control} name="renovacao" render={({ field }) => <Pilulas rotulo="Renovação" obrigatorio={!porUso} valor={field.value} aoMudar={field.onChange} opcoes={paraOpcoes(ROTULOS_RENOVACAO)} />} />
                   {errors.renovacao?.message && <p className="mt-1.5 text-xs font-medium text-err">{errors.renovacao.message}</p>}
                 </div>
-                <Campo id={ID_DO_CAMPO.aviso_cancelamento_dias} rotulo="Aviso para cancelar (dias antes da renovação)" erro={errors.aviso_cancelamento_dias?.message}>
+                <Campo id={ID_DO_CAMPO.aviso_cancelamento_dias} rotulo="Prazo para cancelar (dias antes da renovação)" erro={errors.aviso_cancelamento_dias?.message}>
                   {(controle) => <Input inputMode="numeric" autoComplete="off" {...controle} {...register('aviso_cancelamento_dias')} />}
                 </Campo>
                 <Controller
@@ -509,7 +532,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                     </Campo>
                   )}
                 />
-                <Controller control={control} name="gerar_titulos" render={({ field }) => <Pilulas rotulo="Gerar títulos a pagar automaticamente" valor={field.value ? 'sim' : 'nao'} aoMudar={(valor) => field.onChange(valor === 'sim')} opcoes={SIM_NAO} />} />
+                <Controller control={control} name="gerar_titulos" render={({ field }) => <Pilulas rotulo="Gerar lançamentos a pagar automaticamente" valor={field.value ? 'sim' : 'nao'} aoMudar={(valor) => field.onChange(valor === 'sim')} opcoes={SIM_NAO} />} />
               </>
             )}
             {teste && (
@@ -525,6 +548,7 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
                 </div>
               </>
             )}
+            {paga && <PreviaAoVivo cobrancas={previaDoFormulario(watch(), trocandoPlano ? null : (assinatura?.id ?? null))} valores={watch()} dados={dados} />}
             {(paga || teste) && (
               <Campo id={ID_DO_CAMPO.licencas} rotulo="Licenças" erro={errors.licencas?.message}>
                 {(controle) => <Input inputMode="numeric" autoComplete="off" {...controle} {...register('licencas')} />}
@@ -589,5 +613,44 @@ export function FormularioDeFerramenta({ aberto, aoFechar, dados, ferramenta, co
         }}
       />
     </>
+  );
+}
+
+/** Etapa 3, com Paga: as cobranças que serão lançadas e a referência mensal, enquanto a pessoa preenche. */
+function PreviaAoVivo({ cobrancas, valores, dados }: { cobrancas: readonly CobrancaDaPrevia[]; valores: Formulario; dados: DadosDasFerramentas }) {
+  const valor = lerValor(valores.valor);
+  const periodicidade = (valores.periodicidade || null) as AssinaturaFerramenta['periodicidade'];
+  const mensal = equivalenteMensalBrl({ modalidade: 'paga', valor, moeda: valores.moeda, periodicidade }, dados.cambios);
+  const cambio = valores.moeda !== 'BRL' ? ultimoCambio(valores.moeda, dados.cambios) : null;
+  let referencia = 'Sem estimativa mensal para esta periodicidade.';
+  if (mensal !== null) referencia = `Referência: ${formatarDinheiro(mensal, 'BRL')} por mês, estimado${cambio !== null ? ` pelo câmbio de referência (1 ${valores.moeda} = ${formatarDinheiro(cambio, 'BRL')})` : ''}. Não é pagamento${periodicidade && periodicidade !== 'mensal' ? `, e a cobrança continua ${ROTULOS_PERIODICIDADE[periodicidade].toLowerCase()}` : ''}.`;
+  else if (valor === null) referencia = 'Sem valor, sem estimativa: fica a confirmar.';
+  else if (valores.moeda !== 'BRL') referencia = `Sem estimativa em reais: falta o câmbio de referência de ${valores.moeda} em Configurações.`;
+  return (
+    <section aria-label="Prévia de cobranças" className="grid gap-2.5 rounded-lg border border-line bg-mist p-3.5">
+      <h3 className="text-[15px]">Prévia de cobranças</h3>
+      {!valores.gerar_titulos ? (
+        <p className="text-[13px] text-ink-soft">Geração desligada: nenhum lançamento será criado. A cobrança pode ser lançada à mão no Financeiro e vinculada depois.</p>
+      ) : !cobrancas.length ? (
+        <p className="text-[13px] text-ink-soft">{periodicidade === 'por_uso' ? 'Por uso não tem cobrança prevista.' : 'Informe a periodicidade e a próxima cobrança para ver as datas.'}</p>
+      ) : (
+        <>
+          <p className="text-xs text-ink-soft">{periodicidade === 'mensal' ? 'Mensal: até 3 meses à frente.' : 'Só a próxima cobrança.'}</p>
+          <ul className="grid gap-1.5">
+            {cobrancas.map((item) => (
+              <li key={item.dia} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-paper px-3 py-2 text-[13px]">
+                <span className="font-medium tabular-nums">{formatarDiaISO(item.dia)}</span>
+                <span className="tabular-nums">{item.valor === null ? 'A confirmar' : formatarDinheiro(item.valor, item.moeda)}</span>
+                <EtiquetaSituacao tipo={item.estado === 'a_gerar' ? 'sucesso' : item.estado === 'ja_existe' ? 'neutro' : 'atencao'}>
+                  {ROTULOS_ESTADO_COBRANCA[item.estado]}
+                  {item.codigo ? ` · ${item.codigo}` : ''}
+                </EtiquetaSituacao>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p className="text-[13px] leading-5">{referencia}</p>
+    </section>
   );
 }

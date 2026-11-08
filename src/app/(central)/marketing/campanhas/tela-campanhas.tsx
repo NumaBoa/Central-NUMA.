@@ -93,8 +93,7 @@ export function TelaCampanhas() {
           aoMudar={mudar}
           aoLimpar={limpar}
           rotuloBusca="Buscar campanha por nome, objetivo ou código"
-          rotuloAvancados="Mais filtros"
-          larguraAvancados={150}
+          rotuloAvancados="Mais filtros"
           seletores={[
             seletorDeOpcoes<FiltrosCampanhas>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesDeContexto(dados.produtos), largura: 150 }),
             seletorDeOpcoes<FiltrosCampanhas>({ id: 'situacao', rotulo: 'Situação', icone: Target, campo: 'situacao', opcoes: paraOpcoes(ROTULOS_SITUACAO_CAMPANHA), todos: 'Todas', largura: 140 }),

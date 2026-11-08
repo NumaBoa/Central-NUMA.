@@ -525,10 +525,12 @@ describe('M07 Produtos e precificação', () => {
       expect(filtrarPortfolio(linhas, FILTROS_PORTFOLIO_INICIAIS, 'institucional')).toEqual([]);
     });
 
-    it('Clientes e Assinantes ficam fora, mesmo com a F1 ativa, até serem construídas', () => {
-      for (const fase of ['f0a', 'f0b', 'f1'] as const) expect(areasDisponiveis(fase).map((area) => area.id)).not.toEqual(expect.arrayContaining(['clientes']));
-      expect(areasDisponiveis('f0b').map((area) => area.id)).not.toContain('assinantes');
-      expect(areasDisponiveis('f0b').filter((area) => area.grupo === 'principal').map((area) => area.rotulo)).toEqual(['Visão geral', 'Estágio e decisões', 'Ofertas e preços', 'Simulações', 'Indicadores']);
+    it('Clientes e Assinantes ficam fora até serem construídas; Contrato (T07.10, F1) já aparece, em qualquer fase', () => {
+      const ids = areasDisponiveis().map((area) => area.id);
+      expect(ids).not.toContain('clientes');
+      expect(ids).not.toContain('assinantes');
+      expect(ids).toContain('contrato');
+      expect(areasDisponiveis().filter((area) => area.grupo === 'principal').map((area) => area.rotulo)).toEqual(['Visão geral', 'Estágio e decisões', 'Ofertas e preços', 'Simulações', 'Indicadores']);
     });
 
     it('produto com oferta não arquiva', async () => {

@@ -297,8 +297,7 @@ export function TelaBiblioteca() {
           aoMudar={mudar}
           aoLimpar={limpar}
           rotuloBusca="Buscar por título, etiqueta, descrição ou código"
-          rotuloAvancados="Mais filtros"
-          larguraAvancados={150}
+          rotuloAvancados="Mais filtros"
           seletores={[
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'tipo', rotulo: 'Tipo', icone: Shapes, campo: 'tipo', opcoes: paraOpcoes(ROTULOS_TIPO_ARQUIVO), largura: 130 }),
             seletorDeOpcoes<FiltrosBiblioteca>({ id: 'contexto', rotulo: 'Contexto', icone: FolderOpen, campo: 'contexto', opcoes: opcoesContexto, largura: 150 }),

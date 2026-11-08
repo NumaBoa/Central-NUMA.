@@ -66,7 +66,7 @@ const textoDaAba = (id) => c.avaliar(`document.querySelector(${js(aba(id))})?.te
 const estadoDaBarra = () => c.avaliar(`document.querySelector('main form p[role=status]')?.textContent ?? ''`);
 const focado = () => c.avaliar(`document.activeElement?.id ?? ''`);
 const guardado = (chave) => c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:configuracao')).find(x=>x.chave===${js(chave)}).valor`);
-const SECOES = ['organizacao', 'fase', 'alertas', 'financeiro', 'backup'];
+const SECOES = ['organizacao', 'fase', 'alertas', 'financeiro', 'legal', 'backup'];
 
 await c.tamanho(1440, 900);
 
@@ -92,15 +92,15 @@ await passo('primeira abertura', async () => {
 
 await passo('navegação por seções', async () => {
   const abas = await c.avaliar(`[...document.querySelectorAll('[role=tablist] [role=tab]')].map(a=>a.textContent)`);
-  ok('as 5 seções, na ordem', abas.join('|') === 'Organização e região|Fase da Numa|Alertas|Financeiro|Backup', abas.join('|'));
+  ok('as 6 seções, na ordem: Legal e comercial em qualquer fase (decisão de 07/11/2026)', abas.join('|') === 'Organização e região|Fase da Numa|Alertas|Financeiro|Legal e comercial|Backup', abas.join('|'));
   ok('começa em Organização e região', (await secaoAberta()) === 'organizacao');
   ok('o índice "Nesta página" saiu', !(await c.avaliar(`Boolean(document.querySelector('nav[aria-label="Nesta página"]'))`)));
   const grupos = await c.avaliar(`[...document.querySelectorAll('#organizacao h3')].map(h=>h.textContent)`);
   ok('dois grupos em Organização e região', grupos.join('|') === 'Organização|Região e calendário', grupos.join('|'));
   const rotulos = await c.avaliar(`[...document.querySelectorAll('#organizacao label')].map(l=>l.textContent)`);
   ok('os campos da proposta', rotulos.join('|') === 'Nome da organização *|E-mail institucional|Link do logotipo no Drive|Fuso horário *|Moeda padrão *|UF|Município', rotulos.join('|'));
-  const m = await texto('main');
-  ok('só o que é da F0a', !/Encarregado|Canal do titular|Validade padrão de propostas|revisão de acessos|Revisão jurídica|revisão jurídica/i.test(m));
+  const m = await c.avaliar(`(()=>{const k=document.querySelector('main').cloneNode(true);k.querySelector('#legal')?.remove();return k.textContent})()`);
+  ok('fora de Legal e comercial, só o que é da F0a', !/Encarregado|Canal do titular|Validade padrão de propostas|revisão de acessos|Revisão jurídica|revisão jurídica/i.test(m));
   ok('sem aviso de demonstração do protótipo', !/Demonstração visual|nesta prévia|só nesta visualização/i.test(m));
   for (const [id, titulo] of [['fase', 'Fase da Numa'], ['alertas', 'Alertas'], ['financeiro', 'Financeiro'], ['backup', 'Backup'], ['organizacao', 'Organização e região']]) {
     await irSecao(id);
@@ -430,7 +430,7 @@ await passo('fase: avançar', async () => {
   ok('registra quem avançou', f.includes('Kimberly Grebe avançou para a Fase 0b'), f.slice(-90));
   ok('o que estava sendo digitado continua lá', (await valor('nome')) === 'Pendente' && (await estadoDaBarra()) === 'Alterações não salvas em Organização e região');
   const emBreveDepois = await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`);
-  ok('na F0b, só Produtos (M07, já construído) sai de "Em breve"', emBreveAntes === 8 && emBreveDepois === 7 && (await c.avaliar(`Boolean(document.querySelector('[data-menu-lateral] a[href="/produtos"]'))`)), `${emBreveAntes}→${emBreveDepois}`);
+  ok('na F0b, o menu não muda: o que foi construído já estava liberado (decisão de 07/11/2026)', emBreveAntes === 4 && emBreveDepois === 4 && (await c.avaliar(`Boolean(document.querySelector('[data-menu-lateral] a[href="/produtos"]'))`)), `${emBreveAntes}→${emBreveDepois}`);
   ok('a fase já passada fica marcada', await c.avaliar(`document.querySelector('#fase ol li').className.includes('border-indigo')`));
   await c.clicar('texto=Descartar');
   await c.espera(100);
@@ -444,7 +444,7 @@ await passo('fase: voltar', async () => {
   await dialogoAberto();
   await c.espera(420);
   const d = await texto('.dialogo');
-  ok('texto combinado ao voltar', d.includes('Nenhum dado é apagado. As telas abaixo voltam a ficar com “Em breve” até a fase avançar de novo.'));
+  ok('texto combinado ao voltar', d.includes('Nenhum dado é apagado, e as telas continuam no menu. As rotinas desta fase deixam de rodar até a fase avançar de novo.'), d);
   ok('lista as telas da fase', d.includes('Telas desta fase') && d.includes('Empresa: painel'));
   ok('sem o texto antigo do protótipo', !d.includes('deixam de aparecer'));
   await c.foto('d-voltar');
@@ -470,7 +470,7 @@ await passo('fase: última', async () => {
   await c.recarregar();
   await pronta();
   ok('na última fase, não há o que avançar', (await botao('Já está na última fase')) === true && (await botao('Voltar para a Fase 2')) === false);
-  ok('mesmo na F3, os módulos não construídos seguem "Em breve"', (await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`)) === 7);
+  ok('mesmo na F3, os módulos não construídos seguem "Em breve"', (await c.avaliar(`[...document.querySelectorAll('[data-menu-lateral] [aria-disabled=true]')].length`)) === 4);
   await c.avaliar(`(()=>{const k='numa-central:v1:configuracao';const l=JSON.parse(localStorage.getItem(k));l.find(x=>x.chave==='fase_ativa').valor='f0a';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
@@ -640,7 +640,7 @@ await passo('quem já tinha dados da versão anterior', async () => {
   await c.avaliar(`(()=>{localStorage.removeItem('numa-central:v1:configuracao');localStorage.removeItem('numa-central:v1:cambio_referencia');const m=JSON.parse(localStorage.getItem('numa-central:v1:meta'));m.versao_dados=1;localStorage.setItem('numa-central:v1:meta',JSON.stringify(m));const k='numa-central:v1:pessoa';const l=JSON.parse(localStorage.getItem(k));l[2].funcao='Dado que precisa continuar';localStorage.setItem(k,JSON.stringify(l))})()`);
   await c.recarregar();
   await pronta();
-  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 18);
+  ok('as configurações entram com os padrões', (await valor('nome')) === 'Numa' && (await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:meta')).versao_dados`)) === 20);
   ok('o que já existia continua', await c.avaliar(`JSON.parse(localStorage.getItem('numa-central:v1:pessoa'))[2].funcao==='Dado que precisa continuar'`));
   const h = await historicoDados();
   ok('fica no histórico', h[0]?.includes('Sistema atualizou os dados para a nova versão da Central'), h[0]);
@@ -693,7 +693,7 @@ const alvos=[];document.querySelectorAll('a,button:not(:disabled),select:not(:di
 const c16=[];document.querySelectorAll('input:not([type=file]),select,textarea').forEach(e=>{if(vis(e)&&parseFloat(cs(e).fontSize)<16)c16.push((e.id||e.getAttribute('aria-label'))+':'+cs(e).fontSize)});r.camposAbaixo16=c16;return r})()`;
 
 const MEDIR_ACOES = `(()=>{const barra=document.querySelector('main form > div:last-child');const caixas=[...barra.querySelectorAll('p,button')].map(e=>e.getBoundingClientRect()).filter(r=>r.width>1&&r.height>1);let cruza=false;for(let i=0;i<caixas.length;i++)for(let j=i+1;j<caixas.length;j++){const a=caixas[i],b=caixas[j];if(a.left<b.right-0.5&&b.left<a.right-0.5&&a.top<b.bottom-0.5&&b.top<a.bottom-0.5)cruza=true}const base=barra.getBoundingClientRect();const nav=document.querySelector('nav[aria-label="Navegação do celular"]')?.getBoundingClientRect();return {cruza,dentro:caixas.every(c=>c.left>=base.left&&c.right<=base.right),acimaDaBarraInferior:!nav||nav.height===0||base.height===0||base.bottom<=nav.top+1,naTela:base.top>=0&&base.bottom<=innerHeight}})()`;
-const NAVEGACAO = `(()=>{const abas=[...document.querySelectorAll('[role=tablist] [role=tab]')].map(e=>e.getBoundingClientRect());const painel=document.querySelector('main form').getBoundingClientRect();const lista=document.querySelector('[role=tablist]').getBoundingClientRect();return {todas:abas.length===5&&abas.every(r=>r.width>0&&r.left>=0&&r.right<=innerWidth&&r.height>=44),aEsquerda:lista.right<=painel.left,acima:lista.bottom<=painel.top}})()`;
+const NAVEGACAO = `(()=>{const abas=[...document.querySelectorAll('[role=tablist] [role=tab]')].map(e=>e.getBoundingClientRect());const painel=document.querySelector('main form').getBoundingClientRect();const lista=document.querySelector('[role=tablist]').getBoundingClientRect();return {todas:abas.length===6&&abas.every(r=>r.width>0&&r.left>=0&&r.right<=innerWidth&&r.height>=44),aEsquerda:lista.right<=painel.left,acima:lista.bottom<=painel.top}})()`;
 const acoesEmOrdem = (b) => !b.cruza && b.dentro && b.acimaDaBarraInferior && b.naTela;
 
 for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
@@ -713,7 +713,7 @@ for (const [l, a] of [[1440, 900], [1024, 768], [768, 1024], [360, 800]]) {
         ok(`${secao}: campos de 16px em ${l}px`, m.camposAbaixo16.length === 0, m.camposAbaixo16.join(','));
       }
       const n = await c.avaliar(NAVEGACAO);
-      ok(`${secao}: as 5 opções à vista em ${l}px`, n.todas);
+      ok(`${secao}: as 6 opções à vista em ${l}px`, n.todas);
       ok(`${secao}: navegação ${l >= 1024 ? 'à esquerda' : 'acima'} em ${l}px`, l >= 1024 ? n.aEsquerda : n.acima);
       const b = await c.avaliar(MEDIR_ACOES);
       ok(`${secao}: ações sem sobreposição em ${l}px`, acoesEmOrdem(b), JSON.stringify(b));

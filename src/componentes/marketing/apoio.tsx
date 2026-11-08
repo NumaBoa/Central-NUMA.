@@ -4,11 +4,9 @@ import { useState, type ReactNode } from 'react';
 import { CalendarDays, Copy, ExternalLink, FileImage, FileQuestion, FileText, FileVideo, Files, Globe, Image as ImagemIcone, Lock, Megaphone, Palette, Presentation, ScrollText, Shapes, Stamp, UsersRound, type LucideIcon } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
-import { useCentral } from '@/componentes/layout/central-provider';
 import { aviso } from '@/componentes/padroes/aviso';
 import { AbasPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { EtiquetaContexto, EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiquetas';
-import { Faixa } from '@/componentes/padroes/faixa';
 import { Button } from '@/componentes/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import type { Marca, Produto } from '@/dados/tipos/marca';
@@ -20,8 +18,6 @@ import { ROTULOS_SITUACAO_PECA } from '@/dominio/conteudo';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
 import { tintaDaCor } from '@/dominio/cores';
 import { ROTULOS_ELEGIBILIDADE, ROTULOS_SITUACAO_INSCRITO, type Elegibilidade } from '@/dominio/listas-espera';
-import { rotuloDaFase } from '@/dominio/fases';
-import { faseLiberada, type Fase } from '@/dominio/navegacao';
 import { REGISTROS_DO_ARQUIVO, type RegistroVinculavel } from '@/dominio/vinculos-arquivo';
 import { cn } from '@/lib/utils';
 
@@ -29,26 +25,20 @@ export const KICKER_MARKETING = 'Marca e marketing';
 
 export type IdDaAreaDeMarketing = 'biblioteca' | 'marcas' | 'conteudo' | 'campanhas' | 'listas' | 'apresentacoes';
 
-/** Navegação do módulo, separada dos filtros. O que é da F1 fica "Em breve" até a fase chegar (decisão de 05/11/2026). */
+/** Navegação do módulo, separada dos filtros. Toda tela construída fica liberada, em qualquer fase (decisão de 07/11/2026). */
 export function AbasMarketing({ ativa }: { ativa: IdDaAreaDeMarketing }) {
-  const { faseAtiva } = useCentral();
-  const f1 = faseLiberada('f1', faseAtiva);
-  const faseDaTela: Fase = ativa === 'conteudo' || ativa === 'campanhas' || ativa === 'listas' ? 'f1' : 'f0b';
   return (
-    <>
     <AbasPagina
       rotulo="Áreas de Marca e marketing"
       abas={[
         { rotulo: 'Biblioteca', icone: Files, href: '/marketing', ativa: ativa === 'biblioteca' },
         { rotulo: 'Marcas', icone: Palette, href: '/marketing/marcas', ativa: ativa === 'marcas' },
-        { rotulo: 'Conteúdo', icone: CalendarDays, href: f1 || ativa === 'conteudo' ? '/marketing/conteudo' : undefined, ativa: ativa === 'conteudo' },
-        { rotulo: 'Campanhas', icone: Megaphone, href: f1 || ativa === 'campanhas' ? '/marketing/campanhas' : undefined, ativa: ativa === 'campanhas' },
-        { rotulo: 'Listas de espera', icone: UsersRound, href: f1 || ativa === 'listas' ? '/marketing/listas' : undefined, ativa: ativa === 'listas' },
+        { rotulo: 'Conteúdo', icone: CalendarDays, href: '/marketing/conteudo', ativa: ativa === 'conteudo' },
+        { rotulo: 'Campanhas', icone: Megaphone, href: '/marketing/campanhas', ativa: ativa === 'campanhas' },
+        { rotulo: 'Listas de espera', icone: UsersRound, href: '/marketing/listas', ativa: ativa === 'listas' },
         { rotulo: 'Apresentações', icone: Presentation, href: '/marketing/apresentacoes', ativa: ativa === 'apresentacoes' },
       ]}
     />
-    {!faseLiberada(faseDaTela, faseAtiva) && <Faixa className="mt-4">A {rotuloDaFase(faseDaTela)} ainda não está ativa. Esta tela já funciona, com os dados de exemplo; ela entra no menu quando a fase for ativada em Configurações.</Faixa>}
-    </>
   );
 }
 

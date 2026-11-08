@@ -16,6 +16,8 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Textarea } from '@/componentes/ui/textarea';
 import { mensagemDoErro } from '@/dados/erros';
+import { repositorios } from '@/dados/repositorios';
+import { useConsulta } from '@/dados/use-consulta';
 import type { CanalVenda, Oferta, OfertaRecurso, PrecoVersao, Simulacao } from '@/dados/tipos/precificacao';
 import { valorParaCampo } from '@/dominio/dinheiro';
 import { criarRascunhoDePreco, erroDoValor, esquemaFormularioOferta, FORMULARIO_OFERTA_VAZIO, formularioDaOferta, lerValorDoCampo, PERIODICIDADES_DE_PRECO, ROTULOS_FORMALIZACAO, ROTULOS_PERIODICIDADE_PRECO, ROTULOS_PUBLICO_OFERTA, ROTULOS_TIPO_OFERTA, salvarOferta, salvarRascunhoDePreco, TODOS_OS_CANAIS, type FormularioOferta as DadosDoFormulario } from '@/dominio/precificacao';
@@ -32,6 +34,9 @@ export function FormularioOferta({ aberto, aoFechar, produtoId, nomeDoProduto, o
   const lista = useFieldArray({ control, name: 'recursos' });
   const credencial = useAvisoDeCredencial();
   const tipo = watch('tipo');
+  const adicionais = watch('adicionais_ids');
+  const consultaOfertas = useConsulta(() => repositorios.oferta.listar({ onde: { produto_id: produtoId } }), [produtoId, aberto]);
+  const outrasOfertas = (consultaOfertas.dados ?? []).filter((item) => item.id !== oferta?.id).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
   useEffect(() => {
     if (!aberto) return;
@@ -43,6 +48,8 @@ export function FormularioOferta({ aberto, aoFechar, produtoId, nomeDoProduto, o
   const erros: ErroDeCampo[] = [
     ...(errors.nome?.message ? [{ campoId: 'oferta-nome', mensagem: errors.nome.message }] : []),
     ...(errors.periodicidade?.message ? [{ campoId: 'oferta-periodicidade', mensagem: errors.periodicidade.message }] : []),
+    ...(errors.teste_dias?.message ? [{ campoId: 'oferta-teste-dias', mensagem: errors.teste_dias.message }] : []),
+    ...(errors.disponibilidade_meta?.message ? [{ campoId: 'oferta-disponibilidade', mensagem: errors.disponibilidade_meta.message }] : []),
     ...lista.fields.flatMap((_, indice) => {
       const mensagem = errors.recursos?.[indice]?.nome?.message;
       return mensagem ? [{ campoId: `oferta-recurso-${indice}`, mensagem }] : [];
@@ -50,7 +57,7 @@ export function FormularioOferta({ aberto, aoFechar, produtoId, nomeDoProduto, o
   ];
 
   const enviar = handleSubmit(async (dados) => {
-    if (!credencial.conferir([dados.nome, dados.descricao, dados.exclusoes, ...dados.recursos.flatMap((recurso) => [recurso.nome, recurso.observacao])])) return;
+    if (!credencial.conferir([dados.nome, dados.descricao, dados.exclusoes, dados.regras_uso, dados.suporte_canal, dados.disponibilidade_compensacao, ...dados.recursos.flatMap((recurso) => [recurso.nome, recurso.observacao])])) return;
     try {
       const salva = await salvarOferta(produtoId, dados, oferta?.id);
       aviso(oferta ? 'Oferta atualizada.' : 'Oferta criada: Em estudo e sem preço.');
@@ -173,6 +180,71 @@ export function FormularioOferta({ aberto, aoFechar, produtoId, nomeDoProduto, o
             {(controle) => <Textarea {...controle} {...register('exclusoes')} />}
           </Campo>
         </div>
+        <section className="grid gap-[18px] border-t border-line pt-4 md:col-span-2 md:grid-cols-2" aria-labelledby="oferta-contrato-titulo">
+          <div className="md:col-span-2">
+            <h3 id="oferta-contrato-titulo" className="text-sm font-semibold">
+              Para o contrato
+            </h3>
+            <p className="mt-0.5 text-[13px] text-ink-soft">Usado no contrato de assinatura (T11.14). Pode ficar para depois: o que faltar aparece como pendência na emissão final.</p>
+          </div>
+          <div className="md:col-span-2">
+            <Campo rotulo="Regras de uso do plano" ajuda="Anexo I, item 5. Ex.: uso justo, limites de envio.">
+              {(controle) => <Textarea {...controle} {...register('regras_uso')} />}
+            </Campo>
+          </div>
+          <Campo rotulo="Canal de suporte" ajuda="Ex.: e-mail e WhatsApp.">
+            {(controle) => <Input autoComplete="off" {...controle} {...register('suporte_canal')} />}
+          </Campo>
+          <Campo rotulo="Horário do suporte" ajuda="Ex.: dias úteis, das 9h às 18h.">
+            {(controle) => <Input autoComplete="off" {...controle} {...register('suporte_horario')} />}
+          </Campo>
+          <Campo rotulo="Primeira resposta, caso crítico" ajuda="Ex.: até 4 horas úteis.">
+            {(controle) => <Input autoComplete="off" {...controle} {...register('suporte_prazo_critico')} />}
+          </Campo>
+          <Campo rotulo="Primeira resposta, caso normal" ajuda="Ex.: até 2 dias úteis.">
+            {(controle) => <Input autoComplete="off" {...controle} {...register('suporte_prazo_normal')} />}
+          </Campo>
+          <Campo id="oferta-teste-dias" rotulo="Teste grátis (dias)" erro={errors.teste_dias?.message} ajuda="Vazio: sem teste.">
+            {(controle) => <Input inputMode="numeric" autoComplete="off" {...controle} {...register('teste_dias')} />}
+          </Campo>
+          <Campo id="oferta-disponibilidade" rotulo="Meta de disponibilidade (%)" erro={errors.disponibilidade_meta?.message} ajuda="Opcional (cl. 11.4). Ex.: 99,5.">
+            {(controle) => <Input inputMode="decimal" autoComplete="off" {...controle} {...register('disponibilidade_meta')} />}
+          </Campo>
+          <div className="md:col-span-2">
+            <Campo rotulo="Compensação se a meta não for cumprida" ajuda="Opcional. Só o que a Numa de fato oferece.">
+              {(controle) => <Textarea {...controle} {...register('disponibilidade_compensacao')} />}
+            </Campo>
+          </div>
+          <fieldset className="md:col-span-2">
+            <legend className="text-[13px] font-semibold">Adicionais deste plano</legend>
+            <p className="mt-0.5 text-[13px] text-ink-soft">Outras ofertas deste produto que podem ser contratadas junto. Cada uma tem o próprio preço aprovado.</p>
+            {outrasOfertas.length ? (
+              <div className="mt-2 grid gap-x-3 md:grid-cols-2">
+                <Controller
+                  control={control}
+                  name="adicionais_ids"
+                  render={({ field }) => (
+                    <>
+                      {outrasOfertas.map((item) => (
+                        <label key={item.id} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm md:min-h-9">
+                          <input
+                            type="checkbox"
+                            className="size-[18px] shrink-0 accent-[var(--ok)]"
+                            checked={adicionais.includes(item.id)}
+                            onChange={(evento) => field.onChange(evento.target.checked ? [...field.value, item.id] : field.value.filter((atual) => atual !== item.id))}
+                          />
+                          {item.nome}
+                        </label>
+                      ))}
+                    </>
+                  )}
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-[13px] text-ink-soft">Este produto ainda não tem outra oferta para vincular.</p>
+            )}
+          </fieldset>
+        </section>
       </div>
     </JanelaFormulario>
   );

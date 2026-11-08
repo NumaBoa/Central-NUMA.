@@ -1,6 +1,8 @@
 /**
  * Menu da Central (01 §4 e 18 §10.2). Decisão de 05/11/2026: a estrutura final fica sempre visível,
  * e o que ainda não está disponível aparece esmaecido como "Em breve", sem link.
+ * Decisão de Kimberly em 07/11/2026: tudo o que já foi construído fica liberado no menu, em qualquer fase.
+ * A fase continua decidindo as rotinas do dia (`fase_minima`), não o que aparece no menu.
  */
 export const FASES = ['f0a', 'f0b', 'f1', 'f2', 'f3'] as const;
 export type Fase = (typeof FASES)[number];
@@ -38,12 +40,12 @@ export const MODULOS_TOPO: readonly Modulo[] = [
 export const MODULOS_EMPRESA: readonly Modulo[] = [
   { id: 'empresa', nome: 'Empresa', fase: 'f0b' },
   { id: 'produtos', nome: 'Produtos', fase: 'f0b', href: '/produtos' },
-  { id: 'comercial', nome: 'Comercial', fase: 'f1' },
-  { id: 'contratos', nome: 'Contratos', fase: 'f1' },
+  { id: 'comercial', nome: 'Comercial', fase: 'f1', href: '/comercial' },
+  { id: 'contratos', nome: 'Contratos', fase: 'f1', href: '/contratos' },
   { id: 'financeiro', nome: 'Financeiro', fase: 'f0a', href: '/financeiro' },
   { id: 'operacao', nome: 'Operação', fase: 'f2' },
   { id: 'ferramentas', nome: 'Ferramentas e ativos', curto: 'Ferramentas', fase: 'f0a', href: '/ferramentas' },
-  { id: 'legal', nome: 'Legal e privacidade', fase: 'f0b' },
+  { id: 'legal', nome: 'Legal e privacidade', fase: 'f0b', href: '/legal' },
   { id: 'marca', nome: 'Marca e marketing', fase: 'f0b' },
 ];
 
@@ -64,9 +66,9 @@ export function faseLiberada(fase: Fase, faseAtiva: Fase): boolean {
   return FASES.indexOf(fase) <= FASES.indexOf(faseAtiva);
 }
 
-/** Uma tela pronta de fase ainda não ativa continua "Em breve" (decisão de 05/11/2026). */
-export function moduloDisponivel(modulo: Modulo, faseAtiva: Fase): boolean {
-  return Boolean(modulo.href) && faseLiberada(modulo.fase, faseAtiva);
+/** Tela construída aparece no menu em qualquer fase; só o que não existe fica "Em breve" (decisão de 07/11/2026). */
+export function moduloDisponivel(modulo: Modulo): boolean {
+  return Boolean(modulo.href);
 }
 
 export function moduloAtivo(modulo: Modulo, caminho: string): boolean {

@@ -2,11 +2,11 @@
 
 Para as frentes do menu e Meu dia (M03), do Financeiro (M05), de Produtos (M07), de Legal (M09), do Comercial (M10) e para quem juntar as branches.
 
-Ramo `frente/m08`, no worktree `central-numa-m08`, criado a partir do `main` em `498005e`. Nada foi juntado ao `main`.
+Ramo `frente/m08`, no worktree `central-numa-m08`, criado a partir do `main` em `498005e`. Depois, o `main` (até `2b573d3`) foi juntado **a este ramo**, para resolver aqui os conflitos certos. Nada foi juntado ao `main`.
 
 ## 1. Rotas para a frente do menu
 
-Em `src/dominio/navegacao.ts`, o módulo `marca` ("Marca e marketing", fase `f0b`) está sem `href` e aparece "Em breve". Para habilitar, basta pôr `href: '/marketing'`. O menu não foi alterado por esta frente.
+Em `src/dominio/navegacao.ts`, o módulo `marca` ("Marca e marketing") está sem `href` e aparece "Em breve". Para habilitar, basta pôr `href: '/marketing'`: pela decisão de 07/11/2026, tela construída aparece em qualquer fase. O menu não foi alterado por esta frente, porque o pedido dela mandava não mexer na navegação global.
 
 | Rota | Tela | Fase |
 |---|---|---|
@@ -18,7 +18,7 @@ Em `src/dominio/navegacao.ts`, o módulo `marca` ("Marca e marketing", fase `f0b
 | `/marketing/campanhas` · `/marketing/campanhas/[id]` | T08.06 Campanhas | F1 |
 | `/marketing/listas` · `/marketing/listas/[id]` | T08.07 Listas de espera | F1 |
 
-- **Abas do módulo:** ficam em `src/componentes/marketing/apoio.tsx` (`AbasMarketing`). As da F1 aparecem "Em breve", sem link, até a F1 ser ativada, como o menu (decisão de 05/11/2026). A rota direta funciona em qualquer fase, com uma faixa que diz isso.
+- **Abas do módulo:** ficam em `src/componentes/marketing/apoio.tsx` (`AbasMarketing`). Todas têm link, em qualquer fase (decisão de 07/11/2026). A fase só decide as rotinas do dia.
 - **"+ Novo":** sugestão, não feita aqui porque é componente do menu: `/marketing?novo=1`.
 
 ## 2. O que entra e o que sai
@@ -78,7 +78,7 @@ Todos com acréscimos pequenos, sem reescrever o que existia:
 
 | Arquivo | O que mudou | Commit |
 |---|---|---|
-| `src/dados/tabelas.ts` | `...TABELAS_M08` e `VERSAO_DADOS = 18` | Dados |
+| `src/dados/tabelas.ts` | `...TABELAS_M08` e `VERSAO_DADOS = 20` (18 e 19 são da T07.10 e da T05.08, no `main`) | Dados e junção |
 | `src/dados/repositorios.ts` | `& RepositoriosM08` e `...repositoriosM08` | Dados |
 | `src/dados/carga.ts` | `acrescentarTabelasM08` na migração, `tabelasIniciaisM08` na carga e `VALORES_INICIAIS_M08` | Dados |
 | `src/dominio/dados.ts` | Partes de registros do M08 fora da contagem de cadastros | Dados |
@@ -87,18 +87,16 @@ Todos com acréscimos pequenos, sem reescrever o que existia:
 | `src/dominio/etiquetas.ts` | Módulo `biblioteca` e registro `arquivo` | Dados |
 | `src/dominio/historico.ts` | Espalha `CAMPOS_LEGIVEIS_M08` e chama `registroPorExtensoM08` e as frases de importação e exportação | Dados |
 | `src/dominio/atividades.ts`, `atividades-painel.ts`, `rotinas.ts` | Ver §3 | Dados |
-| `src/componentes/padroes/filtros-em-linha.tsx` | Props opcionais `rotuloAvancados` e `larguraAvancados`. Sem elas, nada muda | F0b |
+| `src/componentes/padroes/filtros-em-linha.tsx` | Na junção, ficou a versão do `main`, que já tem `rotuloAvancados`, `larguraAvancados` (largura do menu) e `placeholderBusca`. O M08 só usa `rotuloAvancados="Mais filtros"` | Junção |
 | `src/componentes/padroes/janela-formulario.tsx` | Prop opcional `aoEscolherErro`. Sem ela, nada muda | F0b |
 | `src/dominio/busca.ts` | Grupos do M08 | Integrações |
 | `verificacao/entrega2.mjs` | Totais da carga: 177 registros e 77 de exemplo | Integrações |
-| `verificacao/*.mjs` | Só a asserção de `versao_dados`, de 17 para 18 | Integrações |
+| `verificacao/*.mjs` | Totais da carga (`Registros177`, `77 de exemplo`) e `versao_dados` 20. Na `f0a`, cinco alertas na primeira rodada: três da F0a e dois de direitos de uso do M08 | Integrações e junção |
 
 **Conflitos certos ao juntar:**
 
-- **`VERSAO_DADOS`:** a frente do M06 pode subir o mesmo número. Quem entrar por último usa o seguinte e troca o número nas suítes. A migração do M08 não depende do número: `acrescentarTabelasM08` só cria as tabelas que faltam, seja qual for a versão de origem.
+- **`VERSAO_DADOS`:** já resolvido contra o `main` de `2b573d3`: o M08 é a 20. Se outra frente (o M06, por exemplo) entrar antes, o M08 passa para o número seguinte e as suítes trocam junto. A migração do M08 não depende do número: `acrescentarTabelasM08` só cria as tabelas que faltam.
 - **Totais de `entrega2.mjs`:** qualquer frente que acrescente exemplos muda 177 e 77. O M08 soma 26 registros de exemplo: 8 arquivos, 2 campanhas, 6 peças, 2 listas e 8 inscritos.
-- **`filtros-em-linha.tsx`:** o ramo `reserva/central-numa-solto-07-11` tem props com os mesmos nomes (`rotuloAvancados`, `larguraAvancados`) e mais `placeholderBusca`. Ao juntar, fique com a versão que tem as três.
-- **`lista.tsx`:** o mesmo ramo acrescenta paginação. Esta frente não alterou o arquivo.
 
 ## 6. Diferenças em relação à especificação
 

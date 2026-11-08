@@ -1,11 +1,12 @@
 /**
  * O catálogo real de M10 e M11: ofertas, recursos, canais e preços do M07, lidos dos repositórios.
  * Converte os nomes do M07 para o contrato de `catalogo-comercial.ts` sem inventar nada:
- * - os campos de T07.04 que o M07 ainda não tem (regras de uso, suporte, disponibilidade, teste e adicionais) ficam vazios;
+ * - os campos de T07.04 para o contrato (regras de uso, suporte, disponibilidade, teste e adicionais) vêm da oferta, vazios quando não informados;
  * - o limite, que no M07 é texto livre, só vira número quando o texto é um número; o resto é "não informado" (decisão vigente 4);
- * - T07.10 (configuração contratual) ainda não existe: nenhuma configuração, e a emissão final do contrato SaaS fica pendente.
+ * - T07.10 (configuração contratual): a Validada vigente vai para a emissão final; sem ela, o contrato SaaS fica pendente.
  */
 import { repositorios } from '@/dados/repositorios';
+import { configuracaoDoCatalogo, configuracaoValidadaDoProduto, versoesDaConfiguracao } from '../configuracao-contratual';
 import type { CanalVenda, Oferta, OfertaRecurso, PrecoVersao } from '@/dados/tipos/precificacao';
 import type { CanalDoCatalogo, CatalogoComercial, LimiteDoRecurso, OfertaDoCatalogo, PrecoDoCatalogo, RecursoDaOferta } from './catalogo-comercial';
 
@@ -28,6 +29,12 @@ function recursoDoCatalogo(recurso: OfertaRecurso): RecursoDaOferta {
   return { id: recurso.id, nome: recurso.nome, incluido: recurso.incluido, limite: limiteDoTexto(recurso.limite), planejado: recurso.planejado, disponivel_previsto_em: recurso.disponivel_previsto_em, ordem: recurso.ordem };
 }
 
+/** Sem nenhum dado de suporte, é `null`: o contrato mostra a pendência, sem inventar canal nem prazo. */
+function suporteDaOferta(oferta: Oferta): OfertaDoCatalogo['suporte'] {
+  const suporte = { canal: oferta.suporte_canal, horario: oferta.suporte_horario, prazo_critico: oferta.suporte_prazo_critico, prazo_normal: oferta.suporte_prazo_normal };
+  return Object.values(suporte).some(Boolean) ? suporte : null;
+}
+
 export function ofertaDoCatalogo(oferta: Oferta, recursos: readonly OfertaRecurso[]): OfertaDoCatalogo {
   return {
     id: oferta.id,
@@ -39,12 +46,12 @@ export function ofertaDoCatalogo(oferta: Oferta, recursos: readonly OfertaRecurs
     situacao: oferta.situacao,
     descricao: oferta.descricao,
     exclusoes: oferta.exclusoes,
-    regras_uso: null,
-    suporte: null,
-    disponibilidade_meta: null,
-    disponibilidade_compensacao: null,
-    teste_dias: null,
-    adicionais_ids: [],
+    regras_uso: oferta.regras_uso,
+    suporte: suporteDaOferta(oferta),
+    disponibilidade_meta: oferta.disponibilidade_meta,
+    disponibilidade_compensacao: oferta.disponibilidade_compensacao,
+    teste_dias: oferta.teste_dias,
+    adicionais_ids: oferta.adicionais_ids,
     recursos: recursos.filter((recurso) => recurso.oferta_id === oferta.id).sort((a, b) => a.ordem - b.ordem).map(recursoDoCatalogo),
   };
 }
@@ -75,7 +82,13 @@ export const catalogoDoM07: CatalogoComercial = {
   async precosDaOferta(ofertaId) {
     return (await repositorios.preco_versao.listar({ onde: { oferta_id: ofertaId } })).map(precoDoCatalogo);
   },
-  // T07.10 ainda não foi construída: não há configuração contratual de nenhum produto.
-  configuracaoValidada: async () => null,
-  configuracaoMaisRecente: async () => null,
+  // T07.10: só a Validada vigente serve para a emissão final (RN-11.30); a mais recente explica a pendência.
+  async configuracaoValidada(produtoId) {
+    const validada = await configuracaoValidadaDoProduto(produtoId);
+    return validada ? configuracaoDoCatalogo(validada) : null;
+  },
+  async configuracaoMaisRecente(produtoId) {
+    const [recente] = await versoesDaConfiguracao(produtoId);
+    return recente ? configuracaoDoCatalogo(recente) : null;
+  },
 };
