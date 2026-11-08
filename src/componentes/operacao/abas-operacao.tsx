@@ -9,7 +9,7 @@ export type AreaOperacao = 'implantacoes' | 'suporte' | 'sla' | 'incidentes' | '
 const AREAS: readonly { id: AreaOperacao; rotulo: string; icone: typeof Rocket; href?: string }[] = [
   { id: 'implantacoes', rotulo: 'Implantações', icone: Rocket, href: '/operacao' },
   { id: 'suporte', rotulo: 'Suporte', icone: LifeBuoy },
-  { id: 'sla', rotulo: 'Regras de SLA', icone: Gauge },
+  { id: 'sla', rotulo: 'Regras de SLA', icone: Gauge, href: '/operacao/sla' },
   { id: 'incidentes', rotulo: 'Incidentes', icone: ShieldAlert },
   { id: 'horas', rotulo: 'Horas', icone: Clock, href: '/operacao/horas' },
   { id: 'notas', rotulo: 'Notas de liberação', icone: Megaphone },
