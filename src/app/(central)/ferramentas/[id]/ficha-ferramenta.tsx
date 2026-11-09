@@ -40,6 +40,7 @@ import type { AssinaturaFerramenta } from '@/dados/tipos/ferramenta';
 import { TIPOS_DE_DADOS } from '@/dados/tipos/ferramenta';
 import type { Titulo } from '@/dados/tipos/titulo';
 import { useConsulta } from '@/dados/use-consulta';
+import { tratamentosDaFerramenta } from '@/dominio/legal-do-produto';
 import { atividadesDoRegistro } from '@/dominio/atividades-painel';
 import { ativosDaFerramenta, ROTULOS_TIPO_ATIVO } from '@/dominio/ativos';
 import { ID_INSTITUCIONAL } from '@/dominio/contextos';
@@ -669,7 +670,8 @@ function AbaDadosPessoais({ ferramenta, dados, somenteLeitura }: { ferramenta: L
           </>
         )}
       </ListaDeDados>
-      <p className="text-xs text-ink-soft">O inventário de dados (Legal e privacidade, M09) ainda não está nesta versão da Central. Quando estiver, lê estes dados daqui, sem cópia. Registrar aqui não é revisão jurídica.</p>
+      <OperacoesNoInventario ferramentaId={ferramenta.id} />
+      <p className="text-xs text-ink-soft">O inventário de dados (Legal e privacidade) lê estes dados daqui, sem cópia. Registrar aqui não é revisão jurídica.</p>
       {!somenteLeitura && (
         <Button variante="secundario" className="justify-self-start" onClick={() => setEditando(true)}>
           <Pencil aria-hidden />
@@ -1123,3 +1125,26 @@ export function FichaFerramenta() {
   );
 }
 
+
+/** As operações do inventário (M09) que acontecem nesta ferramenta. Só leitura: o inventário se edita em Legal. */
+function OperacoesNoInventario({ ferramentaId }: { ferramentaId: string }) {
+  const consulta = useConsulta(() => tratamentosDaFerramenta(ferramentaId), [ferramentaId]);
+  const operacoes = consulta.dados ?? [];
+  return (
+    <div className="grid gap-1 text-[13px]" data-operacoes-no-inventario>
+      <span className="font-semibold">No inventário de dados</span>
+      {operacoes.length ? (
+        <ul className="grid gap-0.5">
+          {operacoes.map((operacao) => (
+            <li key={operacao.id}>{operacao.nome}</li>
+          ))}
+        </ul>
+      ) : (
+        <span className="text-ink-soft">Nenhuma operação do inventário usa esta ferramenta.</span>
+      )}
+      <LinkCentral href="/legal/privacidade" className="inline-flex min-h-11 items-center justify-self-start underline underline-offset-2 md:min-h-0">
+        Abrir o inventário
+      </LinkCentral>
+    </div>
+  );
+}

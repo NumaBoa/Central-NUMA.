@@ -221,7 +221,13 @@ export function DialogoMudarEstagio({ aberto, aoFechar, produto, pessoas }: Prop
                   .
                 </p>
               </div>
-              <Faixa tipo="info">Documentos legais dependem do M09, que ainda não existe: confira fora da Central.</Faixa>
+              <Faixa tipo="info">
+                Confira os documentos legais e o inventário do produto em{' '}
+                <LinkCentral href="/legal" className="underline">
+                  Legal e privacidade
+                </LinkCentral>
+                : descontinuar não muda nada lá sozinho.
+              </Faixa>
               <div id={CAMPOS.checklist} tabIndex={-1}>
                 <PilulasMultiplas rotulo="Conferi" obrigatorio valores={dados.checklist} aoMudar={(checklist) => mudar({ checklist })} opcoes={ITENS_DE_DESCONTINUAR.map((item) => ({ valor: item.id, rotulo: item.rotulo }))} />
                 {visiveis.checklist && <p className="mt-1.5 text-xs text-err">{visiveis.checklist}</p>}

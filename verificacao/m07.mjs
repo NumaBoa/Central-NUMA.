@@ -34,7 +34,7 @@ await passo('T07.01: portfólio em cartões, com o que falta dito como falta', a
   const p = await pagina();
   ok('fila 1/2/3 e nome provisório', p.includes('Ideia · fila 1') && p.includes('Ideia · fila 3') && p.includes('Nome provisório'));
   ok('sem preço e sem dado não viram zero', p.includes('Nenhuma oferta') && p.includes('Definição pendente') && !p.includes('R$ 0,00'), p.slice(0, 200));
-  ok('orçamento aponta para o Financeiro (T05.08) e legal segue indisponível', p.includes('Em Financeiro › Orçamento') && p.includes('chega com o M09'));
+  ok('orçamento aponta para o Financeiro (T05.08) e o Legal vem do M09', p.includes('Em Financeiro › Orçamento') && !p.includes('chega com o M09') && /Nenhum documento legal|documentos?, \d+ publicados?|Falta publicar/.test(p));
   ok('sem aviso de fase: tela construída fica liberada em qualquer fase (decisão de 07/11/2026)', !p.includes('ainda não está ativa'));
   ok('o menu leva a Produtos', await c.avaliar(`Boolean(document.querySelector('aside a[href="/produtos"]'))||document.querySelector('aside').textContent.includes('Produtos')`));
   await conferirTela('portfólio', 1440);

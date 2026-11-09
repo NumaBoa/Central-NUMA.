@@ -9,7 +9,8 @@ import { Confirmacao } from '@/componentes/padroes/confirmacao';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
 import { Faixa } from '@/componentes/padroes/faixa';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
-import { CartaoDaFicha, Indisponivel } from '@/componentes/produtos/aparencia';
+import { LinkCentral } from '@/componentes/layout/protecao-saida';
+import { CartaoDaFicha } from '@/componentes/produtos/aparencia';
 import { useAvisoDeCredencial } from '@/componentes/produtos/aviso-credencial-m07';
 import { GraficoLinhas } from '@/componentes/produtos/grafico-linhas';
 import { Button } from '@/componentes/ui/button';
@@ -19,6 +20,7 @@ import { mensagemDoErro } from '@/dados/erros';
 import type { KpiDefinicao } from '@/dados/tipos/precificacao';
 import { useConsulta } from '@/dados/use-consulta';
 import { somarMeses } from '@/dominio/cobrancas';
+import { listasDoProduto } from '@/dominio/listas-espera';
 import { primeiroDiaDoMes } from '@/dominio/custos-produto';
 import { carregarKpis, DEFINICAO_PENDENTE, errosDoKpiMensal, KPI_USUARIOS_ATIVOS, kpisDoProduto, MAXIMO_DE_KPIS_PROPRIOS, removerKpiProprio, salvarKpiMensal, salvarKpiProprio, serieDoKpi } from '@/dominio/kpis';
 import { rotuloDaCompetencia } from '@/dominio/titulos';
@@ -315,7 +317,7 @@ export function AbaIndicadores({ produto, aoRegistrar, aoEditarDefinicao, hoje }
           <p className="text-[13px] text-ink-soft">Nenhum ainda. Cada produto pode ter até {MAXIMO_DE_KPIS_PROPRIOS}, como “pontos cadastrados”.</p>
         )}
       </CartaoDaFicha>
-      <Indisponivel titulo="Listas de espera">Vêm do M08, que ainda não existe. Assinantes pagantes entram na F1.</Indisponivel>
+      <ListasDoProduto produtoId={produto.id} />
       <Faixa tipo="info">O alerta “KPI não preenchido” (dia 10) ainda não está ligado no Meu dia.</Faixa>
 
       <FormularioKpiProprio aberto={novoProprio} aoFechar={() => setNovoProprio(false)} produtoId={produto.id} />
@@ -333,5 +335,38 @@ export function AbaIndicadores({ produto, aoRegistrar, aoEditarDefinicao, hoje }
         }}
       />
     </div>
+  );
+}
+
+/** As listas de espera do produto (M08) e onde ficam os assinantes pagantes (Receita por canal, T05.12). */
+function ListasDoProduto({ produtoId }: { produtoId: string }) {
+  const consulta = useConsulta(() => listasDoProduto(produtoId), [produtoId]);
+  const listas = consulta.dados ?? [];
+  return (
+    <CartaoDaFicha titulo="Listas de espera">
+      <div data-listas-do-produto>
+        {listas.length ? (
+          <ul className="grid gap-1.5 text-[13px]">
+            {listas.map((lista) => (
+              <li key={lista.id} className="grid">
+                <LinkCentral href={`/marketing/listas/${lista.id}`} className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline md:min-h-0">
+                  {lista.nome}
+                </LinkCentral>
+                <span className="text-ink-soft">{lista.contagem}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-ink-soft">Nenhuma lista de espera deste produto em Marca e marketing.</p>
+        )}
+        <p className="mt-2 text-xs text-ink-soft">
+          Assinantes pagantes ficam em{' '}
+          <LinkCentral href="/financeiro/receitas" className="underline underline-offset-2">
+            Financeiro › Receita por canal
+          </LinkCentral>
+          .
+        </p>
+      </div>
+    </CartaoDaFicha>
   );
 }

@@ -91,7 +91,9 @@ function CartaoDoProduto({ linha, hoje }: { linha: LinhaDoPortfolio; hoje: strin
         <Linha rotulo="Orçamento">Em Financeiro › Orçamento</Linha>
         <Linha rotulo="Ofertas">{textoDasOfertas(linha)}</Linha>
         <Linha rotulo="Usuários ativos">{textoDosUsuarios(linha)}</Linha>
-        <Linha rotulo="Legal">Sem dados: chega com o M09</Linha>
+        <Linha rotulo="Legal">
+          <span className={linha.legal.pendente ? 'text-warn' : undefined}>{linha.legal.texto}</span>
+        </Linha>
       </dl>
       <div className="mt-auto border-t border-line pt-3">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-ink-soft">

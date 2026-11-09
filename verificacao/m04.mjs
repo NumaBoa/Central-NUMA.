@@ -154,7 +154,7 @@ await passo('T04.02: ficha organizada', async () => {
   await aba('Produtos e rateio');
   ok('rateio: 100% com a Numa, e a data de início', (await texto('main')).includes('somando 100%, com a Numa incluída') && (await texto('main')).includes('Vale a partir de'));
   await aba('Dados pessoais');
-  ok('dados pessoais: não confunde conta de acesso, e diz do inventário', (await texto('main')).includes('Trata dados pessoais') && (await texto('main')).includes('O inventário de dados (Legal e privacidade, M09) ainda não está nesta versão'));
+  ok('dados pessoais: não confunde conta de acesso, e diz do inventário', (await texto('main')).includes('Trata dados pessoais') && (await texto('main')).includes('No inventário de dados') && !(await texto('main')).includes('ainda não está nesta versão'));
   await aba('Ativos hospedados');
   ok('Mais áreas: ativos, atividades, arquivos e histórico', js(await c.avaliar(`[...document.querySelectorAll('[aria-label="Mais áreas da ferramenta"] [role=tab]')].map(a=>a.textContent.trim())`)) === js(['Ativos hospedados', 'Atividades', 'Arquivos', 'Histórico']));
   await aba('Histórico');

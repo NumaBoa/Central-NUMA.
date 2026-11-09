@@ -17,7 +17,7 @@ import { Faixa } from '@/componentes/padroes/faixa';
 import { ListaHistorico } from '@/componentes/padroes/historico';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
 import { ArquivosDaBiblioteca } from '@/componentes/marketing/arquivos-da-biblioteca';
-import { CartaoDaFicha, Indisponivel } from '@/componentes/produtos/aparencia';
+import { CartaoDaFicha } from '@/componentes/produtos/aparencia';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { mensagemDoErro } from '@/dados/erros';
@@ -29,6 +29,7 @@ import { ativosDoProduto } from '@/dominio/ativos';
 import { custoMedioDoProduto, custosPorMesDoProduto } from '@/dominio/custos-produto';
 import { carregarFerramentas } from '@/dominio/ferramentas';
 import { historicoDoProduto } from '@/dominio/historico';
+import { carregarLegalDoProduto } from '@/dominio/legal-do-produto';
 import { esquemaFormularioObjetivo, objetivosDoProduto, ROTULOS_SITUACAO_OBJETIVO, salvarObjetivo, textoDoCusto, type FormularioObjetivo } from '@/dominio/portfolio';
 import { textoDoTitular } from '@/dominio/titularidade';
 import { rotuloDaCompetencia } from '@/dominio/titulos';
@@ -255,11 +256,51 @@ export function AreaFerramentas({ produtoId }: { produtoId: string }) {
   );
 }
 
-export function AreaLegal({ temUsuariosReais }: { temUsuariosReais: boolean }) {
+export function AreaLegal({ produto }: { produto: { id: string; tem_usuarios_reais: boolean } }) {
+  const consulta = useConsulta(() => carregarLegalDoProduto(produto), [produto.id, produto.tem_usuarios_reais]);
+  if (consulta.estado === 'carregando' && !consulta.dados) return <EstadoCarregando />;
+  if (consulta.estado === 'erro' || !consulta.dados) return <EstadoErro titulo="Não deu para ler o Legal do produto." aoTentarDeNovo={consulta.recarregar} />;
+  const legal = consulta.dados;
   return (
-    <div className="space-y-3">
-      <Indisponivel titulo="Documentos legais e inventário de dados">O M09 ainda não foi construído, então a Central não sabe se os documentos estão em dia. Isso não quer dizer que estejam.</Indisponivel>
-      {temUsuariosReais && <Faixa tipo="atencao">Este produto tem usuários reais: a regra exige Termos de Uso e Política de Privacidade publicados (RN-09.02). Confira fora da Central até o M09 existir.</Faixa>}
+    <div className="space-y-3" data-legal-do-produto>
+      {legal.pendente && (
+        <Faixa tipo="atencao">
+          Este produto tem usuários reais: falta publicar {legal.faltando.join(' e ')} (RN-09.02).{' '}
+          <LinkCentral href="/legal" className="underline">
+            Abrir Legal e privacidade
+          </LinkCentral>
+        </Faixa>
+      )}
+      <CartaoDaFicha titulo="Documentos legais">
+        {legal.documentos.length ? (
+          <ul className="grid gap-1.5 text-[13px]">
+            {legal.documentos.map((documento) => (
+              <li key={documento.id} className="flex flex-wrap items-center gap-x-2">
+                <LinkCentral href={`/legal/documentos/${documento.id}`} className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline md:min-h-0">
+                  {documento.codigo} · {documento.tipo}
+                </LinkCentral>
+                <span className="text-ink-soft">{documento.situacao}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-ink-soft">Nenhum documento legal deste produto em Legal e privacidade.</p>
+        )}
+      </CartaoDaFicha>
+      <CartaoDaFicha titulo="Inventário de dados">
+        {legal.tratamentos.length ? (
+          <ul className="grid gap-1 text-[13px]">
+            {legal.tratamentos.map((tratamento) => (
+              <li key={tratamento.id}>{tratamento.nome}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-ink-soft">Nenhuma operação deste produto no inventário.</p>
+        )}
+        <LinkCentral href="/legal/privacidade" className="mt-2 inline-flex min-h-11 items-center text-[13px] underline underline-offset-2 md:min-h-0">
+          Abrir o inventário
+        </LinkCentral>
+      </CartaoDaFicha>
     </div>
   );
 }

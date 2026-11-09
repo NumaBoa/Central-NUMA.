@@ -1,4 +1,5 @@
 /** T07.01 a T07.03: portfólio, fila, ficha do produto, objetivos e mudança de estágio (RN-07.08). */
+import { carregarLegalDosProdutos, resumoLegal } from './legal-do-produto';
 import { z } from 'zod';
 import { ErroDeRegra } from '@/dados/erros';
 import { repositorios } from '@/dados/repositorios';
@@ -277,6 +278,8 @@ export type LinhaDoPortfolio = Produto & {
   ofertasEmEstudo: number;
   usuariosAtivos: { competencia: string; valor: number } | null;
   proximasAtividades: Atividade[];
+  /** Do M09: o que falta publicar ou quantos documentos há. */
+  legal: { texto: string; pendente: boolean };
 };
 
 export type DadosDoPortfolio = { linhas: LinhaDoPortfolio[]; marcas: Marca[]; pessoas: Pessoa[]; entidades: Entidade[]; produtos: Produto[] };
@@ -285,6 +288,7 @@ export async function carregarPortfolio(hoje: string = hojeISO()): Promise<Dados
   const [produtos, marcas, pessoas, entidades, ofertas, precos, kpis] = await Promise.all([repositorios.produto.listar({ incluirArquivados: true }), repositorios.marca.listar({ incluirArquivados: true }), repositorios.pessoa.listar({ incluirArquivados: true }), repositorios.entidade.listar({ incluirArquivados: true }), repositorios.oferta.listar(), repositorios.preco_versao.listar(), repositorios.kpi_mensal.listar()]);
   const ativos = produtos.filter((produto) => !produto.arquivado_em);
   const custos = await custosMediosDosProdutos(ativos.map((produto) => produto.id), hoje);
+  const dadosLegais = await carregarLegalDosProdutos();
   const linhas = await Promise.all(
     ativos.map(async (produto) => {
       const dele = ofertas.filter((oferta) => oferta.produto_id === produto.id);
@@ -298,6 +302,7 @@ export async function carregarPortfolio(hoje: string = hojeISO()): Promise<Dados
         ofertasEmEstudo: situacoes.filter((situacao) => situacao === 'em_estudo').length,
         usuariosAtivos: ultimoValorDoKpi(kpis.filter((kpi) => kpi.produto_id === produto.id), KPI_USUARIOS_ATIVOS),
         proximasAtividades: (await atividadesAbertasDoProduto(produto.id, hoje)).slice(0, 3),
+        legal: (({ texto, pendente }) => ({ texto, pendente }))(resumoLegal(produto, dadosLegais.documentos, dadosLegais.tratamentos)),
       };
     }),
   );

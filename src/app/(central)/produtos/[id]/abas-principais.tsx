@@ -171,7 +171,13 @@ export function AbaEstagio({ produtoId, aoMudar }: { produtoId: string; aoMudar:
         ) : (
           <p className="text-[13px] text-ink-soft">Nenhuma decisão ligada a este produto.</p>
         )}
-        <p className="mt-3 text-xs text-ink-soft">A tela completa de reuniões e decisões (T06.09) chega com o M06. Decisão registrada não muda.</p>
+        <p className="mt-3 text-xs text-ink-soft">
+          Reuniões e todas as decisões ficam em{' '}
+          <LinkCentral href="/empresa/reunioes" className="underline underline-offset-2">
+            Empresa › Reuniões e decisões
+          </LinkCentral>
+          . Decisão registrada não muda.
+        </p>
       </CartaoDaFicha>
     </div>
   );

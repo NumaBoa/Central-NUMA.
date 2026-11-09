@@ -414,3 +414,9 @@ export function inscritosPorSemana(inscritos: readonly Pick<Inscrito, 'consentid
   }
   return [...contagem].map(([semana, quantidade]) => ({ semana, quantidade })).sort((a, b) => b.semana.localeCompare(a.semana)).slice(0, limite);
 }
+
+/** As listas de espera de um produto, com a contagem, para os Indicadores da ficha do produto (M07). */
+export async function listasDoProduto(produtoId: string): Promise<{ id: string; nome: string; situacao: ListaEspera['situacao']; contagem: string }[]> {
+  const [listas, inscritos] = await Promise.all([repositorios.lista_espera.listar({ onde: { produto_id: produtoId } }), repositorios.inscrito.listar()]);
+  return listas.map((lista) => ({ id: lista.id, nome: lista.nome, situacao: lista.situacao, contagem: textoDaContagem(contadoresDaLista(inscritos.filter((inscrito) => inscrito.lista_id === lista.id))) }));
+}
