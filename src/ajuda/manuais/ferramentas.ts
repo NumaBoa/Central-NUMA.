@@ -144,7 +144,7 @@ export const MANUAL_FERRAMENTAS: Manual = {
             { termo: 'Assinatura e custos', significado: 'A assinatura em uso, os lançamentos vinculados (previsto e efetivo lado a lado), o histórico de valores e as assinaturas anteriores.' },
             { termo: 'Produtos e rateio', significado: 'Os produtos que usam a ferramenta e a divisão do custo entre eles. O rateio sempre fecha em 100%.' },
             { termo: 'Dados pessoais', significado: 'Se a ferramenta trata dados dos usuários dos apps, quais, onde, e a situação do acordo de tratamento.' },
-            { termo: 'Mais áreas', significado: '**Ativos hospedados**, **Atividades**, **Arquivos** (links do Drive) e **Histórico**.' },
+            { termo: 'Mais áreas', significado: '**Ativos hospedados**, **Atividades**, **Arquivos** (os arquivos da biblioteca ligados à ferramenta e os links do Drive) e **Histórico**.' },
             { termo: 'Próxima cobrança e Último pagamento', significado: 'À direita, em todas as abas. O último pagamento mostra o valor efetivo em reais.' },
           ],
         },

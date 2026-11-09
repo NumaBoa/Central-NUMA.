@@ -93,7 +93,7 @@ export const MANUAL_COMERCIAL: Manual = {
           objetivo: 'Pôr um possível negócio no funil.',
           antes: ['A contraparte cadastrada.'],
           caminho: 'Comercial › Funil › **Nova oportunidade**.',
-          passos: ['Escolha **Contraparte**, **Tipo** e **Origem**.', 'Descreva a **Necessidade**.', 'Informe **Valor estimado**, **Probabilidade**, **Fechamento previsto** e **Responsável**.', 'Salve.'],
+          passos: ['Escolha **Contraparte**, **Tipo** e **Origem**. Se veio de uma campanha, escolha a **Campanha de origem** (opcional, informada à mão).', 'Descreva a **Necessidade**.', 'Informe **Valor estimado**, **Probabilidade**, **Fechamento previsto** e **Responsável**.', 'Salve.'],
           resultado: 'A oportunidade entra no funil, em Novo contato.',
         },
         {
@@ -227,7 +227,7 @@ export const MANUAL_COMERCIAL: Manual = {
       id: 'limitacoes',
       assunto: 'duvidas',
       titulo: 'O que ainda não está disponível',
-      resumo: 'Envio e assinatura eletrônicos, filtros comerciais da lista de contrapartes e campanha de origem no formulário.',
+      resumo: 'Envio e assinatura eletrônicos e filtros comerciais da lista de contrapartes.',
       palavrasChave: ['limitações', 'não tem', 'futuro'],
       disponibilidade: { tipo: 'futuro', quando: 'Fases seguintes e etapa com servidor' },
       blocos: [
@@ -236,7 +236,6 @@ export const MANUAL_COMERCIAL: Manual = {
           itens: [
             { termo: 'Envio por e-mail e aceite eletrônico', significado: 'Hoje o envio e o aceite são registrados à mão, com evidência.' },
             { termo: 'Filtros por contratado, interesse e etapa na lista de contrapartes', significado: 'As colunas existem; os filtros, ainda não.' },
-            { termo: '"Campanha de origem" no formulário da oportunidade', significado: 'Hoje a ligação é feita pela ficha da campanha, em Marca e marketing.' },
           ],
         },
       ],

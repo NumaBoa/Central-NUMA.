@@ -16,8 +16,8 @@
   },
   "comercial": {
     "arquivo": "Manual-Comercial-Numa.pdf",
-    "assinatura": "49667a69",
-    "paginas": 10
+    "assinatura": "eb84b3e5",
+    "paginas": 11
   },
   "contratos": {
     "arquivo": "Manual-Contratos-Numa.pdf",
@@ -31,7 +31,7 @@
   },
   "ferramentas": {
     "arquivo": "Manual-Ferramentas-e-Ativos-Numa.pdf",
-    "assinatura": "29a83b07",
+    "assinatura": "985b080d",
     "paginas": 16
   },
   "financeiro": {
@@ -46,7 +46,7 @@
   },
   "marketing": {
     "arquivo": "Manual-Biblioteca-e-Marketing-Numa.pdf",
-    "assinatura": "a23d5d10",
+    "assinatura": "270639cd",
     "paginas": 13
   },
   "operacao": {

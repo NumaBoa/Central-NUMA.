@@ -322,7 +322,7 @@ export const MANUAL_MARKETING: Manual = {
       id: 'limitacoes',
       assunto: 'duvidas',
       titulo: 'O que ainda não está disponível',
-      resumo: 'Integração com o Drive, miniaturas, permissões por classe e ligações com outros módulos.',
+      resumo: 'Integração com o Drive, miniaturas e permissões por classe.',
       palavrasChave: ['limitações', 'não tem', 'futuro', 'miniatura', 'drive'],
       disponibilidade: { tipo: 'futuro', quando: 'Fases seguintes e etapa com servidor' },
       blocos: [
@@ -331,9 +331,6 @@ export const MANUAL_MARKETING: Manual = {
           itens: [
             { termo: 'Integração com o Drive e miniaturas', significado: 'Hoje o título é digitado e a grade usa ícones.' },
             { termo: 'Permissões por classe', significado: 'Hoje todas veem PUB, INT, FIN e DOC.' },
-            { termo: 'Arquivos da biblioteca na ficha do produto', significado: 'A área Arquivos do produto ainda não lista a biblioteca.' },
-            { termo: '"Campanha de origem" no formulário da oportunidade', significado: 'Hoje a ligação é feita pela ficha da campanha.' },
-            { termo: 'Canais de conteúdo configuráveis', significado: 'Hoje são uma lista fixa.' },
           ],
         },
       ],
