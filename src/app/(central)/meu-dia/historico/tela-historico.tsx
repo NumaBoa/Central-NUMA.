@@ -7,6 +7,7 @@ import { Campo } from '@/componentes/campos/campo';
 import { Selecao } from '@/componentes/campos/selecao';
 import { useCentral } from '@/componentes/layout/central-provider';
 import { LinkCentral } from '@/componentes/layout/protecao-saida';
+import { BotaoComoUsar } from '@/componentes/ajuda/botao-como-usar';
 import { CabecalhoPagina } from '@/componentes/padroes/cabecalho-pagina';
 import { CartoesDeResumo } from '@/componentes/padroes/cartoes-resumo';
 import { EstadoCarregando, EstadoErro, EstadoVazio } from '@/componentes/padroes/estados';
@@ -154,12 +155,14 @@ export function TelaHistorico() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        ondas
         migalhas={['Meu dia', 'Histórico']}
         kicker="Meu dia"
         titulo="Histórico de atividades"
         resumo="O que foi concluído ou cancelado continua por aqui."
         acoes={
           <>
+            <BotaoComoUsar href="/ajuda/meu-dia/historico" />
             <Button asChild variante="secundario">
               <LinkCentral href="/meu-dia">
                 <ArrowLeft aria-hidden />

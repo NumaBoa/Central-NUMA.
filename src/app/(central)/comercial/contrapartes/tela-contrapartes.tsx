@@ -137,6 +137,7 @@ export function TelaContrapartes() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/comercial/contrapartes"
         migalhas={['Central Numa', 'Comercial', 'Contrapartes']}
         kicker="Comercial"
         titulo="Contrapartes"

@@ -201,6 +201,7 @@ export function TelaAreas() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/cadastros/areas"
         migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Áreas']}
         kicker="Configurações"
         titulo="Áreas"

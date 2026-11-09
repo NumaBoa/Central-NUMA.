@@ -188,6 +188,7 @@ export function TelaEtiquetas() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/cadastros/etiquetas"
         migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Etiquetas']}
         kicker="Configurações"
         titulo="Etiquetas"

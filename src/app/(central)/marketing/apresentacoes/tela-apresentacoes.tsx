@@ -42,6 +42,7 @@ export function TelaApresentacoes() {
 
   const cabecalho = (
     <CabecalhoPagina
+      comoUsar="/ajuda/marketing/apresentacoes"
       kicker={KICKER_MARKETING}
       titulo="Apresentações"
       resumo="Reutilize as apresentações já guardadas. São os mesmos itens da biblioteca, sem duplicar."

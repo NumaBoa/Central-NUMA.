@@ -247,6 +247,7 @@ export function TelaClausulas() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/legal/clausulas"
         kicker="Legal e privacidade"
         titulo="Biblioteca de cláusulas"
         resumo="Blocos reutilizáveis, com versão fixa em cada modelo."

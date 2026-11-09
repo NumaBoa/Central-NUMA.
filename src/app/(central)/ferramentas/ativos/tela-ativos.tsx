@@ -161,6 +161,7 @@ export function TelaAtivos() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/ferramentas/cadastrar-ativo"
         kicker="Ferramentas e ativos"
         titulo="Ativos digitais"
         resumo={`${formatarNumero(usados.length)} ${usados.length === 1 ? 'ativo' : 'ativos'}: o que a Numa possui, onde está e em nome de quem.`}

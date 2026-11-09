@@ -39,7 +39,7 @@ export function TelaEstimado() {
   };
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Estimado × realizado" resumo="O que a viabilidade e a proposta estimaram, contra o que foi apontado. É a base da referência histórica da viabilidade (T10.04)." />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/estimado-realizado" kicker="Operação" titulo="Estimado × realizado" resumo="O que a viabilidade e a proposta estimaram, contra o que foi apontado. É a base da referência histórica da viabilidade (T10.04)." />
       <AbasOperacao ativa="estimado" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as implantações." aoTentarDeNovo={consulta.recarregar} />}

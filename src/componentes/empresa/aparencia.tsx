@@ -50,10 +50,23 @@ export function SubabasDeReunioes({ ativa }: { ativa: 'reunioes' | 'decisoes' })
 }
 
 /** Cabeçalho e abas, iguais em todas as telas do módulo. */
+/** "Como usar" de cada aba: o artigo do Manual de Sociedade e empresa sobre ela. */
+const COMO_USAR_DA_ABA: Readonly<Record<AbaDaEmpresa, string>> = {
+  painel: '/ajuda/empresa',
+  socias: '/ajuda/empresa/participacao',
+  acordos: '/ajuda/empresa/acordos',
+  ativos: '/ajuda/empresa/ativos-a-transferir',
+  marcas: '/ajuda/empresa/marcas',
+  constituicao: '/ajuda/empresa/constituicao',
+  entidade: '/ajuda/empresa/entidade',
+  obrigacoes: '/ajuda/empresa/obrigacoes',
+  reunioes: '/ajuda/empresa/reunioes',
+};
+
 export function MolduraDaEmpresa({ ativa, titulo, resumo, acoes, children }: { ativa: AbaDaEmpresa; titulo: string; resumo?: ReactNode; acoes?: ReactNode; children: ReactNode }) {
   return (
     <div className="space-y-5">
-      <CabecalhoPagina kicker="Empresa" titulo={titulo} {...(resumo ? { resumo } : {})} {...(acoes ? { acoes } : {})} />
+      <CabecalhoPagina kicker="Empresa" titulo={titulo} comoUsar={COMO_USAR_DA_ABA[ativa]} {...(resumo ? { resumo } : {})} {...(acoes ? { acoes } : {})} />
       <AbasEmpresa ativa={ativa} />
       {children}
     </div>

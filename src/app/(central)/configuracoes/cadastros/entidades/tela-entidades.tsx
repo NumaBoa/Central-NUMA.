@@ -265,6 +265,7 @@ export function TelaEntidades() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/cadastros/entidades"
         migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Entidades']}
         kicker="Configurações"
         titulo="Entidades"

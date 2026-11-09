@@ -85,6 +85,7 @@ export function TelaContas() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/contas-e-saldos"
         kicker="Financeiro"
         titulo="Contas e saldos"
         resumo="Onde está o dinheiro da Numa. Banco e caixa têm saldo; cartão e conta pessoal de sócia, só o extrato."

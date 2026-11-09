@@ -61,6 +61,7 @@ export function TelaFluxo() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/fluxo-de-caixa"
         kicker="Financeiro"
         titulo="Fluxo de caixa"
         resumo="Mês a mês, em reais: o realizado pelas baixas e o projetado pelo que falta pagar e receber."

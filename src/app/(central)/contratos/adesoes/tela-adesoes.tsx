@@ -105,6 +105,7 @@ export function TelaAdesoes() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/contratos/adesao-padrao"
         kicker="Contratos"
         titulo="Adesão padrão"
         resumo="Assinantes que aceitam os termos online, agregados por oferta, termos e canal."

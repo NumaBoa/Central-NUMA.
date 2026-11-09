@@ -84,6 +84,7 @@ export function TelaTransferencias() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/transferencias"
         kicker="Financeiro"
         titulo="Transferências"
         resumo="Dinheiro que muda de conta. Sai de uma, entra na outra, e não conta como receita nem despesa."

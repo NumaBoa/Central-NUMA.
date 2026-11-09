@@ -49,7 +49,7 @@ export function TelaIncidentes() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Incidentes de disponibilidade" resumo="Confiança: sistema de pé. Quedas, impacto, causa e comunicação aos clientes." acoes={botaoNovo} />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/incidentes" kicker="Operação" titulo="Incidentes de disponibilidade" resumo="Confiança: sistema de pé. Quedas, impacto, causa e comunicação aos clientes." acoes={botaoNovo} />
       <AbasOperacao ativa="incidentes" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler os incidentes." aoTentarDeNovo={consulta.recarregar} />}

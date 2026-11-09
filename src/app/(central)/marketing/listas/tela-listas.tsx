@@ -119,6 +119,7 @@ export function TelaListas() {
 
   const cabecalho = (
     <CabecalhoPagina
+      comoUsar="/ajuda/marketing/listas-de-espera"
       kicker={KICKER_MARKETING}
       titulo="Listas de espera"
       resumo="Inscritos, consentimentos e acompanhamento por produto. A Central não envia mensagens."

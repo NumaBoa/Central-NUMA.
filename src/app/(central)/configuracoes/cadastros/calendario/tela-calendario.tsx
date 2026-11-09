@@ -226,6 +226,7 @@ export function TelaCalendario() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/cadastros/calendario"
         migalhas={['Central Numa', 'Configurações', 'Cadastros base', 'Calendário']}
         kicker="Configurações"
         titulo="Calendário e feriados"

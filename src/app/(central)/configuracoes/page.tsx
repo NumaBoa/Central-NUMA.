@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Configurações gerais' };
 export default function ConfiguracoesGerais() {
   return (
     <>
-      <CabecalhoPagina migalhas={['Central Numa', 'Configurações', 'Geral']} kicker="Configurações" titulo="Configurações gerais" resumo="Dados e preferências da Central Numa." />
+      <CabecalhoPagina comoUsar="/ajuda/cadastros/configuracoes-gerais" migalhas={['Central Numa', 'Configurações', 'Geral']} kicker="Configurações" titulo="Configurações gerais" resumo="Dados e preferências da Central Numa." />
       <AbasConfiguracoes ativa="geral" />
       <PainelGeral />
     </>

@@ -46,7 +46,7 @@ export function TelaRenovacao() {
     ) : null;
   return (
     <>
-      <CabecalhoPagina kicker="Contratos" titulo="Renovação" resumo="A data-limite é o fim da vigência menos o aviso prévio. Renovação não é presumida." />
+      <CabecalhoPagina comoUsar="/ajuda/contratos/renovacao" kicker="Contratos" titulo="Renovação" resumo="A data-limite é o fim da vigência menos o aviso prévio. Renovação não é presumida." />
       <AbasContratos ativa="renovacao" />
       <div className="mt-5">
         {consulta.estado === 'erro' && <EstadoErro aoTentarDeNovo={consulta.recarregar} />}

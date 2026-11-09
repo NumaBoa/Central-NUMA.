@@ -1,0 +1,67 @@
+{
+  "meu-dia": {
+    "arquivo": "Manual-Meu-Dia-Numa.pdf",
+    "assinatura": "955540d5",
+    "paginas": 29
+  },
+  "acesso": {
+    "arquivo": "Manual-Acesso-e-Auditoria-Numa.pdf",
+    "assinatura": "764e1bbb",
+    "paginas": 7
+  },
+  "cadastros": {
+    "arquivo": "Manual-Cadastros-e-Configuracoes-Numa.pdf",
+    "assinatura": "13e6d09d",
+    "paginas": 16
+  },
+  "comercial": {
+    "arquivo": "Manual-Comercial-Numa.pdf",
+    "assinatura": "49667a69",
+    "paginas": 10
+  },
+  "contratos": {
+    "arquivo": "Manual-Contratos-Numa.pdf",
+    "assinatura": "bccdbd59",
+    "paginas": 13
+  },
+  "empresa": {
+    "arquivo": "Manual-Sociedade-e-Empresa-Numa.pdf",
+    "assinatura": "7a0c7446",
+    "paginas": 15
+  },
+  "ferramentas": {
+    "arquivo": "Manual-Ferramentas-e-Ativos-Numa.pdf",
+    "assinatura": "29a83b07",
+    "paginas": 16
+  },
+  "financeiro": {
+    "arquivo": "Manual-Financeiro-Numa.pdf",
+    "assinatura": "58cd2e2f",
+    "paginas": 26
+  },
+  "legal": {
+    "arquivo": "Manual-Legal-e-Privacidade-Numa.pdf",
+    "assinatura": "c01d1b8c",
+    "paginas": 11
+  },
+  "marketing": {
+    "arquivo": "Manual-Biblioteca-e-Marketing-Numa.pdf",
+    "assinatura": "a23d5d10",
+    "paginas": 13
+  },
+  "operacao": {
+    "arquivo": "Manual-Operacao-Numa.pdf",
+    "assinatura": "8e7577f2",
+    "paginas": 13
+  },
+  "produtos": {
+    "arquivo": "Manual-Produtos-e-Precificacao-Numa.pdf",
+    "assinatura": "b4e421e5",
+    "paginas": 12
+  },
+  "relatorios": {
+    "arquivo": "Manual-Visao-Geral-e-Relatorios-Numa.pdf",
+    "assinatura": "7b555ca9",
+    "paginas": 8
+  }
+}

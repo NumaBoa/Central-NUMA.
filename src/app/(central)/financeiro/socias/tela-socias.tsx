@@ -301,6 +301,7 @@ export function TelaSocias() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/financeiro/aporte"
         kicker="Financeiro"
         titulo="Sócias"
         resumo="Quanto cada sócia pôs na Numa, quanto tirou e o que ainda tem a receber."

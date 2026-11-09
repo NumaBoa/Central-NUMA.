@@ -48,7 +48,7 @@ export function TelaPropostas() {
   ];
   return (
     <>
-      <CabecalhoPagina kicker="Comercial" titulo="Propostas" resumo="Nova proposta nasce na ficha da oportunidade." />
+      <CabecalhoPagina comoUsar="/ajuda/comercial/proposta" kicker="Comercial" titulo="Propostas" resumo="Nova proposta nasce na ficha da oportunidade." />
       <AbasComercial ativa="propostas" />
       <div className="mt-5 space-y-4">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as propostas." aoTentarDeNovo={consulta.recarregar} />}

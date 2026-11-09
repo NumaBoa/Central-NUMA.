@@ -107,6 +107,7 @@ export function TelaMarcas() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/produtos/cadastrar-produto"
         migalhas={['Central Numa', 'Produtos', 'Marcas']}
         kicker="Produtos"
         titulo="Marcas e produtos"

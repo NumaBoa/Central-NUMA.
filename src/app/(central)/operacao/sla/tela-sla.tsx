@@ -86,7 +86,7 @@ export function TelaSla() {
   const novaExcecao = <Button onClick={() => setEdicao({ alvo: null, titulo: 'Nova exceção de contrato', regras: [], oferta: null })}><Plus aria-hidden />Exceção de contrato</Button>;
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Regras de SLA" resumo="Por oferta, o padrão; por contrato, a exceção. O que a oferta promete fica no M07 e só é lido aqui." acoes={novaExcecao} />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/regras-sla" kicker="Operação" titulo="Regras de SLA" resumo="Por oferta, o padrão; por contrato, a exceção. O que a oferta promete fica no M07 e só é lido aqui." acoes={novaExcecao} />
       <AbasOperacao ativa="sla" />
       <div className="mt-5 space-y-6">
         {consulta.estado === 'erro' && <EstadoErro titulo="Não deu para ler as regras." aoTentarDeNovo={consulta.recarregar} />}

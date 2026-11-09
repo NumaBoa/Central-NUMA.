@@ -82,7 +82,7 @@ export function TelaHoras() {
 
   return (
     <>
-      <CabecalhoPagina kicker="Operação" titulo="Horas" resumo="O esforço real de cada produto e contrato. A média apontada alimenta as horas do simulador de preço (D20)." />
+      <CabecalhoPagina comoUsar="/ajuda/operacao/apontar-horas" kicker="Operação" titulo="Horas" resumo="O esforço real de cada produto e contrato. A média apontada alimenta as horas do simulador de preço (D20)." />
       <AbasOperacao ativa="horas" />
       <div className="mt-5 space-y-4">
         {dados && <LancamentoRapido dados={dados} pessoaId={pessoa.id} aoSalvar={consulta.recarregar} />}

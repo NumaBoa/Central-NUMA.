@@ -183,6 +183,7 @@ export function TelaFunil() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/comercial"
         kicker="Comercial"
         titulo="Funil comercial"
         resumo="Do primeiro contato ao encerramento. Ganhar não cria receita: ela vem do contrato."

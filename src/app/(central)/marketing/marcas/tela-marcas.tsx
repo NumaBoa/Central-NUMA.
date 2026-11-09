@@ -398,7 +398,7 @@ export function TelaMarcas() {
   const dados = consulta.dados;
   const escolhida = parametros.get('marca');
 
-  const cabecalho = <CabecalhoPagina kicker={KICKER_MARKETING} titulo="Identidade das marcas" resumo="Uma referência clara para cada marca. Marcas e produtos são cadastrados em Configurações." />;
+  const cabecalho = <CabecalhoPagina comoUsar="/ajuda/marketing/identidade" kicker={KICKER_MARKETING} titulo="Identidade das marcas" resumo="Uma referência clara para cada marca. Marcas e produtos são cadastrados em Configurações." />;
 
   if (consulta.estado === 'carregando') return <EstadoCarregando />;
   if (consulta.estado === 'erro' || !dados) {

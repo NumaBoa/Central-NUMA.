@@ -146,6 +146,7 @@ export function TelaDocumentosLegais() {
   return (
     <>
       <CabecalhoPagina
+        comoUsar="/ajuda/legal"
         kicker="Legal e privacidade"
         titulo="Documentos legais"
         resumo={dados ? `${dados.documentos.length} ${dados.documentos.length === 1 ? 'documento' : 'documentos'}` : undefined}

@@ -260,6 +260,7 @@ export function TelaPortfolio() {
   return (
     <div className="space-y-5">
       <CabecalhoPagina
+        comoUsar="/ajuda/produtos"
         kicker="Produtos"
         titulo="Portfólio de produtos"
         resumo={`${formatarNumero(dados.linhas.length)} produtos · ${emUso} em uso · ${naFila} na fila`}
