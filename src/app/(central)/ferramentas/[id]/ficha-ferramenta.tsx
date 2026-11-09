@@ -1,5 +1,6 @@
 'use client';
 
+import { ArquivosDaBiblioteca } from '@/componentes/marketing/arquivos-da-biblioteca';
 import { EntradaData } from '@/componentes/campos/entrada-data';
 import { CampoEtiquetas } from '@/componentes/campos/etiquetas';
 import { definirEtiquetasDoRegistro } from '@/dominio/etiquetas';
@@ -700,6 +701,8 @@ function AbaArquivos({ id, somenteLeitura }: { id: string; somenteLeitura: boole
 
   return (
     <div className="grid gap-4">
+      <ArquivosDaBiblioteca tipo="ferramenta" id={id} nome="esta ferramenta" />
+      <h3 className="text-sm font-semibold">Links do Drive</h3>
       {consulta.dados?.length ? (
         <ul className="grid gap-1">
           {consulta.dados.map((anexo) => (

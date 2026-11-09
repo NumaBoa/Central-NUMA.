@@ -6,7 +6,7 @@ import { esquecerMetaEmMemoria } from '@/dados/meta';
 import { repositorios } from '@/dados/repositorios';
 import type { Contraparte } from '@/dados/tipos/contraparte';
 import { sincronizarAlertasComerciais } from './alertas-f1';
-import { avancarEtapa, carregarComercial, carregarProposta, criarProposta, emitirProposta, encerrarOportunidade, expirarPropostas, ITEM_VAZIO, montarDocumentoDaProposta, novaVersaoDaProposta, reabrirValidade, registrarAceite, registrarEnvio, registrarProximaAcao, registrarRecusa, salvarItemDaProposta, salvarOportunidade, salvarVersaoDaProposta, semProximaAcao, totaisDosItens, linhasDosTotais, formularioOportunidadeVazio, totaisDaColuna } from './comercial';
+import { avancarEtapa, formularioDaOportunidade, carregarComercial, carregarProposta, criarProposta, emitirProposta, encerrarOportunidade, expirarPropostas, ITEM_VAZIO, montarDocumentoDaProposta, novaVersaoDaProposta, reabrirValidade, registrarAceite, registrarEnvio, registrarProximaAcao, registrarRecusa, salvarItemDaProposta, salvarOportunidade, salvarVersaoDaProposta, semProximaAcao, totaisDosItens, linhasDosTotais, formularioOportunidadeVazio, totaisDaColuna } from './comercial';
 import { aprovarParaEnvio, arquivoAssinadoValido, ativarProgramacao, calcularPrazo, carregarContrato, carregarContratos, converterPropostaEmContrato, correcaoAdministrativa, criarAditivo, criarContrato, dataLimiteDaRenovacao, decidirRenovacao, definirSignatarios, devolverParaRascunho, diferencasDoAssinado, emitirContrato, encerrarContrato, enviarParaRevisao, indicadoresDosContratos, montarDocumentoDoContrato, previaDaProgramacao, previaDoEncerramento, registrarAssinatura, registrarEnvioParaAssinatura, registrarEvento, salvarItemDoContrato, salvarRegraDePrazo, salvarVersao, situacaoDaVigencia, temCiclo } from './contratos';
 import { criarContratoSaas, dadosSaasPadrao, errosDosLimites, gerarTermosDeAssinatura, montarDocumentoSaas, salvarDadosSaas, criarRelacaoAdesao } from './contrato-saas';
 import { documentosDoRegistro, emissaoDoSnapshot } from './documentos-emitidos';
@@ -216,6 +216,16 @@ describe('M10 e M11', () => {
       await registrarAssinatura(contrato.id, { datas: Object.fromEntries(signatarios.map((linha) => [linha.id, HOJE])), arquivoUrl: DRIVE, evidenciaUrl: DRIVE }, HOJE);
       return (await carregarContrato(contrato.id, HOJE))!;
     }
+
+    it('RN-08.12: a campanha de origem vem do formulário, volta para ele e pode sair', async () => {
+      const contraparte = await contraparteCompleta();
+      const campanha = (await repositorios.campanha.listar())[0]!;
+      const criada = await salvarOportunidade({ ...formularioOportunidadeVazio(ID_KIMBERLY, contraparte.id), titulo: 'Com campanha', produtos: [ID_PRODUTO_KIPI], campanha_id: campanha.id }, undefined, HOJE);
+      expect(criada.campanha_id).toBe(campanha.id);
+      const ligacoes = { produtos: [ID_PRODUTO_KIPI], participantes: [], contatos: [] };
+      expect(formularioDaOportunidade(criada, ligacoes).campanha_id).toBe(campanha.id);
+      expect((await salvarOportunidade({ ...formularioDaOportunidade(criada, ligacoes), campanha_id: '' }, criada.id, HOJE)).campanha_id).toBeNull();
+    });
 
     it('RN-10.13: converter de novo a mesma versão abre o mesmo contrato', async () => {
       const { proposta } = await propostaAceita();

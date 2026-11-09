@@ -16,6 +16,7 @@ import { EtiquetaSituacao, type TipoSituacao } from '@/componentes/padroes/etiqu
 import { Faixa } from '@/componentes/padroes/faixa';
 import { ListaHistorico } from '@/componentes/padroes/historico';
 import { JanelaFormulario, type ErroDeCampo } from '@/componentes/padroes/janela-formulario';
+import { ArquivosDaBiblioteca } from '@/componentes/marketing/arquivos-da-biblioteca';
 import { CartaoDaFicha, Indisponivel } from '@/componentes/produtos/aparencia';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -263,7 +264,7 @@ export function AreaLegal({ temUsuariosReais }: { temUsuariosReais: boolean }) {
   );
 }
 
-export function AreaMarca({ marca }: { marca: Marca | null }) {
+export function AreaMarca({ marca, produto }: { marca: Marca | null; produto: { id: string; nome: string } }) {
   return (
     <div className="space-y-3">
       <CartaoDaFicha title-id="marca" titulo="Identidade da marca">
@@ -300,7 +301,9 @@ export function AreaMarca({ marca }: { marca: Marca | null }) {
           <p className="text-[13px] text-ink-soft">Marca não encontrada.</p>
         )}
       </CartaoDaFicha>
-      <Indisponivel titulo="Arquivos">A biblioteca (M08) ainda não foi construída.</Indisponivel>
+      <CartaoDaFicha titulo="Arquivos">
+        <ArquivosDaBiblioteca tipo="produto" id={produto.id} nome={produto.nome} />
+      </CartaoDaFicha>
     </div>
   );
 }

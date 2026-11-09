@@ -98,6 +98,26 @@ export function FormularioOportunidade({ dados, oportunidade, ligacoes, contrapa
         />
         <Controller
           control={control}
+          name="campanha_id"
+          render={({ field }) => (
+            <Campo id="op-campanha" rotulo="Campanha de origem" ajuda="Opcional. Informada à mão: a Central não atribui sozinha.">
+              {(controle) => (
+                <Selecao {...controle} {...field}>
+                  <option value="">Nenhuma</option>
+                  {dados.campanhas
+                    .filter((campanha) => campanha.situacao !== 'cancelada' || campanha.id === field.value)
+                    .map((campanha) => (
+                      <option key={campanha.id} value={campanha.id}>
+                        {campanha.codigo} · {campanha.nome}
+                      </option>
+                    ))}
+                </Selecao>
+              )}
+            </Campo>
+          )}
+        />
+        <Controller
+          control={control}
           name="etapa"
           render={({ field }) => (
             <Campo id="op-etapa" rotulo="Etapa" obrigatorio>

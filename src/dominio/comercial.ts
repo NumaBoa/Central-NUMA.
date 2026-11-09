@@ -61,6 +61,8 @@ export const esquemaFormularioOportunidade = z
     participantes: z.array(z.string()),
     contatos: z.array(z.string()),
     necessidade: z.string().trim(),
+    /** RN-08.12: campanha de origem, informada à mão (sem atribuição automática, que é da F2). */
+    campanha_id: z.string(),
   })
   .superRefine((dados, contexto) => {
     const falha = (campo: string, message: string) => contexto.addIssue({ code: 'custom', path: [campo], message });
@@ -73,12 +75,12 @@ export const esquemaFormularioOportunidade = z
 export type FormularioOportunidade = z.infer<typeof esquemaFormularioOportunidade>;
 
 export function formularioOportunidadeVazio(responsavelId: string, contraparteId = ''): FormularioOportunidade {
-  return { contraparte_id: contraparteId, titulo: '', produtos: [], tipo: 'assinatura', origem: 'indicacao', valor_estimado: '', valor_periodicidade: '', probabilidade: '', fechamento_previsto: '', etapa: 'novo', responsavel_id: responsavelId, participantes: [], contatos: [], necessidade: '' };
+  return { contraparte_id: contraparteId, titulo: '', produtos: [], tipo: 'assinatura', origem: 'indicacao', valor_estimado: '', valor_periodicidade: '', probabilidade: '', fechamento_previsto: '', etapa: 'novo', responsavel_id: responsavelId, participantes: [], contatos: [], necessidade: '', campanha_id: '' };
 }
 
 export function formularioDaOportunidade(oportunidade: Oportunidade, ligacoes: { produtos: string[]; participantes: string[]; contatos: string[] }): FormularioOportunidade {
   const numero = (valor: number | null) => (valor === null ? '' : valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 }));
-  return { contraparte_id: oportunidade.contraparte_id, titulo: oportunidade.titulo, produtos: ligacoes.produtos, tipo: oportunidade.tipo, origem: oportunidade.origem, valor_estimado: numero(oportunidade.valor_estimado), valor_periodicidade: oportunidade.valor_periodicidade ?? '', probabilidade: numero(oportunidade.probabilidade), fechamento_previsto: oportunidade.fechamento_previsto ?? '', etapa: ETAPAS_ABERTAS.includes(oportunidade.etapa) ? (oportunidade.etapa as FormularioOportunidade['etapa']) : 'negociacao', responsavel_id: oportunidade.responsavel_id, participantes: ligacoes.participantes, contatos: ligacoes.contatos, necessidade: oportunidade.necessidade ?? '' };
+  return { contraparte_id: oportunidade.contraparte_id, titulo: oportunidade.titulo, produtos: ligacoes.produtos, tipo: oportunidade.tipo, origem: oportunidade.origem, valor_estimado: numero(oportunidade.valor_estimado), valor_periodicidade: oportunidade.valor_periodicidade ?? '', probabilidade: numero(oportunidade.probabilidade), fechamento_previsto: oportunidade.fechamento_previsto ?? '', etapa: ETAPAS_ABERTAS.includes(oportunidade.etapa) ? (oportunidade.etapa as FormularioOportunidade['etapa']) : 'negociacao', responsavel_id: oportunidade.responsavel_id, participantes: ligacoes.participantes, contatos: ligacoes.contatos, necessidade: oportunidade.necessidade ?? '' , campanha_id: oportunidade.campanha_id ?? '' };
 }
 
 async function sincronizarLigacoes<R extends { id: string; oportunidade_id: string }>(repositorio: { listar: (f: { onde: Partial<R> }) => Promise<R[]>; arquivar: (id: string) => Promise<unknown>; criar: (dados: never) => Promise<unknown> }, oportunidadeId: string, campo: keyof R, desejados: readonly string[], extra: Record<string, unknown> = {}) {
@@ -108,10 +110,11 @@ export async function salvarOportunidade(formulario: FormularioOportunidade, id?
       fechamento_previsto: formulario.fechamento_previsto || null,
       responsavel_id: formulario.responsavel_id,
       necessidade: formulario.necessidade || null,
+      campanha_id: formulario.campanha_id || null,
     };
     const oportunidade = atual
       ? await repositorios.oportunidade.atualizar(atual.id, { ...dados, ...(atual.etapa !== formulario.etapa ? { etapa: formulario.etapa, etapa_desde: hoje } : {}) })
-      : await repositorios.oportunidade.criar({ ...dados, campanha_id: null, moeda: 'BRL', etapa: formulario.etapa, etapa_desde: hoje, motivo_perda: null, motivo_perda_texto: null, ganha_em: null, perdida_em: null, adesao_padrao: false });
+      : await repositorios.oportunidade.criar({ ...dados, moeda: 'BRL', etapa: formulario.etapa, etapa_desde: hoje, motivo_perda: null, motivo_perda_texto: null, ganha_em: null, perdida_em: null, adesao_padrao: false });
     await sincronizarLigacoes(repositorios.oportunidade_produto, oportunidade.id, 'produto_id', formulario.produtos);
     await sincronizarLigacoes(repositorios.oportunidade_participante, oportunidade.id, 'pessoa_id', formulario.participantes.filter((pessoa) => pessoa !== formulario.responsavel_id));
     await sincronizarLigacoes(repositorios.oportunidade_contato, oportunidade.id, 'pessoa_id', formulario.contatos, { papel: null });
@@ -548,15 +551,16 @@ export async function expirarPropostas(hoje: string = hojeISO()): Promise<number
 
 export type LinhaDaOportunidade = Oportunidade & { produtos: string[]; proxima: Atividade | null; propostas: number; aceita: boolean };
 
-export type DadosComerciais = { oportunidades: LinhaDaOportunidade[]; contrapartes: Contraparte[]; produtos: Produto[]; pessoas: Pessoa[] };
+export type DadosComerciais = { oportunidades: LinhaDaOportunidade[]; contrapartes: Contraparte[]; produtos: Produto[]; pessoas: Pessoa[]; campanhas: { id: string; codigo: string; nome: string; situacao: string }[] };
 
 export async function carregarComercial(): Promise<DadosComerciais> {
-  const [oportunidades, ligacoes, vinculos, atividades, propostas, contrapartes, produtos, pessoas] = await Promise.all([repositorios.oportunidade.listar(), repositorios.oportunidade_produto.listar(), repositorios.vinculo.listar(), repositorios.atividade.listar(), repositorios.proposta.listar(), repositorios.contraparte.listar({ incluirArquivados: true }), repositorios.produto.listar({ incluirArquivados: true }), repositorios.pessoa.listar({ incluirArquivados: true })]);
+  const [campanhas, oportunidades, ligacoes, vinculos, atividades, propostas, contrapartes, produtos, pessoas] = await Promise.all([repositorios.campanha.listar({ incluirArquivados: true }), repositorios.oportunidade.listar(), repositorios.oportunidade_produto.listar(), repositorios.vinculo.listar(), repositorios.atividade.listar(), repositorios.proposta.listar(), repositorios.contraparte.listar({ incluirArquivados: true }), repositorios.produto.listar({ incluirArquivados: true }), repositorios.pessoa.listar({ incluirArquivados: true })]);
   const atividadesDa = (id: string) => {
     const ids = new Set(vinculos.flatMap((vinculo) => (vinculo.origem_tipo === 'atividade' && vinculo.destino_tipo === 'oportunidade' && vinculo.destino_id === id ? [vinculo.origem_id] : vinculo.destino_tipo === 'atividade' && vinculo.origem_tipo === 'oportunidade' && vinculo.origem_id === id ? [vinculo.destino_id] : [])));
     return atividades.filter((atividade) => ids.has(atividade.id));
   };
   return {
+    campanhas: campanhas.map((campanha) => ({ id: campanha.id, codigo: campanha.codigo, nome: campanha.nome, situacao: campanha.situacao })),
     oportunidades: oportunidades.map((oportunidade) => {
       const proprias = propostas.filter((proposta) => proposta.oportunidade_id === oportunidade.id);
       return { ...oportunidade, produtos: ligacoes.filter((ligacao) => ligacao.oportunidade_id === oportunidade.id).map((ligacao) => ligacao.produto_id), proxima: proximaAcao(atividadesDa(oportunidade.id)), propostas: proprias.length, aceita: proprias.some((proposta) => proposta.versao_aceita_id) };

@@ -413,7 +413,7 @@ export function FichaDoProduto() {
           <AbaContrato produtoId={linha.id} />
         </TabsContent>
         <TabsContent value="marca" className="mt-4 text-sm">
-          <AreaMarca marca={linha.marca} />
+          <AreaMarca marca={linha.marca} produto={linha} />
         </TabsContent>
         <TabsContent value="atividades" className="mt-4 text-sm">
           <AreaAtividades produtoId={linha.id} />
