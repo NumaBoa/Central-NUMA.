@@ -31,9 +31,11 @@ class ArmazenamentoEmMemoria implements Driver {
 
 const memoria = new ArmazenamentoEmMemoria();
 let driverDeTeste: Driver | null = null;
+let driverPrincipal: Driver | null = null;
 
 export function driver(): Driver {
   if (driverDeTeste) return driverDeTeste;
+  if (driverPrincipal) return driverPrincipal;
   try {
     if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
   } catch {
@@ -46,6 +48,11 @@ export function driver(): Driver {
 export function usarDriverDeTeste(novo: Driver | null) {
   driverDeTeste = novo;
 }
+/** Com o Supabase, os dados passam a vir do banco (dados/nuvem). Sem ele, segue o localStorage. */
+export function usarDriverPrincipal(novo: Driver | null) {
+  driverPrincipal = novo;
+}
+
 export function criarArmazenamentoEmMemoria(): Driver {
   return new ArmazenamentoEmMemoria();
 }
@@ -57,6 +64,11 @@ export function chaveDaTabela(tabela: string): string {
 const ouvintes = new Set<() => void>();
 function avisarMudanca() {
   ouvintes.forEach((avisar) => avisar());
+}
+
+/** Outra pessoa gravou no banco: as telas abertas leem de novo. */
+export function avisarMudancaExterna() {
+  avisarMudanca();
 }
 
 /** Avisa quando qualquer tabela muda, nesta aba ou em outra aba do mesmo navegador. */

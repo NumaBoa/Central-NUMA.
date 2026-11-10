@@ -72,6 +72,12 @@ export function esquecerMetaEmMemoria() {
   atual = null;
 }
 
+/** Outra pessoa mudou a parte do meta que vale para a Numa inteira (dados/nuvem). */
+export function recarregarMeta() {
+  atual = null;
+  ouvintes.forEach((avisar) => avisar());
+}
+
 /** Avisa sobre mudanças nesta aba e nas outras abas do mesmo navegador. */
 export function assinarMeta(avisar: () => void): () => void {
   const aoMudarEmOutraAba = (evento: StorageEvent) => {

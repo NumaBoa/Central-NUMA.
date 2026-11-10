@@ -2,6 +2,7 @@
 
 import { ChevronDown } from 'lucide-react';
 import { Selecao } from '@/componentes/campos/selecao';
+import { BotaoSair } from '@/componentes/nuvem/portao-nuvem';
 import { Avatar } from '@/componentes/padroes/pessoa';
 import { useCentral } from './central-provider';
 
@@ -34,6 +35,7 @@ export function SeletorPessoaLateral() {
           <ChevronDown className="pointer-events-none absolute top-1/2 right-1 size-4 -translate-y-1/2 text-ink" aria-hidden />
         </span>
       </div>
+      <BotaoSair compacto className="mt-1 w-full justify-start px-2.5 trilho:justify-center trilho:px-0" />
     </div>
   );
 }
@@ -49,6 +51,7 @@ export function SeletorPessoaCelular() {
       <Selecao id="voce-e-celular" value={pessoa.id} onChange={(evento) => escolherPessoa(evento.target.value)}>
         <Opcoes />
       </Selecao>
+      <BotaoSair variante="secundario" className="mt-3 w-full" />
     </div>
   );
 }
