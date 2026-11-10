@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/componentes/ui/dialog';
 import { Skeleton } from '@/componentes/ui/skeleton';
 import { mensagemDoErro } from '@/dados/erros';
 import { assinarMeta, lerMeta, metaDoServidor } from '@/dados/meta';
+import { nuvemConfigurada } from '@/dados/nuvem/config';
 import { useConsulta, type ResultadoConsulta } from '@/dados/use-consulta';
 import { backupAtrasado } from '@/dominio/backup';
 import { analisarArquivo, contagensAtuais, exportarTudo, importarComCopia, limparExemplos, restaurarExemplos, resumoDosDados, type AnaliseDoArquivo, type ResumoDosDados } from '@/dominio/dados';
@@ -25,6 +26,10 @@ import { baixarArquivo } from '@/lib/baixar-arquivo';
 import { formatarData, formatarDataHora, formatarHora, formatarNumero, formatarTamanho } from '@/lib/formatacao';
 
 const LINHAS_DO_HISTORICO = 10;
+
+/** No Supabase, os dados são da Numa inteira, e não deste navegador. */
+const NA_NUVEM = nuvemConfigurada();
+const ONDE = NA_NUVEM ? 'da Central' : 'deste navegador';
 
 function LinhaAcao({ titulo, texto, children }: { titulo: string; texto: ReactNode; children: ReactNode }) {
   return (
@@ -49,21 +54,21 @@ function Resumo({ resumo }: { resumo: ResultadoConsulta<ResumoDosDados> & { reca
     );
   }
   if (resumo.estado === 'erro') {
-    return <EstadoErro titulo="Não deu para ler os dados deste navegador." texto="Eles podem estar danificados. Importe um backup ou restaure os exemplos, logo abaixo." aoTentarDeNovo={resumo.recarregar} />;
+    return <EstadoErro titulo={`Não deu para ler os dados ${ONDE}.`} texto={NA_NUVEM ? 'Eles podem estar danificados. Importe um backup, logo abaixo.' : 'Eles podem estar danificados. Importe um backup ou restaure os exemplos, logo abaixo.'} aoTentarDeNovo={resumo.recarregar} />;
   }
 
   const { registros, exemplos, usoEmCaracteres, ultimoBackup } = resumo.dados;
   return (
-    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3.5">
+    <div className={NA_NUVEM ? 'grid grid-cols-2 gap-2.5 md:gap-3.5' : 'grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3.5'}>
       <Indicador
-        className="col-span-2 md:col-span-1"
+        className={NA_NUVEM ? undefined : 'col-span-2 md:col-span-1'}
         titulo="Último backup"
         valor={ultimoBackup ? formatarData(ultimoBackup.em) : 'Nenhum'}
         contexto={ultimoBackup ? `às ${formatarHora(ultimoBackup.em)}${ultimoBackup.por ? `, por ${ultimoBackup.por}` : ''}` : 'Exporte a primeira cópia.'}
         situacao={backupAtrasado(ultimoBackup?.em ?? null) && <EtiquetaSituacao tipo="atencao">Há mais de 8 dias</EtiquetaSituacao>}
       />
       <Indicador titulo="Registros" valor={formatarNumero(registros)} contexto={exemplos ? `${formatarNumero(exemplos)} de exemplo` : 'Nenhum de exemplo'} />
-      <Indicador titulo="Armazenamento" valor={formatarTamanho(usoEmCaracteres)} contexto="de cerca de 5 MB" />
+      {!NA_NUVEM && <Indicador titulo="Armazenamento" valor={formatarTamanho(usoEmCaracteres)} contexto="de cerca de 5 MB" />}
     </div>
   );
 }
@@ -141,19 +146,23 @@ export function PainelDados() {
 
   return (
     <div className="mt-7 grid max-w-[880px] grid-cols-1 gap-4 md:gap-5">
-      <Faixa tipo="atencao">
-        Os dados ficam só neste navegador, nesta máquina. Limpar o navegador apaga tudo, e celular e computador têm dados separados. Por isso, nesta etapa a Central ainda não é o registro oficial da Numa.
-      </Faixa>
+      {NA_NUVEM ? (
+        <Faixa>Os dados ficam no servidor da Central e são os mesmos para todas as pessoas com acesso, no computador e no celular.</Faixa>
+      ) : (
+        <Faixa tipo="atencao">
+          Os dados ficam só neste navegador, nesta máquina. Limpar o navegador apaga tudo, e celular e computador têm dados separados. Por isso, nesta etapa a Central ainda não é o registro oficial da Numa.
+        </Faixa>
+      )}
 
       <Resumo resumo={resumo} />
 
       <Secao icone={Database} titulo="Cópia dos dados" descricao="Leve os dados para outro navegador ou guarde no Drive.">
-        <LinhaAcao titulo="Exportar tudo" texto="Baixa um arquivo JSON com todos os dados deste navegador. Salve no Drive da Numa, em Backups/Central.">
+        <LinhaAcao titulo="Exportar tudo" texto={`Baixa um arquivo JSON com todos os dados ${ONDE}. Salve no Drive da Numa, em Backups/Central.`}>
           <Button onClick={exportar} disabled={ocupado}>
             Exportar tudo
           </Button>
         </LinhaAcao>
-        <LinhaAcao titulo="Importar um arquivo" texto="Mostra o que há no arquivo antes de qualquer mudança. Ao confirmar, a Central baixa uma cópia do que há hoje e substitui os dados deste navegador.">
+        <LinhaAcao titulo="Importar um arquivo" texto={`Mostra o que há no arquivo antes de qualquer mudança. Ao confirmar, a Central baixa uma cópia do que há hoje e substitui os dados ${ONDE}${NA_NUVEM ? ', para todas as pessoas' : ''}.`}>
           <Button variante="secundario" onClick={() => entradaDeArquivo.current?.click()} disabled={ocupado}>
             Escolher arquivo
           </Button>
@@ -162,12 +171,15 @@ export function PainelDados() {
       </Secao>
 
       <Secao icone={FlaskConical} titulo="Dados de exemplo" descricao="Para testar à vontade, sem medo de errar.">
-        <LinhaAcao titulo="Restaurar exemplos" texto="Volta tudo ao início, como na primeira abertura.">
-          <Button variante="secundario" onClick={() => setConfirmando('restaurar')} disabled={ocupado}>
-            Restaurar exemplos
-          </Button>
-        </LinhaAcao>
-        <LinhaAcao titulo="Limpar exemplos" texto={exemplos ? 'Remove só os registros fictícios. O que vocês cadastraram continua aqui.' : 'Não há registros de exemplo neste navegador.'}>
+        {/* No servidor, apagar tudo apagaria o trabalho de todas as pessoas: só limpar continua. */}
+        {!NA_NUVEM && (
+          <LinhaAcao titulo="Restaurar exemplos" texto="Volta tudo ao início, como na primeira abertura.">
+            <Button variante="secundario" onClick={() => setConfirmando('restaurar')} disabled={ocupado}>
+              Restaurar exemplos
+            </Button>
+          </LinhaAcao>
+        )}
+        <LinhaAcao titulo="Limpar exemplos" texto={exemplos ? 'Remove só os registros fictícios. O que vocês cadastraram continua aqui.' : `Não há registros de exemplo ${NA_NUVEM ? 'na Central' : 'neste navegador'}.`}>
           <Button variante="secundario" onClick={() => setConfirmando('limpar')} disabled={ocupado || !exemplos}>
             Limpar exemplos
           </Button>
@@ -177,7 +189,7 @@ export function PainelDados() {
       <Secao icone={Timer} titulo="Rotinas do dia" descricao="O que a Central confere sozinha ao abrir, uma vez por dia.">
         <LinhaAcao
           titulo="Rodar rotinas agora"
-          texto={`${ultimaRotina ? `Última execução: ${formatarDataHora(ultimaRotina)}.` : 'Ainda não rodaram neste navegador.'} Os alertas chegam junto com o Meu dia.`}
+          texto={`${ultimaRotina ? `Última execução: ${formatarDataHora(ultimaRotina)}.` : `Ainda não rodaram ${NA_NUVEM ? 'na Central' : 'neste navegador'}.`} Os alertas chegam junto com o Meu dia.`}
         >
           <Button variante="secundario" onClick={rodarRotinas} disabled={ocupado}>
             Rodar rotinas agora
