@@ -124,8 +124,21 @@ function aplicarRemota(mudanca: MudancaRemota) {
 
 type LinhaDoBanco = Partial<LinhaNuvem> & { origem?: string | null };
 
-/** Carrega tudo do banco e passa a usar o banco no lugar do localStorage. */
-export async function iniciarNuvem(): Promise<void> {
+let inicio: Promise<void> | null = null;
+
+/**
+ * Carrega tudo do banco e passa a usar o banco no lugar do localStorage. Chamar de novo devolve a
+ * mesma carga: ao abrir a página já logada, o Supabase avisa a entrada mais de uma vez.
+ */
+export function iniciarNuvem(): Promise<void> {
+  inicio ??= conectar().catch((erro: unknown) => {
+    inicio = null;
+    throw erro;
+  });
+  return inicio;
+}
+
+async function conectar(): Promise<void> {
   const linhas = await carregarTudo();
   driverAtual = new DriverNuvem(linhas, { enviar, pessoal: window.localStorage });
   usarDriverPrincipal(driverAtual);

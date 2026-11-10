@@ -60,27 +60,32 @@ function Portao({ children }: { children: ReactNode }) {
     let emailAtual: string | null = null;
 
     async function entrarCom(email: string) {
-      if (iniciou.current) {
-        if (email === emailAtual) {
+      // Ao abrir a página já logada, o Supabase avisa a entrada mais de uma vez: só a primeira carrega.
+      if (emailAtual !== null) {
+        if (email !== emailAtual) window.location.reload();
+        else if (iniciou.current) {
           setSessaoCaiu(false);
           retomarEnvio();
-        } else window.location.reload();
+        }
         return;
       }
+      emailAtual = email;
+      const desistir = (proxima: Etapa) => {
+        emailAtual = null;
+        setEtapa(proxima);
+      };
       setEtapa({ nome: 'carregando' });
       const { data: temAcesso, error } = await clienteNuvem().rpc('tem_acesso');
-      if (error) return setEtapa({ nome: 'erro', mensagem: 'Não foi possível falar com o servidor. Confira a internet e tente de novo.' });
-      if (!temAcesso) return setEtapa({ nome: 'sem_acesso', email });
+      if (error) return desistir({ nome: 'erro', mensagem: 'Não foi possível falar com o servidor. Confira a internet e tente de novo.' });
+      if (!temAcesso) return desistir({ nome: 'sem_acesso', email });
       try {
-        iniciou.current = true;
-        emailAtual = email;
         await iniciarNuvem();
         escolherPessoaPeloEmail(email);
+        iniciou.current = true;
         setEtapa({ nome: 'pronto', email });
       } catch (erro) {
         console.error('Central: falha ao carregar os dados', erro);
-        iniciou.current = false;
-        setEtapa({ nome: 'erro', mensagem: 'Não foi possível carregar os dados. Confira a internet e tente de novo.' });
+        desistir({ nome: 'erro', mensagem: 'Não foi possível carregar os dados. Confira a internet e tente de novo.' });
       }
     }
 
@@ -88,7 +93,10 @@ function Portao({ children }: { children: ReactNode }) {
       if (evento === 'PASSWORD_RECOVERY') return setEtapa({ nome: 'definir_senha' });
       if (evento === 'SIGNED_OUT') {
         if (iniciou.current) setSessaoCaiu(true);
-        else setEtapa({ nome: 'entrar' });
+        else {
+          emailAtual = null;
+          setEtapa({ nome: 'entrar' });
+        }
         return;
       }
       if (evento === 'INITIAL_SESSION' || evento === 'SIGNED_IN') {
