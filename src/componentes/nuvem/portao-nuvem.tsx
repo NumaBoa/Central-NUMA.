@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { CloudOff, LogOut } from 'lucide-react';
 import { Campo } from '@/componentes/campos/campo';
+import { FiosInterativos } from '@/componentes/marca/fios-interativos';
 import { Logo } from '@/componentes/marca/logo';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -149,11 +150,18 @@ function Portao({ children }: { children: ReactNode }) {
 
 function Cartao({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <main className="grid min-h-dvh place-items-center bg-linen px-4 py-10">
-      <div className="w-full max-w-[400px] rounded-[20px] border border-line bg-paper p-6 shadow-e2 md:p-8">
-        <Logo className="text-3xl" />
-        <h1 className="mt-6 mb-2 font-display text-xl font-bold text-ink">{titulo}</h1>
-        {children}
+    <main className="relative isolate min-h-dvh overflow-hidden bg-linen">
+      <FiosInterativos className="fixed -z-10" />
+      <div className="mx-auto grid min-h-dvh max-w-[1180px] content-center items-center gap-8 px-4 py-10 md:px-8 lg:grid-cols-[1fr_400px] lg:gap-16">
+        <header className="lg:pb-6">
+          <Logo className="text-[64px] md:text-[96px] lg:text-[148px]" pontoClassName="ring-[.09em] ring-indigo-wash" />
+          <p className="mt-3 font-display text-xl leading-tight text-ink md:text-2xl lg:mt-5 lg:text-[34px]">Tecnologia que simplifica a vida.</p>
+          <p className="mt-2 text-sm text-ink-soft md:text-base">Um estúdio de software para a rotina funcionar numa boa.</p>
+        </header>
+        <div className="w-full max-w-[400px] rounded-[20px] border border-line bg-paper/95 p-6 shadow-e2 backdrop-blur-sm md:p-8">
+          <h1 className="mb-2 font-display text-xl font-bold text-ink">{titulo}</h1>
+          {children}
+        </div>
       </div>
     </main>
   );
