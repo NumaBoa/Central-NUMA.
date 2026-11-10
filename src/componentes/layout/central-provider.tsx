@@ -11,7 +11,8 @@ import { lerConfiguracoes } from '@/dominio/configuracoes';
 import { acharContexto, carregarContextos, CONTEXTOS_SEM_DADOS, type Contexto } from '@/dominio/contextos';
 import { existemDadosDeExemplo } from '@/dominio/dados';
 import type { Fase } from '@/dominio/navegacao';
-import { pessoasDoSeletor, resolverPessoaAtual } from '@/dominio/pessoa-atual';
+import { lerEmailDoLogin } from '@/dados/sessao';
+import { pessoaDoLogin, pessoasDoSeletor, resolverPessoaAtual } from '@/dominio/pessoa-atual';
 import { sincronizarNotificacoes } from '@/dominio/notificacoes';
 import { executarRotinas, mensagemDasRotinas } from '@/dominio/rotinas';
 
@@ -25,6 +26,8 @@ type ValorCentral = {
   pessoa: PessoaDoSeletor;
   /** Pessoas internas ativas (02 §0.4). */
   pessoas: readonly PessoaDoSeletor[];
+  /** Com login, a pessoa é quem entrou: o "Você é" só mostra o nome. */
+  pessoaPeloLogin: boolean;
   escolherPessoa: (id: string) => void;
   contexto: Contexto;
   /** Os produtos ativos + as duas visões da Numa (CA-02.03). */
@@ -89,10 +92,12 @@ export function CentralProvider({ children }: { children: ReactNode }) {
   const contextos = consultaContextos.dados ?? CONTEXTOS_SEM_DADOS;
   const valor = useMemo<ValorCentral>(() => {
     const paraSeletor = (pessoa: { id: string; nome_completo: string }): PessoaDoSeletor => ({ id: pessoa.id, nome: pessoa.nome_completo });
-    const atual = listaDePessoas ? resolverPessoaAtual(listaDePessoas, meta.pessoa_atual_id) : null;
+    const emailDoLogin = lerEmailDoLogin();
+    const atual = listaDePessoas ? resolverPessoaAtual(listaDePessoas, meta.pessoa_atual_id, emailDoLogin) : null;
     return {
       pessoa: atual ? paraSeletor(atual) : PESSOA_PADRAO,
       pessoas: listaDePessoas ? pessoasDoSeletor(listaDePessoas).map(paraSeletor) : [PESSOA_PADRAO],
+      pessoaPeloLogin: Boolean(listaDePessoas && pessoaDoLogin(listaDePessoas, emailDoLogin)),
       escolherPessoa: (id) => gravarMeta({ pessoa_atual_id: id }),
       contexto: acharContexto(contextos, meta.contexto_id),
       contextos,

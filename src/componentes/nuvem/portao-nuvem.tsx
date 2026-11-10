@@ -7,8 +7,7 @@ import { FiosInterativos } from '@/componentes/marca/fios-interativos';
 import { Logo } from '@/componentes/marca/logo';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
-import { lerTabela } from '@/dados/armazenamento';
-import { gravarMeta, lerMeta } from '@/dados/meta';
+import { gravarMeta } from '@/dados/meta';
 import { nuvemConfigurada } from '@/dados/nuvem/config';
 import {
   assinarSituacaoEnvio,
@@ -20,7 +19,7 @@ import {
   tipoDoLinkDeEntrada,
   type SituacaoEnvio,
 } from '@/dados/nuvem/sincronizacao';
-import type { Pessoa } from '@/dados/tipos/pessoa';
+import { definirEmailDoLogin } from '@/dados/sessao';
 
 type Etapa =
   | { nome: 'verificando' }
@@ -32,13 +31,6 @@ type Etapa =
   | { nome: 'erro'; mensagem: string };
 
 const SITUACAO_EM_DIA: SituacaoEnvio = { estado: 'em_dia' };
-
-/** "Você é" começa na pessoa cadastrada com o e-mail de quem entrou. */
-function escolherPessoaPeloEmail(email: string) {
-  if (lerMeta().pessoa_atual_id) return;
-  const pessoa = lerTabela<Pessoa>('pessoa').find((item) => item.email?.toLowerCase() === email.toLowerCase() && !item.arquivado_em);
-  if (pessoa) gravarMeta({ pessoa_atual_id: pessoa.id });
-}
 
 /**
  * Com o Supabase configurado, a Central só abre para quem entrou com um e-mail autorizado. Sem ele,
@@ -79,8 +71,8 @@ function Portao({ children }: { children: ReactNode }) {
       if (error) return desistir({ nome: 'erro', mensagem: 'Não foi possível falar com o servidor. Confira a internet e tente de novo.' });
       if (!temAcesso) return desistir({ nome: 'sem_acesso', email });
       try {
+        definirEmailDoLogin(email);
         await iniciarNuvem();
-        escolherPessoaPeloEmail(email);
         iniciou.current = true;
         setEtapa({ nome: 'pronto', email });
       } catch (erro) {

@@ -4,10 +4,21 @@ import { garantirCarga } from './carga';
 import { lerMeta } from './meta';
 import type { Pessoa } from './tipos/pessoa';
 
-/** A pessoa de "Você é": autoria dos registros e do histórico (02 §0.3 e §0.4). */
+let emailDoLogin: string | null = null;
+
+/** Com o Supabase, quem entrou define a pessoa atual (componentes/nuvem/portao-nuvem). */
+export function definirEmailDoLogin(email: string | null) {
+  emailDoLogin = email;
+}
+
+export function lerEmailDoLogin(): string | null {
+  return emailDoLogin;
+}
+
+/** A pessoa de "Você é", ou de quem entrou: autoria dos registros e do histórico (02 §0.3 e §0.4). */
 export function pessoaAtual(): Pessoa | null {
   garantirCarga();
-  return resolverPessoaAtual(lerTabela<Pessoa>('pessoa'), lerMeta().pessoa_atual_id);
+  return resolverPessoaAtual(lerTabela<Pessoa>('pessoa'), lerMeta().pessoa_atual_id, emailDoLogin);
 }
 
 let emNomeDoSistema = 0;
